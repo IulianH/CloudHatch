@@ -1,4 +1,8 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +25,33 @@ builder.Services.AddSwaggerGen(c =>
     // Ensure proper sidebar display
     c.DocInclusionPredicate((docName, apiDesc) => true);
 });
+
+// JWT bearer auth: validate tokens issued by the Auth service
+var issuer = builder.Configuration["Jwt:Issuer"];
+var audience = builder.Configuration["Jwt:Audience"];
+var keyB64 = builder.Configuration["Jwt:Key"];
+var keyBytes = Convert.FromBase64String(keyB64!); // use Base64 32-byte secret
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = issuer,
+            ValidAudience = audience,
+            IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+            ClockSkew = TimeSpan.FromSeconds(30),
+            NameClaimType = JwtRegisteredClaimNames.PreferredUsername, // or ClaimTypes.Name
+            RoleClaimType = ClaimTypes.Role
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 
 var app = builder.Build();
