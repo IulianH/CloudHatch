@@ -1,4 +1,6 @@
-namespace Auth.App.Internal.Repository.Impl.RefreshToken
+using Auth.App;
+
+namespace Auth.Infra.RefreshToken.InMemory
 {
     internal class InMemoryRefreshTokenRepository : IRefreshTokenRepository
     {

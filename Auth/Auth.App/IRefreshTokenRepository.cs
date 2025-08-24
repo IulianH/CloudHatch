@@ -1,6 +1,6 @@
-﻿namespace Auth.App.Internal.Repository
+﻿namespace Auth.App
 {
-    internal interface IRefreshTokenRepository
+    public interface IRefreshTokenRepository
     {
         Task SaveAsync(RefreshTokenRecord record);
         Task<RefreshTokenRecord?> GetByTokenAsync(string token);

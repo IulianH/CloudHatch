@@ -1,4 +1,6 @@
-﻿namespace Auth.App.Internal.Repository.Impl
+﻿using Auth.App;
+
+namespace Auth.Infra.Users.InMemory
 {
     internal class InMemoryUserService : IUserService
     {

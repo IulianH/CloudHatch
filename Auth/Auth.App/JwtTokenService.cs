@@ -1,7 +1,4 @@
-﻿
-using Auth.App;
-using Auth.App.Internal.Repository;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -9,9 +6,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Auth.App.Internal
+namespace Auth.App
 {
-    internal class JwtTokenService(IUserService users, IConfiguration config, IRefreshTokenRepository rtRepo) : IJwtTokenService
+    public class JwtTokenService(IUserService users, IConfiguration config, IRefreshTokenRepository rtRepo)
     {
         // Constraints(common in databases) :
 
@@ -28,12 +25,6 @@ namespace Auth.App.Internal
         //Email rules:
         //Simplified but practical RFC-like check
         private static readonly Regex UsernameRegex = new(@"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9._-]{1,18}[a-zA-Z0-9])?|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-        public void MigrateStores()
-        {
-            users.Migrate();
-            rtRepo.Migrate();
-        }
 
         public async Task<TokenPair?> RefreshTokensAsync(string refreshToken)
         {

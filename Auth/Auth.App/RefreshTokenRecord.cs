@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Auth.App.Internal.Repository
+namespace Auth.App
 {
     public class RefreshTokenRecord
     {

@@ -1,6 +1,6 @@
-﻿namespace Auth.App.Internal.Repository
+﻿namespace Auth.App
 {
-    internal interface IUserService
+    public interface IUserService
     {
         Task<User> FindByUserNameAsync(string userName);
         Task<bool> CheckPasswordAsync(User harborUser, string password);

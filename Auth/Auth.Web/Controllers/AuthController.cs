@@ -9,8 +9,8 @@ namespace Auth.Web.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly IJwtTokenService _auth;
-        public AuthController(IJwtTokenService auth) => _auth = auth;
+        private readonly JwtTokenService _auth;
+        public AuthController(JwtTokenService auth) => _auth = auth;
 
         // POST /api/auth/login
         [HttpPost("login")]

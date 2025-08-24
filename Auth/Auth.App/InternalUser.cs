@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Auth.App.Internal.Repository
+namespace Auth.App
 {
-    internal record InternalUser
+    public record InternalUser
     {
         [Key]
         public required Guid Id { get; set; }

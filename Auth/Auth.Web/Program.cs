@@ -1,4 +1,5 @@
 using Auth.App;
+using Auth.Infra;
 using Auth.Web.Middleware;
 using Microsoft.AspNetCore.HttpOverrides;
 
@@ -24,8 +25,9 @@ builder.Services.AddSwaggerGen(c =>
     c.DocInclusionPredicate((docName, apiDesc) => true);
 });
 
+builder.Services.AddTransient<JwtTokenService, JwtTokenService>();
+builder.Services.RegisterInfrastructure(builder.Configuration);
 
-builder.Services.AddTokenHarborJwtTokenService(builder.Configuration);
 var app = builder.Build();
 
 // IMPORTANT: do this early, before auth/routing/etc.
@@ -61,6 +63,7 @@ app.UseMiddleware<InputExceptionHandlerMiddleware>();
 
 app.MapControllers();
 
-app.Services.GetRequiredService<IJwtTokenService>().MigrateStores();
+app.Services.GetRequiredService<IUserService>().Migrate();
+app.Services.GetRequiredService<IRefreshTokenRepository>().Migrate();
 
 app.Run();
