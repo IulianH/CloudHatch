@@ -37,6 +37,14 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.IncludeErrorDetails = true;
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx => {
+                Console.WriteLine($"Authorization header: '{ctx.Request.Headers.Authorization}'");
+                return Task.CompletedTask;
+            }
+        };
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -49,6 +57,15 @@ builder.Services
             ClockSkew = TimeSpan.FromSeconds(30),
             NameClaimType = JwtRegisteredClaimNames.PreferredUsername, // or ClaimTypes.Name
             RoleClaimType = ClaimTypes.Role
+        };
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = ctx =>
+            {
+                var ex = ctx.Exception;
+                ctx.Response.StatusCode = 401;
+                return Task.CompletedTask;
+            }
         };
     });
 
