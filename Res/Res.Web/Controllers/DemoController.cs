@@ -19,12 +19,9 @@ namespace Res.Web.Controllers
         [Authorize]
         public IActionResult Secure()
         {
-            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? "<missing>";
-            var name = User.Identity?.Name
-                     ?? User.FindFirst(JwtRegisteredClaimNames.PreferredUsername)?.Value;
-            var roles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value);
-
-            return Ok(new { message = "authorized", sub, name, roles });
+            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            var name = User.Identity?.Name; // comes from PreferredUsername
+            return Ok(new { ok = true, sub, name });
         }
     }
 }

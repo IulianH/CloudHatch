@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,7 +18,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
-        Title = "TokenHarbor API",
+        Title = "CloudHatch resources API",
         Version = "v1",
         Description = "A JWT token management API"
     });
@@ -29,8 +30,8 @@ builder.Services.AddSwaggerGen(c =>
 // JWT bearer auth: validate tokens issued by the Auth service
 var issuer = builder.Configuration["Jwt:Issuer"];
 var audience = builder.Configuration["Jwt:Audience"];
-var keyB64 = builder.Configuration["Jwt:Key"];
-var keyBytes = Convert.FromBase64String(keyB64!); // use Base64 32-byte secret
+
+var keyBytes = Convert.FromBase64String(builder.Configuration["Jwt:Key"]!);
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -85,7 +86,11 @@ app.UseHttpsRedirection();
 
 // Add global exception handling for Token library exceptions
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
+Microsoft.IdentityModel.Logging.IdentityModelEventSource.ShowPII = true; // dev only
 
 app.Run();
