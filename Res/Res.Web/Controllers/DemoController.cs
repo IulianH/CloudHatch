@@ -19,9 +19,10 @@ namespace Res.Web.Controllers
         [Authorize]
         public IActionResult Secure()
         {
-            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-            var name = User.Identity?.Name; // comes from PreferredUsername
-            return Ok(new { ok = true, sub, name });
+            var sub = User.FindFirst("sub")?.Value;                 // stable user id
+            var user = User.Identity?.Name;                          // from NameClaimType
+            var roles = User.FindAll(ClaimTypes.Role).Select(c => c.Value);
+            return Ok(new { ok = true, sub, user });
         }
     }
 }

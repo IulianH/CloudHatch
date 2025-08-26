@@ -37,14 +37,19 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.IncludeErrorDetails = true;
-        options.Events = new JwtBearerEvents
+        if (builder.Environment.IsDevelopment())
         {
-            OnMessageReceived = ctx => {
-                Console.WriteLine($"Authorization header: '{ctx.Request.Headers.Authorization}'");
-                return Task.CompletedTask;
-            }
-        };
+            options.IncludeErrorDetails = true;
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = ctx =>
+                {
+                    Console.WriteLine($"Authorization header: '{ctx.Request.Headers.Authorization}'");
+                    return Task.CompletedTask;
+                }
+            };
+        }
+        options.MapInboundClaims = false; // keep "sub", "preferred_username", etc.
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -58,15 +63,19 @@ builder.Services
             NameClaimType = JwtRegisteredClaimNames.PreferredUsername, // or ClaimTypes.Name
             RoleClaimType = ClaimTypes.Role
         };
-        options.Events = new JwtBearerEvents
+
+        if (builder.Environment.IsDevelopment())
         {
-            OnAuthenticationFailed = ctx =>
+            options.Events = new JwtBearerEvents
             {
-                var ex = ctx.Exception;
-                ctx.Response.StatusCode = 401;
-                return Task.CompletedTask;
-            }
-        };
+                OnAuthenticationFailed = ctx =>
+                {
+                    var ex = ctx.Exception;
+                    ctx.Response.StatusCode = 401;
+                    return Task.CompletedTask;
+                }
+            };
+        }
     });
 
 builder.Services.AddAuthorization();
@@ -107,7 +116,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-Microsoft.IdentityModel.Logging.IdentityModelEventSource.ShowPII = true; // dev only
 
 app.Run();
