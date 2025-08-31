@@ -28,6 +28,21 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddTransient<JwtTokenService, JwtTokenService>();
 builder.Services.RegisterInfrastructure(builder.Configuration);
 
+// Add CORS for development environment if enabled in configuration
+var corsEnabled = builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("EnableCors");
+if (corsEnabled)
+{
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("DevelopmentPolicy", policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+    });
+}
+
 var app = builder.Build();
 
 // IMPORTANT: do this early, before auth/routing/etc.
@@ -53,9 +68,16 @@ if (app.Environment.IsDevelopment())
         c.DefaultModelsExpandDepth(2);
         c.DefaultModelExpandDepth(2);
     });
+    
+    // Enable CORS for development if enabled in configuration
+    if (corsEnabled)
+    {
+        app.UseCors("DevelopmentPolicy");
+    }
 }
 
-app.UseHttpsRedirection();
+// No need when running in a container
+//app.UseHttpsRedirection();
 
 // Add global exception handling for Token library exceptions
 app.UseMiddleware<InputExceptionHandlerMiddleware>();

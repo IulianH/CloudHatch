@@ -16,7 +16,7 @@ namespace Auth.Web.Controllers
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto req)
         {
-            var token = await _auth.IssueTokenAsync(req.Email, req.Password);
+            var token = await _auth.IssueTokenAsync(req.Username, req.Password);
             if (token == null) return Unauthorized();
 
             // set HttpOnly refresh cookie
@@ -82,7 +82,7 @@ namespace Auth.Web.Controllers
         }
     }
     public record LoginRequestDto(
-    string Email,
+    string Username,
     string Password
     );
 
