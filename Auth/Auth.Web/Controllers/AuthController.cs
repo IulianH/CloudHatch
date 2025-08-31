@@ -19,16 +19,6 @@ namespace Auth.Web.Controllers
             var token = await _auth.IssueTokenAsync(req.Username, req.Password);
             if (token == null) return Unauthorized();
 
-            // set HttpOnly refresh cookie
-            Response.Cookies.Append("__Host-refresh", token.RefreshToken, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Lax,
-                Path = "/",
-                MaxAge = TimeSpan.FromDays(30)
-            });
-
             return Ok(new LoginResponseDto(
                 token.AccessToken,
                 token.RefreshToken,
@@ -37,32 +27,13 @@ namespace Auth.Web.Controllers
         }
 
         // POST /api/auth/refresh
-
         [HttpPost("refresh")]
         [AllowAnonymous]
-        public async Task<ActionResult<RefreshResponseDto>> Refresh([FromBody] RefreshRequestDto? body)
+        public async Task<ActionResult<RefreshResponseDto>> Refresh([FromBody] RefreshRequestDto body)
         {
-            // 1) Prefer HttpOnly cookie
-            var rt = Request.Cookies["__Host-refresh"];
-
-            // 2) Fallback to body (optional, e.g., for native clients)
-            if (string.IsNullOrEmpty(rt))
-                rt = body?.RefreshToken;
-
-            if (string.IsNullOrEmpty(rt)) return Unauthorized();
-
-            var pair = await _auth.RefreshTokensAsync(rt);
+            var pair = await _auth.RefreshTokensAsync(body.RefreshToken);
             if (pair is null) return Unauthorized();
 
-            // Rotate cookie
-            Response.Cookies.Append("__Host-refresh", pair.RefreshToken, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Lax,
-                Path = "/",
-                MaxAge = TimeSpan.FromDays(30)
-            });
 
             return Ok(new RefreshResponseDto(
                pair.AccessToken,
@@ -103,6 +74,7 @@ namespace Auth.Web.Controllers
     );
 
     public record LogoutRequestDto(
-        string RefreshToken
+        string RefreshToken,
+        bool LogoutAll
     );
 }

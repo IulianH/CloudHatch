@@ -52,14 +52,18 @@ namespace Auth.App
             return new TokenPair(newJwt, newRToken, ExpiresInSeconds: config.GetValue<int>("Jwt:ExpiresInSeconds"));
         }
 
-        public Task RevokeRefreshTokenAsync(string refreshToken)
+        public async Task RevokeRefreshTokenAsync(string refreshToken)
         {
-            throw new NotImplementedException();
+            if (!ValidateRefreshToken(refreshToken))
+            {
+                return;
+            }
+            await rtRepo.DeleteAsync(refreshToken);
         }
 
         public async Task<TokenPair?> IssueTokenAsync(string username, string password)
         {
-            Validate(username, password);
+            ValidateLoginCredentials(username, password);
 
             var user = await users.FindByUserNameAsync(username);
             if (user == null) return null;
@@ -82,13 +86,22 @@ namespace Auth.App
 
         }
 
-        private void Validate(string username, string password)
+        private void ValidateLoginCredentials(string username, string password)
         {
             var valid = ValidateUserName(username) && ValidatePassword(password);
             if (!valid)
             {
                 throw new InputException("Invalid username or password format");
             }
+        }
+
+        private bool ValidateRefreshToken(string refreshToken)
+        {
+            if(string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return false;
+            }
+            return true;
         }
 
         private string GenerateJwtToken(User user)

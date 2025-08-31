@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Auth.App
 {
@@ -14,6 +9,16 @@ namespace Auth.App
 
         public string UserId { get; set; } = default!;
 
+        public string SessionId { get; set; } = Guid.NewGuid().ToString("N"); // one per device/login
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
         public DateTime ExpiresAt { get; set; }
+
+        public DateTime? RevokedAt { get; set; }   
+        // set on rotation or logout
+        public string? ReplacedByHash { get; set; }            // points to the next RT in the chain
+
+        public bool Compromised { get; set; }            // set if reuse detected
     }
 }
