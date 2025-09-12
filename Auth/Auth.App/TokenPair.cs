@@ -3,6 +3,7 @@
     public record TokenPair(
      string AccessToken,
      string RefreshToken,
-     int ExpiresInSeconds
+     DateTime ExpiresAt,
+     User User
  );
 }

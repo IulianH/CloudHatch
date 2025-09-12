@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { API_CONFIG } from '@/config/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,24 +18,11 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const response = await fetch(API_CONFIG.LOGIN_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (response.ok) {
-        // Success - redirect to home page
-        router.push('/');
-      } else {
-        // Handle error response
-        const errorData = await response.json().catch(() => ({}));
-        setError(errorData.message || 'Login failed. Please try again.');
-      }
-    } catch (err) {
-      setError('Network error. Please check your connection and try again.');
+      await login({ username, password });
+      // Success - redirect to home page
+      router.push('/');
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

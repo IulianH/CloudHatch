@@ -22,7 +22,8 @@ namespace Auth.Web.Controllers
             return Ok(new LoginResponseDto(
                 token.AccessToken,
                 token.RefreshToken,
-                token.ExpiresInSeconds
+                token.ExpiresAt,
+                new UserResponseDto(token.User.Id, token.User.Username)
             ));
         }
 
@@ -38,7 +39,8 @@ namespace Auth.Web.Controllers
             return Ok(new RefreshResponseDto(
                pair.AccessToken,
                pair.RefreshToken,
-               pair.ExpiresInSeconds
+               pair.ExpiresAt,
+               new UserResponseDto(pair.User.Id, pair.User.Username)
            ));
         }
 
@@ -57,10 +59,16 @@ namespace Auth.Web.Controllers
     string Password
     );
 
+    public record UserResponseDto(
+        string Id,
+        string Username
+    );
+        
     public record LoginResponseDto(
         string AccessToken,
         string RefreshToken,
-        int ExpiresIn    // seconds
+        DateTime ExpiresAt,
+        UserResponseDto User
     );
 
     public record RefreshRequestDto(
@@ -70,7 +78,8 @@ namespace Auth.Web.Controllers
     public record RefreshResponseDto(
         string AccessToken,
         string RefreshToken,
-        int ExpiresIn
+        DateTime ExpiresAt,
+        UserResponseDto User
     );
 
     public record LogoutRequestDto(

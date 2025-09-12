@@ -49,7 +49,7 @@ namespace Auth.App
                 ExpiresAt = DateTime.UtcNow.AddDays(30)
             });
 
-            return new TokenPair(newJwt, newRToken, ExpiresInSeconds: config.GetValue<int>("Jwt:ExpiresInSeconds"));
+            return new TokenPair(newJwt.Token, newRToken, newJwt.ExpiresAt, user);
         }
 
         public async Task RevokeRefreshTokenAsync(string refreshToken)
@@ -82,7 +82,7 @@ namespace Auth.App
                 ExpiresAt = DateTime.UtcNow.AddDays(30)
             });
 
-            return new TokenPair(jwt, rToken, ExpiresInSeconds: config.GetValue<int>("Jwt:ExpiresInSeconds"));
+            return new TokenPair(jwt.Token, rToken, jwt.ExpiresAt, user);
 
         }
 
@@ -104,7 +104,7 @@ namespace Auth.App
             return true;
         }
 
-        private string GenerateJwtToken(User user)
+        private dynamic GenerateJwtToken(User user)
         {
             var keyBytes = Convert.FromBase64String(config["Jwt:Key"]!);
             var creds = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256);
@@ -125,8 +125,10 @@ namespace Auth.App
                 expires: expires,
                 signingCredentials: creds
             );
+            
+            var tokenStr = new JwtSecurityTokenHandler().WriteToken(token);
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            return new {Token = tokenStr, ExpiresAt = expires };
         }
 
         private string GenerateRefreshToken()

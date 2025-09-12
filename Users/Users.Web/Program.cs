@@ -21,7 +21,7 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "A JWT token management API"
     });
-    
+
     // Ensure proper sidebar display
     c.DocInclusionPredicate((docName, apiDesc) => true);
 });
