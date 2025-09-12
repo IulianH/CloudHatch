@@ -83,8 +83,14 @@ class ApiClient {
   // Logout method
   async logout(): Promise<void> {
     try {
-      // Call logout endpoint using configured URL
-      await this.request(API_CONFIG.LOGOUT_URL.replace(this.baseURL, ''), { method: 'POST' });
+      // Get refresh token to send in request body
+      const refreshToken = AuthService.getRefreshToken();
+      
+      // Call logout endpoint using configured URL with refresh token in body
+      await this.request(API_CONFIG.LOGOUT_URL.replace(this.baseURL, ''), { 
+        method: 'POST',
+        body: JSON.stringify({ refreshToken })
+      });
     } catch (error) {
       console.warn('Logout endpoint not available');
     } finally {

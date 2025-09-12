@@ -47,7 +47,6 @@ namespace Auth.Web.Controllers
 
         // POST /api/auth/logout
         [HttpPost("logout")]
-        [Authorize]
         public async Task<IActionResult> Logout([FromBody] LogoutRequestDto req)
         {
             await _auth.RevokeRefreshTokenAsync(req.RefreshToken);
