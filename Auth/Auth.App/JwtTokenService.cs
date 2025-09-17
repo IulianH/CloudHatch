@@ -8,23 +8,8 @@ using System.Text.RegularExpressions;
 
 namespace Auth.App
 {
-    public class JwtTokenService(IUserService users, IConfiguration config, IRefreshTokenRepository rtRepo)
+    public class JwtTokenService(UserService users, IConfiguration config, IRefreshTokenRepository rtRepo)
     {
-        // Constraints(common in databases) :
-
-        //Username rules:
-
-        //3–20 characters
-
-        //Letters, digits, underscores(_), dots(.), hyphens(-)
-
-        //Cannot start or end with.or -
-
-        //Cannot have consecutive..or --
-
-        //Email rules:
-        //Simplified but practical RFC-like check
-        private static readonly Regex UsernameRegex = new(@"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9._-]{1,18}[a-zA-Z0-9])?|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public async Task<TokenPair?> RefreshTokensAsync(string refreshToken)
         {
@@ -63,13 +48,11 @@ namespace Auth.App
 
         public async Task<TokenPair?> IssueTokenAsync(string username, string password)
         {
-            ValidateLoginCredentials(username, password);
-
-            var user = await users.FindByUserNameAsync(username);
-            if (user == null) return null;
-
-            if (!await users.CheckPasswordAsync(user, password))
+            var user = await users.LoginAsync(username, password);
+            if (user == null)
+            {
                 return null;
+            }
 
             // Create tokens
             var jwt = GenerateJwtToken(user);
@@ -86,14 +69,7 @@ namespace Auth.App
 
         }
 
-        private void ValidateLoginCredentials(string username, string password)
-        {
-            var valid = ValidateUserName(username) && ValidatePassword(password);
-            if (!valid)
-            {
-                throw new InputException("Invalid username or password format");
-            }
-        }
+      
 
         private bool ValidateRefreshToken(string refreshToken)
         {
@@ -140,16 +116,5 @@ namespace Auth.App
             return Convert.ToBase64String(bytes);
         }
 
-        private bool ValidateUserName(string username)
-        {
-            var valid = username.Length > 2 && UsernameRegex.IsMatch(username);
-            return valid;
-        }
-
-        private bool ValidatePassword(string password)
-        {
-            var valid = password.Length > 5 && password.All(c => char.IsLetterOrDigit(c) || char.IsPunctuation(c) || char.IsWhiteSpace(c));
-            return valid;
-        }
     }
 }

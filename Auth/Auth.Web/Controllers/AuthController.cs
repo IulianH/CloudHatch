@@ -59,7 +59,7 @@ namespace Auth.Web.Controllers
     );
 
     public record UserResponseDto(
-        string Id,
+        Guid Id,
         string Username
     );
         

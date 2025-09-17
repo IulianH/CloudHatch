@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 
-namespace Auth.Infra.Users
+namespace Users.App
 {
 
     /// <summary>

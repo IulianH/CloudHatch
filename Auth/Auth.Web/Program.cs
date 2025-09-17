@@ -26,6 +26,16 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddTransient<JwtTokenService, JwtTokenService>();
+builder.Services.AddTransient<UserService, UserService>();
+
+// Add HttpClient for external user service
+builder.Services.AddHttpClient<UserService>(client =>
+{
+    var baseUrl = builder.Configuration["ExternalUserService:BaseUrl"];
+    client.BaseAddress = new Uri(baseUrl!);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
 builder.Services.RegisterInfrastructure(builder.Configuration);
 
 // Add CORS for development environment if enabled in configuration
@@ -85,7 +95,6 @@ app.UseMiddleware<InputExceptionHandlerMiddleware>();
 
 app.MapControllers();
 
-app.Services.GetRequiredService<IUserService>().Migrate();
 app.Services.GetRequiredService<IRefreshTokenRepository>().Migrate();
 
 app.Run();

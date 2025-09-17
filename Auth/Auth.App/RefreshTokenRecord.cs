@@ -7,7 +7,7 @@ namespace Auth.App
         [Key] 
         public string Token { get; set; } = default!;
 
-        public string UserId { get; set; } = default!;
+        public Guid UserId { get; set; } = default!;
 
         public string SessionId { get; set; } = Guid.NewGuid().ToString("N"); // one per device/login
 
