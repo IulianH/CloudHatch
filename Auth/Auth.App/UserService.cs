@@ -13,23 +13,9 @@ namespace Auth.App
         {
             PropertyNameCaseInsensitive = true
         };
-
-
-        //3–20 characters
-
-        //Letters, digits, underscores(_), dots(.), hyphens(-)
-
-        //Cannot start or end with.or -
-
-        //Cannot have consecutive..or --
-
-        //Email rules:
-        //Simplified but practical RFC-like check
-        private static readonly Regex UsernameRegex = new(@"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9._-]{1,18}[a-zA-Z0-9])?|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+      
         public async Task<User?> LoginAsync(string username, string password)
         {
-            ValidateLoginCredentials(username, password);
-            
             try
             {
                 var loginRequest = new LoginRequest(username, password);
@@ -75,28 +61,6 @@ namespace Auth.App
             }
 
             return null;
-        }
-
-        private void ValidateLoginCredentials(string username, string password)
-        {
-            var valid = ValidateUserName(username) && ValidatePassword(password);
-            if (!valid)
-            {
-                throw new InputException("Invalid username or password format");
-            }
-        }
-
-
-        private static bool ValidateUserName(string username)
-        {
-            var valid = username.Length > 2 && UsernameRegex.IsMatch(username);
-            return valid;
-        }
-
-        private static bool ValidatePassword(string password)
-        {
-            var valid = password.Length > 5 && password.All(c => char.IsLetterOrDigit(c) || char.IsPunctuation(c) || char.IsWhiteSpace(c));
-            return valid;
         }
     }
 }
