@@ -38,7 +38,7 @@ builder.Services.AddHttpClient<UserService>(client =>
 
 builder.Services.RegisterInfrastructure(builder.Configuration);
 
-// Add CORS for development environment if enabled in configuration
+// Add CORS for the development environment if enabled in configuration
 var corsEnabled = builder.Environment.IsDevelopment() && builder.Configuration.GetValue<bool>("EnableCors");
 if (corsEnabled)
 {

@@ -1,4 +1,7 @@
 
+using Users.App;
+using Users.Infra;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -19,6 +22,9 @@ builder.Services.AddSwaggerGen(c =>
     // Ensure proper sidebar display
     c.DocInclusionPredicate((docName, apiDesc) => true);
 });
+
+builder.Services.RegisterInfrastructure(builder.Configuration);
+builder.Services.AddTransient<UserService, UserService>();
 
 var app = builder.Build();
 

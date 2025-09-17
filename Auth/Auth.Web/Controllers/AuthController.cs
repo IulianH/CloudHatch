@@ -1,4 +1,5 @@
-﻿using Auth.App;
+﻿using System.ComponentModel.DataAnnotations;
+using Auth.App;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -7,16 +8,13 @@ namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController : ControllerBase
+    public class AuthController(JwtTokenService auth) : ControllerBase
     {
-        private readonly JwtTokenService _auth;
-        public AuthController(JwtTokenService auth) => _auth = auth;
-
         // POST /api/auth/login
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto req)
         {
-            var token = await _auth.IssueTokenAsync(req.Username, req.Password);
+            var token = await auth.IssueTokenAsync(req.Username, req.Password);
             if (token == null) return Unauthorized();
 
             return Ok(new LoginResponseDto(
@@ -32,7 +30,7 @@ namespace Auth.Web.Controllers
         [AllowAnonymous]
         public async Task<ActionResult<RefreshResponseDto>> Refresh([FromBody] RefreshRequestDto body)
         {
-            var pair = await _auth.RefreshTokensAsync(body.RefreshToken);
+            var pair = await auth.RefreshTokensAsync(body.RefreshToken);
             if (pair is null) return Unauthorized();
 
 
@@ -49,12 +47,31 @@ namespace Auth.Web.Controllers
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] LogoutRequestDto req)
         {
-            await _auth.RevokeRefreshTokenAsync(req.RefreshToken);
+            await auth.RevokeRefreshTokenAsync(req.RefreshToken);
             return NoContent();
         }
     }
+    
+    public static class ValidationConstants
+    {
+        public const string UsernameRequired = "Username is required.";
+        public const string PasswordRequired = "Password is required.";
+        public const string RefreshTokenRequired = "Refresh token is required.";
+        
+        // Regex patterns
+        public const string UsernamePattern = @"^[a-zA-Z0-9_]{3,20}$";
+        public const string PasswordPattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$";
+        
+        // Error messages for regex validation
+        public const string UsernameFormatError = "Username must be 3-20 characters long and contain only letters, numbers, and underscores.";
+        public const string PasswordFormatError = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
+    }
+
+    
     public record LoginRequestDto(
+    [Required]    
     string Username,
+    [Required]   
     string Password
     );
 
@@ -71,6 +88,7 @@ namespace Auth.Web.Controllers
     );
 
     public record RefreshRequestDto(
+        [Required]
         string RefreshToken
     );
 

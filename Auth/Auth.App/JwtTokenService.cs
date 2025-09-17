@@ -3,14 +3,11 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Auth.App
 {
     public class JwtTokenService(UserService users, IConfiguration config, IRefreshTokenRepository rtRepo)
     {
-
         public async Task<TokenPair?> RefreshTokensAsync(string refreshToken)
         {
             // 1) Lookup the record
@@ -68,10 +65,8 @@ namespace Auth.App
             return new TokenPair(jwt.Token, rToken, jwt.ExpiresAt, user);
 
         }
-
-      
-
-        private bool ValidateRefreshToken(string refreshToken)
+        
+        private static bool ValidateRefreshToken(string refreshToken)
         {
             if(string.IsNullOrWhiteSpace(refreshToken))
             {
@@ -106,8 +101,7 @@ namespace Auth.App
 
             return new {Token = tokenStr, ExpiresAt = expires };
         }
-
-        private string GenerateRefreshToken()
+        private static string GenerateRefreshToken()
         {
             // cryptographically secure random
             var bytes = new byte[32];
@@ -115,6 +109,5 @@ namespace Auth.App
             rng.GetBytes(bytes);
             return Convert.ToBase64String(bytes);
         }
-
     }
 }

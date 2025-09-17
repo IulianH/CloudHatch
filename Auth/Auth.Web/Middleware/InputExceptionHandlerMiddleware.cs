@@ -5,18 +5,15 @@ namespace Auth.Web.Middleware
 {
     public class InputExceptionHandlerMiddleware(RequestDelegate next, ILogger<InputExceptionHandlerMiddleware> logger)
     {
-        private readonly RequestDelegate _next = next;
-        private readonly ILogger<InputExceptionHandlerMiddleware> _logger = logger;
-
         public async Task InvokeAsync(HttpContext context)
         {
             try
             {
-                await _next(context);
+                await next(context);
             }
             catch (InputException ex)
             {
-                _logger.LogWarning(ex, "InputException caught: {Message}", ex.Message);
+                logger.LogWarning(ex, "InputException caught: {Message}", ex.Message);
                 
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 context.Response.ContentType = "application/json";

@@ -2,10 +2,10 @@
 {
     public record User
     {
-        public required Guid Id { get; set; }
+        public required Guid Id { get; init; }
 
-        public required string Username { get; set; }
+        public required string Username { get; init; }
 
-        public required DateTime CreatedAt { get; set; }
+        public required DateTime CreatedAt { get; init; }
     }
 }

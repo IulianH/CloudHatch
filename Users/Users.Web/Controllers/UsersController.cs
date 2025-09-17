@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Users.App;
 using Users.Domain;
 
@@ -7,14 +6,12 @@ namespace Users.Web.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class Users : ControllerBase
+    public class UsersController(UserService userService) : ControllerBase
     {
-        private readonly UserService _userService;
-
         [HttpPost("login")]
         public async Task<ActionResult<UserResponse>> Login([FromBody] LoginRequest request)
         {
-            var user = await _userService.Login(request);
+            var user = await userService.Login(request);
             if(user == null)
             {
                 return Unauthorized();

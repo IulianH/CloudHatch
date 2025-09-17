@@ -22,7 +22,7 @@ namespace Users.Infra.InMemory
 
         public Task<User?> FindByUserNameAsync(string userName)
         {
-            var user = _users.FirstOrDefault(x => x.NormalizedUsername == userName.ToUpperInvariant());
+            var user = _users.FirstOrDefault(x => x.NormalizedUsername.Equals(userName, StringComparison.InvariantCultureIgnoreCase));
             return Task.FromResult(user);
         }
 
@@ -30,7 +30,7 @@ namespace Users.Infra.InMemory
         {
             var user = new User
             {
-                CreatedAt = DateTime.Now,
+                CreatedAt = DateTime.UtcNow,
                 Username = "admin",
                 NormalizedUsername = "ADMIN",
                 Password = PasswordHasher.Hash("admin1!"),

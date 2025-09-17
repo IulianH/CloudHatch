@@ -7,19 +7,14 @@ namespace Auth.App
     public record LoginRequest(string Username, string Password);
     public record ExternalUserResponse(string Id, string Username, DateTime CreatedAt);
 
-    public class UserService
+    public class UserService(HttpClient httpClient)
     {
-        private readonly HttpClient _httpClient;
-        private static JsonSerializerOptions _serializeOption = new()
+        private static readonly JsonSerializerOptions SerializeOption = new()
         {
             PropertyNameCaseInsensitive = true
         };
 
 
-        public UserService(HttpClient httpClient)
-        {
-            _httpClient = httpClient;
-        }
         //3–20 characters
 
         //Letters, digits, underscores(_), dots(.), hyphens(-)
@@ -41,12 +36,12 @@ namespace Auth.App
                 var json = JsonSerializer.Serialize(loginRequest);
                 var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync("login", content);
+                var response = await httpClient.PostAsync("login", content);
                 
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
-                    var user = JsonSerializer.Deserialize<User>(responseContent, _serializeOption);
+                    var user = JsonSerializer.Deserialize<User>(responseContent, SerializeOption);
                     return user;
                 }
             }
@@ -63,12 +58,12 @@ namespace Auth.App
         {
             try
             {
-                var response = await _httpClient.GetAsync($"users/{userId}");
+                var response = await httpClient.GetAsync($"users/{userId}");
                 
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
-                    var user = JsonSerializer.Deserialize<User>(responseContent, _serializeOption);
+                    var user = JsonSerializer.Deserialize<User>(responseContent, SerializeOption);
 
                     return user;
                 }
@@ -92,13 +87,13 @@ namespace Auth.App
         }
 
 
-        private bool ValidateUserName(string username)
+        private static bool ValidateUserName(string username)
         {
             var valid = username.Length > 2 && UsernameRegex.IsMatch(username);
             return valid;
         }
 
-        private bool ValidatePassword(string password)
+        private static bool ValidatePassword(string password)
         {
             var valid = password.Length > 5 && password.All(c => char.IsLetterOrDigit(c) || char.IsPunctuation(c) || char.IsWhiteSpace(c));
             return valid;
