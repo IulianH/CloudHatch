@@ -6,7 +6,7 @@ namespace Users.Infra.InMemory
 {
     public class InMemUserRepo : IUserRepo
     {
-        private List<User> _users = [];
+        private readonly List<User> _users = [];
         public Task AddAsync(User user)
         {
             _users.Add(user);
