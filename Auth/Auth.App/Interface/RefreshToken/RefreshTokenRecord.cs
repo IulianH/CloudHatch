@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Auth.App
+namespace Auth.App.Interface.RefreshToken
 {
     public class RefreshTokenRecord
     {

@@ -1,4 +1,5 @@
 using Auth.App;
+using Auth.App.Interface.RefreshToken;
 using Auth.Infra;
 using Auth.Web.Middleware;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -25,16 +26,7 @@ builder.Services.AddSwaggerGen(c =>
     c.DocInclusionPredicate((docName, apiDesc) => true);
 });
 
-builder.Services.AddTransient<JwtTokenService, JwtTokenService>();
-builder.Services.AddTransient<UserService, UserService>();
-
-// Add HttpClient for external user service
-builder.Services.AddHttpClient<UserService>(client =>
-{
-    var baseUrl = builder.Configuration["ExternalUserService:BaseUrl"];
-    client.BaseAddress = new Uri(baseUrl!);
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-});
+builder.Services.RegisterApplication(builder.Configuration);
 
 builder.Services.RegisterInfrastructure(builder.Configuration);
 

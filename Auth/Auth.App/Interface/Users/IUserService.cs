@@ -1,4 +1,4 @@
-namespace Auth.App
+namespace Auth.App.Interface.Users
 {
     public interface IUserService
     {

@@ -1,5 +1,6 @@
-﻿using Auth.App;
-using Auth.App.Exceptions;
+﻿using Auth.App.Exceptions;
+using Auth.App.Interface.RefreshToken;
+using Auth.App.Interface.Users;
 using Auth.Infra.RefreshToken.InMemory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

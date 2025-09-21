@@ -1,4 +1,4 @@
-using Auth.App;
+using Auth.App.Interface.RefreshToken;
 
 namespace Auth.Infra.RefreshToken.InMemory
 {

@@ -1,10 +1,11 @@
 using Auth.App.Exceptions;
 using System.Text.Json;
 using Auth.App;
+using Auth.App.Interface.Users;
 
 namespace Auth.Infra
 {
-    public class UserService(HttpClient httpClient) : Auth.App.IUserService
+    public class UserService(HttpClient httpClient) : IUserService
     {
         private static readonly JsonSerializerOptions SerializeOption = new()
         {

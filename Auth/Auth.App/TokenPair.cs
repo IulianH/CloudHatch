@@ -1,4 +1,6 @@
-﻿namespace Auth.App
+﻿using Auth.App.Interface.Users;
+
+namespace Auth.App
 {
     public record TokenPair(
      string AccessToken,

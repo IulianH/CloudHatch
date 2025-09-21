@@ -1,4 +1,4 @@
-﻿namespace Auth.App
+﻿namespace Auth.App.Interface.RefreshToken
 {
     public interface IRefreshTokenRepository
     {
