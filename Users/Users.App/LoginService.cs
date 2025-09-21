@@ -3,7 +3,7 @@ using Users.Domain;
 
 namespace Users.App
 {
-    public class UserService(IUserRepo repo)
+    public class LoginService(IUserRepo repo)
     {
         public async Task<User?> Login(LoginRequest request)
         {

@@ -1,5 +1,6 @@
 
 using Users.App;
+using Users.App.Interface;
 using Users.Infra;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,7 +25,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.RegisterInfrastructure(builder.Configuration);
-builder.Services.AddTransient<UserService, UserService>();
+builder.Services.AddTransient<LoginService, LoginService>();
 
 var app = builder.Build();
 
@@ -44,4 +45,5 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 
+app.Services.GetRequiredService<IUserRepo>().Migrate();
 app.Run();

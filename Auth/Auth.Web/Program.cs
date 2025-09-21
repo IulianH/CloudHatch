@@ -31,7 +31,7 @@ builder.Services.AddTransient<UserService, UserService>();
 // Add HttpClient for external user service
 builder.Services.AddHttpClient<UserService>(client =>
 {
-    var baseUrl = builder.Configuration["ExternalUserService:BaseUrl"];
+    var baseUrl = builder.Configuration["UserServiceBaseUrl"];
     client.BaseAddress = new Uri(baseUrl!);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
@@ -90,11 +90,12 @@ if (app.Environment.IsDevelopment())
 //app.UseHttpsRedirection();
 
 // Add global exception handling for Token library exceptions
-app.UseMiddleware<InputExceptionHandlerMiddleware>();
+app.UseMiddleware<UnhandledExceptionMiddleware>();
 
 
 app.MapControllers();
 
 app.Services.GetRequiredService<IRefreshTokenRepository>().Migrate();
 
+Console.WriteLine($"Starting : {app.Environment.EnvironmentName}");
 app.Run();

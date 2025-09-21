@@ -4,14 +4,14 @@ using Users.Domain;
 
 namespace Users.Web.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [ApiController]
-    public class UsersController(UserService userService) : ControllerBase
+    public class LoginController(LoginService loginService) : ControllerBase
     {
-        [HttpPost("login")]
+        [HttpPost]
         public async Task<ActionResult<UserResponse>> Login([FromBody] LoginRequest request)
         {
-            var user = await userService.Login(request);
+            var user = await loginService.Login(request);
             if(user == null)
             {
                 return Unauthorized();
