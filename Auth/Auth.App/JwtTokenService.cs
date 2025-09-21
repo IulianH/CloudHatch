@@ -6,7 +6,7 @@ using System.Security.Cryptography;
 
 namespace Auth.App
 {
-    public class JwtTokenService(UserService users, IConfiguration config, IRefreshTokenRepository rtRepo)
+    public class JwtTokenService(IUserService users, IConfiguration config, IRefreshTokenRepository rtRepo)
     {
         public async Task<TokenPair?> RefreshTokensAsync(string refreshToken)
         {

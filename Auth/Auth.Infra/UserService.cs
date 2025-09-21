@@ -1,13 +1,10 @@
-﻿using System.Text.RegularExpressions;
+using Auth.App.Exceptions;
 using System.Text.Json;
+using Auth.App;
 
-namespace Auth.App
+namespace Auth.Infra
 {
-    // DTOs for external service communication
-    public record LoginRequest(string Username, string Password);
-    public record ExternalUserResponse(string Id, string Username, DateTime CreatedAt);
-
-    public class UserService(HttpClient httpClient)
+    public class UserService(HttpClient httpClient) : Auth.App.IUserService
     {
         private static readonly JsonSerializerOptions SerializeOption = new()
         {
@@ -29,7 +26,7 @@ namespace Auth.App
                 return user;
             }
             
-            throw new Exception($"Failed when calling \"login\" from user service for username: \"{username}\": {response}");
+            throw new AppException($"Failed when calling user service: {response}");
         }
 
         public async Task<User?> FindByIdAsync(Guid userId)
