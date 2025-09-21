@@ -25,6 +25,10 @@ namespace Auth.Infra
                 var responseContent = await response.Content.ReadAsStringAsync();
                 var user = JsonSerializer.Deserialize<User>(responseContent, SerializeOption);
                 return user;
+            } 
+            if ((int)response.StatusCode >= 400 && (int)response.StatusCode < 500)
+            {
+                return null;
             }
             
             throw new AppException($"Failed when calling user service: {response}");
@@ -32,25 +36,21 @@ namespace Auth.Infra
 
         public async Task<User?> FindByIdAsync(Guid userId)
         {
-            try
+            var response = await httpClient.GetAsync($"users/{userId}");
+
+            if (response.IsSuccessStatusCode)
             {
-                var response = await httpClient.GetAsync($"users/{userId}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    var user = JsonSerializer.Deserialize<User>(responseContent, SerializeOption);
-
-                    return user;
-                }
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var user = JsonSerializer.Deserialize<User>(responseContent, SerializeOption);
+                return user;
             }
-            catch (Exception)
+            
+            if ((int)response.StatusCode >= 400 && (int)response.StatusCode < 500)
             {
-                // Log the exception if needed
-                // For now, we'll return null to indicate user not found
+                return null;
             }
 
-            return null;
+            throw new AppException($"Failed when calling user service: {response}");
         }
     }
 }
