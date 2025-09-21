@@ -31,7 +31,7 @@ builder.Services.AddTransient<UserService, UserService>();
 // Add HttpClient for external user service
 builder.Services.AddHttpClient<UserService>(client =>
 {
-    var baseUrl = builder.Configuration["UserServiceBaseUrl"];
+    var baseUrl = builder.Configuration["ExternalUserService:BaseUrl"];
     client.BaseAddress = new Uri(baseUrl!);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
@@ -97,5 +97,4 @@ app.MapControllers();
 
 app.Services.GetRequiredService<IRefreshTokenRepository>().Migrate();
 
-Console.WriteLine($"Starting : {app.Environment.EnvironmentName}");
 app.Run();
