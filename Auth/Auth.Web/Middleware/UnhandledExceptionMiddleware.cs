@@ -5,7 +5,6 @@ namespace Auth.Web.Middleware
 {
     public class UnhandledExceptionMiddleware(RequestDelegate next, ILogger<UnhandledExceptionMiddleware> logger, IWebHostEnvironment environment)
     {
-
         public async Task InvokeAsync(HttpContext context)
         {
             try
