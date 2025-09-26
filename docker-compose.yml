@@ -4,8 +4,6 @@ services:
     build:
       context: .
       dockerfile: Auth/Auth.Web/Dockerfile
-    environment:
-      - ASPNETCORE_URLS=http://+:8080
     networks:
       - private                  # reach the private app
 
@@ -31,7 +29,8 @@ services:
       context: ./nginx
       dockerfile: Dockerfile
     ports:
-      - "8443:443"
+      - "5100:5100"
+      - "443:443"
     networks:
       - default                  # egress to Internet (OCSP/ACME/etc.)
       - private                  # reach the private app
