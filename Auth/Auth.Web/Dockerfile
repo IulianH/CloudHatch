@@ -12,22 +12,21 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Users.Web/Users.Web.csproj", "Users.Web/"]
-COPY ["Users.App/Users.App.csproj", "Users.App/"]
-COPY ["Users.Domain/Users.Domain.csproj", "Users.Domain/"]
-COPY ["Users.Infra/Users.Infra.csproj", "Users.Infra/"]
-RUN dotnet restore "./Users.Web/Users.Web.csproj"
+COPY ["Auth.Web/Auth.Web.csproj", "Auth.Web/"]
+COPY ["Auth.App/Auth.App.csproj", "Auth.App/"]
+COPY ["Auth.Infra/Auth.Infra.csproj", "Auth.Infra/"]
+RUN dotnet restore "./Auth.Web/Auth.Web.csproj"
 COPY . .
-WORKDIR "/src/Users.Web"
-RUN dotnet build "./Users.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/Auth.Web"
+RUN dotnet build "./Auth.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Users.Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./Auth.Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Users.Web.dll"]
+ENTRYPOINT ["dotnet", "Auth.Web.dll"]
