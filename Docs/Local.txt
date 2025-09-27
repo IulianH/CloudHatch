@@ -65,15 +65,19 @@ f). Extract the key
 
 3. Open Docker Desktop
 
-4. Open Docker.sln with Visual Studio
+4. In a power shell/command front run in the frontend directory (creates the image for the nextJs frontend):
+  (cd frontend)
+  docker build -f Dockerfile.dev -t cloudhatch/frontend-dev .
 
-5. Set docker-compose as startup project in VS, if not already set
+5. Open Docker.sln with Visual Studio
 
-6. Set the tarket run to be Debug=>with Docker Compose, if not already set in the top of the screen
+6. Set docker-compose as startup project in VS, if not already set
+
+7. Set the tarket run to be Debug=>with Docker Compose, if not already set in the top of the VS window
 
 (VS starts creating the containers)
 
-7. Start debugging 
+8. Start debugging (F5)
 
 (The default browser eventually starts, navigates to the login page)
 

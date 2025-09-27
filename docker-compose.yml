@@ -23,6 +23,21 @@ services:
     networks:
       - private                  # reach the private app
 
+  # Pre-built Next.js development service
+  frontend:
+    image: cloudhatch/frontend-dev:latest
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+    networks:
+      - private
+
   reverse-proxy:
     image: nginx:latest
     build:
@@ -38,6 +53,7 @@ services:
       - auth.web
       - res.web
       - users.web
+      - frontend
      
 networks:
   private:
