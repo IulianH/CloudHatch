@@ -1,16 +1,16 @@
 import AuthService from './auth';
 import { API_CONFIG } from '@/config/api';
+import { buildApiUrl, isRelativeUrl } from './url-utils';
 
 class ApiClient {
-  private baseURL: string;
-
   constructor() {
-    this.baseURL = API_CONFIG.LOGIN_URL.replace('/api/Auth/login', '');
+    // No need to store baseURL anymore - we'll resolve it dynamically
   }
 
   // Make authenticated API requests with automatic token refresh
   async request(endpoint: string, options: RequestInit = {}): Promise<Response> {
-    const url = `${this.baseURL}${endpoint}`;
+    // Resolve the URL dynamically - handle both relative and absolute URLs
+    const url = isRelativeUrl(endpoint) ? buildApiUrl(endpoint) : endpoint;
     
     // Check if we need to refresh the token
     if (AuthService.isAccessTokenExpired()) {
@@ -62,7 +62,8 @@ class ApiClient {
 
   // Login method
   async login(credentials: { username: string; password: string }): Promise<any> {
-    const response = await fetch(API_CONFIG.LOGIN_URL, {
+    const url = isRelativeUrl(API_CONFIG.LOGIN_URL) ? buildApiUrl(API_CONFIG.LOGIN_URL) : API_CONFIG.LOGIN_URL;
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -87,7 +88,7 @@ class ApiClient {
       const refreshToken = AuthService.getRefreshToken();
       
       // Call logout endpoint using configured URL with refresh token in body
-      await this.request(API_CONFIG.LOGOUT_URL.replace(this.baseURL, ''), { 
+      await this.request(API_CONFIG.LOGOUT_URL, { 
         method: 'POST',
         body: JSON.stringify({ refreshToken })
       });
@@ -100,7 +101,7 @@ class ApiClient {
 
   // Get user profile
   async getProfile(): Promise<any> {
-    const response = await this.request(API_CONFIG.PROFILE_URL.replace(this.baseURL, ''));
+    const response = await this.request(API_CONFIG.PROFILE_URL);
     if (!response.ok) {
       throw new Error('Failed to fetch profile');
     }

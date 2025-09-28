@@ -1,4 +1,5 @@
 import { API_CONFIG } from '@/config/api';
+import { buildApiUrl, isRelativeUrl } from './url-utils';
 
 export interface AuthResponse {
   accessToken: string;
@@ -156,8 +157,9 @@ class AuthService {
     }
 
     try {
-      // Use configured refresh endpoint instead of hardcoded '/api/Auth/refresh'
-      const response = await fetch(API_CONFIG.REFRESH_URL, {
+      // Use configured refresh endpoint with dynamic URL resolution
+      const url = isRelativeUrl(API_CONFIG.REFRESH_URL) ? buildApiUrl(API_CONFIG.REFRESH_URL) : API_CONFIG.REFRESH_URL;
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

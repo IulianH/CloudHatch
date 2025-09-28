@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Auth.Web.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class AuthController(JwtTokenService auth) : ControllerBase
     {
         // POST /api/auth/login
