@@ -24,7 +24,7 @@ export function getBaseUrl(): string {
 
 /**
  * Build a full API URL from a relative path
- * @param relativePath - The relative API path (e.g., '/api/Auth/login')
+ * @param relativePath - The relative API path (e.g., '/api/auth/login')
  * @returns The full URL
  */
 export function buildApiUrl(relativePath: string): string {

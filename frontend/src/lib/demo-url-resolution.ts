@@ -28,8 +28,8 @@ export function demonstrateUrlResolution() {
   
   // Show URL type detection
   console.log('\nURL Type Detection:');
-  console.log('Is /api/Auth/login relative?', isRelativeUrl('/api/Auth/login'));
-  console.log('Is https://example.com/api/Auth/login relative?', isRelativeUrl('https://example.com/api/Auth/login'));
+  console.log('Is /api/auth/login relative?', isRelativeUrl('/api/auth/login'));
+  console.log('Is https://example.com/api/auth/login relative?', isRelativeUrl('https://example.com/api/auth/login'));
   
   console.log('\n=== End Demo ===');
 }
@@ -42,19 +42,19 @@ export function simulateDifferentEnvironments() {
   console.log('\nDevelopment Environment (localhost:3000):');
   const devBaseUrl = 'http://localhost:3000';
   console.log('Base URL:', devBaseUrl);
-  console.log('Login URL:', `${devBaseUrl}/api/Auth/login`);
+  console.log('Login URL:', `${devBaseUrl}/api/auth/login`);
   
   // Simulate production environment
   console.log('\nProduction Environment (https://myapp.com):');
   const prodBaseUrl = 'https://myapp.com';
   console.log('Base URL:', prodBaseUrl);
-  console.log('Login URL:', `${prodBaseUrl}/api/Auth/login`);
+  console.log('Login URL:', `${prodBaseUrl}/api/auth/login`);
   
   // Simulate staging environment
   console.log('\nStaging Environment (https://staging.myapp.com):');
   const stagingBaseUrl = 'https://staging.myapp.com';
   console.log('Base URL:', stagingBaseUrl);
-  console.log('Login URL:', `${stagingBaseUrl}/api/Auth/login`);
+  console.log('Login URL:', `${stagingBaseUrl}/api/auth/login`);
   
   console.log('\n=== End Environment Simulation ===');
 }

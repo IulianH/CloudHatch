@@ -26,9 +26,9 @@ All API endpoints now use relative paths:
 
 ```typescript
 export const API_CONFIG = {
-  LOGIN_URL: process.env.NEXT_PUBLIC_LOGIN_URL || '/api/Auth/login',
-  REFRESH_URL: process.env.NEXT_PUBLIC_REFRESH_URL || '/api/Auth/refresh',
-  LOGOUT_URL: process.env.NEXT_PUBLIC_LOGOUT_URL || '/api/Auth/logout',
+  LOGIN_URL: process.env.NEXT_PUBLIC_LOGIN_URL || '/api/auth/login',
+  REFRESH_URL: process.env.NEXT_PUBLIC_REFRESH_URL || '/api/auth/refresh',
+  LOGOUT_URL: process.env.NEXT_PUBLIC_LOGOUT_URL || '/api/auth/logout',
   PROFILE_URL: process.env.NEXT_PUBLIC_PROFILE_URL || '/api/Users/profile',
 };
 ```
@@ -69,9 +69,9 @@ The following environment variables are now optional and can be used to override
 NEXT_PUBLIC_BASE_URL=https://api.myapp.com
 
 # Optional: Override specific API endpoints (if needed)
-NEXT_PUBLIC_LOGIN_URL=/api/Auth/login
-NEXT_PUBLIC_REFRESH_URL=/api/Auth/refresh
-NEXT_PUBLIC_LOGOUT_URL=/api/Auth/logout
+NEXT_PUBLIC_LOGIN_URL=/api/auth/login
+NEXT_PUBLIC_REFRESH_URL=/api/auth/refresh
+NEXT_PUBLIC_LOGOUT_URL=/api/auth/logout
 NEXT_PUBLIC_PROFILE_URL=/api/Users/profile
 ```
 
