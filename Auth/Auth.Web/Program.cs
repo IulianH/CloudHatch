@@ -3,6 +3,8 @@ using Auth.App.Interface.RefreshToken;
 using Auth.Infra;
 using Auth.Web.Middleware;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.OpenApi;
+using Scalar.AspNetCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,20 +13,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "TokenHarbor API",
-        Version = "v1",
-        Description = "A JWT token management API"
-    });
-    
-    // Ensure proper sidebar display
-    c.DocInclusionPredicate((docName, apiDesc) => true);
-});
+// Add OpenAPI services with Scalar transformers
+builder.Services.AddOpenApi(options => options.AddScalarTransformers());
 
 builder.Services.RegisterApplication(builder.Configuration);
 
@@ -61,15 +51,11 @@ app.UseForwardedHeaders(fwd);
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "TokenHarbor API V1");
-        c.RoutePrefix = "swagger";
-        c.DocumentTitle = "TokenHarbor API Documentation";
-        c.DefaultModelsExpandDepth(2);
-        c.DefaultModelExpandDepth(2);
-    });
+    // Add OpenAPI document generation
+    app.MapOpenApi();
+    
+    // Add Scalar UI for API documentation
+    app.MapScalarApiReference();
     
     // Enable CORS for development if enabled in configuration
     if (corsEnabled)
