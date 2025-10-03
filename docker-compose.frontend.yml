@@ -17,5 +17,4 @@ services:
 
 networks:
   private:
-    external: true
-    name: cloudhatch_private
+    driver: bridge
