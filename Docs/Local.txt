@@ -67,7 +67,7 @@ f). Extract the key
 
 4. In a power shell/command front run in the frontend directory (creates the image for the nextJs frontend):
   (cd frontend)
-  docker build -f Dockerfile.dev -t cloudhatch/frontend-dev .
+  docker build -t cloudhatch/frontend-prod .
 
 5. Open Docker.sln with Visual Studio
 

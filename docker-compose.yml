@@ -40,9 +40,7 @@ services:
 
   # Pre-built Next.js development service
   frontend:
-    image: cloudhatch/frontend-dev:latest
-    environment:
-      - NODE_ENV=development
+    image: cloudhatch/frontend-prod:latest
     restart: unless-stopped
     networks:
       - private
