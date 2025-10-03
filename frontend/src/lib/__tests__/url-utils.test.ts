@@ -33,7 +33,7 @@ describe('URL Utils', () => {
       
       // Mock window as undefined for server-side
       const originalWindow = global.window;
-      // @ts-ignore
+      // @ts-expect-error - Intentionally deleting window for server-side test
       delete global.window;
       
       expect(getBaseUrl()).toBe('https://api.example.com');

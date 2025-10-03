@@ -61,7 +61,7 @@ class ApiClient {
   }
 
   // Login method
-  async login(credentials: { username: string; password: string }): Promise<any> {
+  async login(credentials: { username: string; password: string }): Promise<{ token: string; user: { id: string; username: string; email?: string } }> {
     const url = isRelativeUrl(API_CONFIG.LOGIN_URL) ? buildApiUrl(API_CONFIG.LOGIN_URL) : API_CONFIG.LOGIN_URL;
     const response = await fetch(url, {
       method: 'POST',
@@ -92,7 +92,7 @@ class ApiClient {
         method: 'POST',
         body: JSON.stringify({ refreshToken })
       });
-    } catch (error) {
+    } catch {
       console.warn('Logout endpoint not available');
     } finally {
       AuthService.logout();
@@ -100,7 +100,7 @@ class ApiClient {
   }
 
   // Get user profile
-  async getProfile(): Promise<any> {
+  async getProfile(): Promise<{ id: string; username: string; email?: string }> {
     const response = await this.request(API_CONFIG.PROFILE_URL);
     if (!response.ok) {
       throw new Error('Failed to fetch profile');
@@ -109,4 +109,5 @@ class ApiClient {
   }
 }
 
-export default new ApiClient();
+const apiClient = new ApiClient();
+export default apiClient;

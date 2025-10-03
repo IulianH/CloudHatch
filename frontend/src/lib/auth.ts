@@ -88,7 +88,7 @@ class AuthService {
   }
 
   // Get stored user data
-  static getUser(): any | null {
+  static getUser(): { id: string; username: string; email?: string } | null {
     if (typeof window !== 'undefined') {
       const userData = localStorage.getItem(this.USER_KEY);
       return userData ? JSON.parse(userData) : null;
@@ -140,7 +140,7 @@ class AuthService {
   }
 
   // Get authorization header
-  static getAuthHeader(): { Authorization: string } | {} {
+  static getAuthHeader(): { Authorization: string } | Record<string, never> {
     const token = this.getAccessToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   }

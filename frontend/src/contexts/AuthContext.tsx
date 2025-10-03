@@ -4,9 +4,15 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import AuthService from '@/lib/auth';
 import apiClient from '@/lib/api';
 
+interface User {
+  id: string;
+  username: string;
+  email?: string;
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: any | null;
+  user: User | null;
   login: (credentials: { username: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -16,7 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Check authentication status on mount
