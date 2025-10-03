@@ -23,9 +23,12 @@ services:
     networks:
       - private                  # reach the private app
 
-  # Pre-built Next.js development service
+  # Next.js development service with hot reloading
+  # Note: This service should be run separately from Visual Studio
   frontend:
-    image: cloudhatch/frontend-dev:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
     ports:
       - "3001:3000"
     volumes:
@@ -37,9 +40,10 @@ services:
     restart: unless-stopped
     networks:
       - private
+    profiles:
+      - frontend
 
   reverse-proxy:
-    image: nginx:latest
     build:
       context: ./nginx
       dockerfile: Dockerfile
@@ -53,7 +57,6 @@ services:
       - auth.web
       - res.web
       - users.web
-      - frontend
      
 networks:
   private:
