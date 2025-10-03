@@ -1,0 +1,158 @@
+Frontend Next.js Debugging Guide
+=====================================
+
+This guide explains how to debug the Next.js frontend application running in Docker with hot reload enabled.
+
+Prerequisites
+-------------
+- Docker and Docker Compose installed
+- VS Code (recommended) or Chrome DevTools
+- Frontend service configured with debugging ports exposed
+
+Configuration Overview
+----------------------
+The frontend service is configured with:
+- Port 3000: Next.js development server
+- Port 9229: Node.js debugger port
+- Hot reload enabled through volume mounting
+- Accessible via both private (nginx) and default (direct) networks
+
+Network Access
+--------------
+- Through nginx: https://localhost:5100 (production-like access)
+- Direct access: http://localhost:3000 (development access)
+- Debugger port: localhost:9229 (for debugging tools)
+
+Method 1: VS Code Debugging (Recommended)
+------------------------------------------
+1. Create/update .vscode/launch.json in your project root:
+   {
+     "version": "0.2.0",
+     "configurations": [
+       {
+         "name": "Debug Next.js in Docker",
+         "type": "node",
+         "request": "attach",
+         "port": 9229,
+         "address": "localhost",
+         "localRoot": "${workspaceFolder}/frontend",
+         "remoteRoot": "/app",
+         "protocol": "inspector"
+       }
+     ]
+   }
+
+2. Start the containers:
+   docker-compose -f docker-compose.frontend.yml up
+
+3. Wait for the frontend service to start and show "Ready" message
+
+4. Set breakpoints in your Next.js code (both server and client-side)
+
+5. In VS Code, go to Run and Debug panel (Ctrl+Shift+D)
+
+6. Select "Debug Next.js in Docker" configuration
+
+7. Click the green play button or press F5
+
+8. Your breakpoints should now be active!
+
+Method 2: Chrome DevTools
+--------------------------
+1. Start the containers:
+   docker-compose -f docker-compose.frontend.yml up
+
+2. Open Chrome and navigate to: chrome://inspect
+
+3. Click "Open dedicated DevTools for Node"
+
+4. You should see your Next.js process listed
+
+5. Click "inspect" next to your process
+
+6. Set breakpoints in the Sources tab
+
+7. Interact with your application to trigger breakpoints
+
+Method 3: Command Line Debugging
+---------------------------------
+1. Start the containers:
+   docker-compose -f docker-compose.frontend.yml up
+
+2. In another terminal, connect to the debugger:
+   node --inspect-brk=localhost:9229
+
+3. Use the debugger commands in the Node.js REPL
+
+Debugging Tips
+--------------
+- Hot reload works while debugging - changes are reflected immediately
+- You can debug both server-side and client-side code
+- Set breakpoints in API routes, middleware, and React components
+- Use console.log() statements as backup debugging method
+- Check Docker logs: docker-compose -f docker-compose.frontend.yml logs frontend
+
+Common Issues and Solutions
+---------------------------
+Issue: Debugger won't attach
+Solution: Ensure port 9229 is exposed and NODE_OPTIONS is set correctly
+
+Issue: Breakpoints not hitting
+Solution: Verify source maps are enabled in next.config.js
+
+Issue: Hot reload not working
+Solution: Check volume mounting and WATCHPACK_POLLING environment variable
+
+Issue: Can't access localhost:3000
+Solution: Ensure frontend service is on both private and default networks
+
+Troubleshooting Commands
+------------------------
+# Check if containers are running
+docker-compose -f docker-compose.frontend.yml ps
+
+# View frontend logs
+docker-compose -f docker-compose.frontend.yml logs frontend
+
+# Check network connectivity
+docker network ls
+docker network inspect cloudhatch_private
+
+# Restart frontend service
+docker-compose -f docker-compose.frontend.yml restart frontend
+
+# Rebuild frontend service
+docker-compose -f docker-compose.frontend.yml up --build frontend
+
+Environment Variables
+---------------------
+- NODE_ENV=development: Sets development mode
+- WATCHPACK_POLLING=true: Enables file watching in Docker
+- NODE_OPTIONS=--inspect=0.0.0.0:9229: Enables debugger on all interfaces
+
+File Structure
+--------------
+frontend/
+├── src/
+│   ├── app/           # Next.js 13+ app directory
+│   ├── components/    # React components
+│   └── lib/          # Utility functions
+├── Dockerfile.dev    # Development Dockerfile
+└── package.json      # Dependencies and scripts
+
+Volume Mounts
+-------------
+- ./frontend:/app: Source code mapping
+- /app/node_modules: Preserves node_modules
+- /app/.next: Preserves Next.js build cache
+
+Next Steps
+----------
+1. Set up your preferred debugging method
+2. Create breakpoints in your code
+3. Test the debugging workflow
+4. Familiarize yourself with the debugging tools
+5. Set up additional debugging configurations as needed
+
+For more advanced debugging scenarios, refer to the Next.js and Node.js debugging documentation.
+

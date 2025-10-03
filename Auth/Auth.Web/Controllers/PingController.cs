@@ -1,14 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Auth.Web.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("ping")]
     [ApiController]
     public class PingController : ControllerBase
     {
-        public IActionResult Get()
-        {
-            return Ok("pong");
-        }
+        [HttpGet]
+        public IActionResult Get() => Ok("pong");
     }
 }

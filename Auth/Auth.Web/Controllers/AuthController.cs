@@ -6,10 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace Auth.Web.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("/")]
     public class AuthController(JwtTokenService auth) : ControllerBase
     {
-        // POST /api/auth/login
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto req)
         {
@@ -24,9 +23,7 @@ namespace Auth.Web.Controllers
             ));
         }
 
-        // POST /api/auth/refresh
         [HttpPost("refresh")]
-        [AllowAnonymous]
         public async Task<ActionResult<RefreshResponseDto>> Refresh([FromBody] RefreshRequestDto body)
         {
             var pair = await auth.RefreshTokensAsync(body.RefreshToken);
@@ -42,7 +39,6 @@ namespace Auth.Web.Controllers
         }
 
 
-        // POST /api/auth/logout
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] LogoutRequestDto req)
         {

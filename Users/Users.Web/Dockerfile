@@ -12,13 +12,13 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Users.Web/Users.Web.csproj", "Users.Web/"]
-COPY ["Users.App/Users.App.csproj", "Users.App/"]
-COPY ["Users.Domain/Users.Domain.csproj", "Users.Domain/"]
-COPY ["Users.Infra/Users.Infra.csproj", "Users.Infra/"]
-RUN dotnet restore "./Users.Web/Users.Web.csproj"
+COPY ["Users/Users.Web/Users.Web.csproj", "Users/Users.Web/"]
+COPY ["Users/Users.App/Users.App.csproj", "Users/Users.App/"]
+COPY ["Users/Users.Domain/Users.Domain.csproj", "Users/Users.Domain/"]
+COPY ["Users/Users.Infra/Users.Infra.csproj", "Users/Users.Infra/"]
+RUN dotnet restore "./Users/Users.Web/Users.Web.csproj"
 COPY . .
-WORKDIR "/src/Users.Web"
+WORKDIR "/src/Users/Users.Web"
 RUN dotnet build "./Users.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage

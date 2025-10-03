@@ -1,1 +1,0 @@
-openssl req -x509 -newkey rsa:2048 -nodes -days 365 -keyout c:\Users\hoi\source\repos\IulianH\CloudHatch\nginx\ssl\privkey.pem -out c:\Users\hoi\source\repos\IulianH\CloudHatch\nginx\ssl\fullchain.pem -subj "/CN=localhost"

@@ -5,9 +5,9 @@
 To configure the login API endpoint, create a `.env.local` file in the root directory with:
 
 ```bash
-NEXT_PUBLIC_LOGIN_URL=https://localhost:44373/api/Auth/login
-NEXT_PUBLIC_REFRESH_URL=https://localhost:44373/api/Auth/refresh
-NEXT_PUBLIC_LOGOUT_URL=https://localhost:44373/api/Auth/logout
+NEXT_PUBLIC_LOGIN_URL=https://localhost:44373/api/auth/login
+NEXT_PUBLIC_REFRESH_URL=https://localhost:44373/api/auth/refresh
+NEXT_PUBLIC_LOGOUT_URL=https://localhost:44373/api/auth/logout
 NEXT_PUBLIC_PROFILE_URL=https://localhost:44375/api/Users/profile
 ```
 

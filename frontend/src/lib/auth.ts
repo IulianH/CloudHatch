@@ -1,4 +1,5 @@
 import { API_CONFIG } from '@/config/api';
+import { buildApiUrl, isRelativeUrl } from './url-utils';
 
 export interface AuthResponse {
   accessToken: string;
@@ -87,7 +88,7 @@ class AuthService {
   }
 
   // Get stored user data
-  static getUser(): any | null {
+  static getUser(): { id: string; username: string; email?: string } | null {
     if (typeof window !== 'undefined') {
       const userData = localStorage.getItem(this.USER_KEY);
       return userData ? JSON.parse(userData) : null;
@@ -139,7 +140,7 @@ class AuthService {
   }
 
   // Get authorization header
-  static getAuthHeader(): { Authorization: string } | {} {
+  static getAuthHeader(): { Authorization: string } | Record<string, never> {
     const token = this.getAccessToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
@@ -156,8 +157,9 @@ class AuthService {
     }
 
     try {
-      // Use configured refresh endpoint instead of hardcoded '/api/Auth/refresh'
-      const response = await fetch(API_CONFIG.REFRESH_URL, {
+      // Use configured refresh endpoint with dynamic URL resolution
+      const url = isRelativeUrl(API_CONFIG.REFRESH_URL) ? buildApiUrl(API_CONFIG.REFRESH_URL) : API_CONFIG.REFRESH_URL;
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

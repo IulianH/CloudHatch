@@ -12,12 +12,12 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Auth.Web/Auth.Web.csproj", "Auth.Web/"]
-COPY ["Auth.App/Auth.App.csproj", "Auth.App/"]
-COPY ["Auth.Infra/Auth.Infra.csproj", "Auth.Infra/"]
-RUN dotnet restore "./Auth.Web/Auth.Web.csproj"
+COPY ["Auth/Auth.Web/Auth.Web.csproj", "Auth/Auth.Web/"]
+COPY ["Auth/Auth.App/Auth.App.csproj", "Auth/Auth.App/"]
+COPY ["Auth/Auth.Infra/Auth.Infra.csproj", "Auth/Auth.Infra/"]
+RUN dotnet restore "./Auth/Auth.Web/Auth.Web.csproj"
 COPY . .
-WORKDIR "/src/Auth.Web"
+WORKDIR "/src/Auth/Auth.Web"
 RUN dotnet build "./Auth.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
