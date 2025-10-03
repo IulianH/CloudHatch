@@ -7,9 +7,6 @@ namespace Auth.Web.Controllers
     public class PingController : ControllerBase
     {
         [HttpGet]
-        public IActionResult Get()
-        {
-            return Ok("pong");
-        }
+        public IActionResult Get() => Ok("pong");
     }
 }
