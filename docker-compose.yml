@@ -61,6 +61,7 @@ services:
       - auth.web
       - res.web
       - users.web
+      - frontend
      
 networks:
   private:
