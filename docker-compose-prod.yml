@@ -1,0 +1,63 @@
+services:
+  auth.web:
+    image: ${DOCKER_REGISTRY-}authweb
+    build:
+      context: .
+      dockerfile: Auth/Auth.Web/Dockerfile
+    environment:
+      - ASPNETCORE_HTTP_PORTS=8080
+    ports:
+      - "8080"
+    networks:
+      - private                  
+
+  res.web:
+    image: ${DOCKER_REGISTRY-}resweb
+    build:
+      context: .
+      dockerfile: Res/Res.Web/Dockerfile
+    environment:
+      - ASPNETCORE_HTTP_PORTS=8080
+    ports:
+      - "8080"
+    networks:
+      - private                  
+
+  users.web:
+    image: ${DOCKER_REGISTRY-}usersweb
+    build:
+      context: .
+      dockerfile: Users/Users.Web/Dockerfile
+    environment:
+      - ASPNETCORE_HTTP_PORTS=8080
+    ports:
+      - "8080"
+    networks:
+      - private                  
+
+  # Pre-built Next.js development service
+  frontend:
+    image: cloudhatch/frontend-prod:latest
+    restart: unless-stopped
+    networks:
+      - private
+
+  reverse-proxy:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "5100:5100"
+      - "443:443"
+    networks:
+      - default                  # egress to Internet (OCSP/ACME/etc.)
+      - private                  # reach the private app
+    depends_on:
+      - auth.web
+      - res.web
+      - users.web
+      - frontend
+     
+networks:
+  private:
+    internal: true 
