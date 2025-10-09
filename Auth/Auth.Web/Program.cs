@@ -51,4 +51,5 @@ app.MapControllers();
 
 app.Services.GetRequiredService<IRefreshTokenRepository>().Migrate();
 
+Console.WriteLine($"Starting Auth.Web in {app.Environment.EnvironmentName}");
 app.Run();
