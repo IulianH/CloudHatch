@@ -4,7 +4,6 @@ The below steps are for Windows, for a different OS you need to research on how 
 
 Prerequisites
 - Git
-- Visual Studio 2022 or higher
 - Docker
 
 1. Install Docker Desktop for Windows
@@ -63,21 +62,16 @@ f). Extract the key
 .\openssl pkcs12 -in "[root]\nginx\ssl\self-signed.pfx" -clcerts -nokeys -out "[root]\nginx\ssl\self-signed.crt"
 (the file self-signed.crt appears)
 
-3. Open Docker Desktop
+3. Optional to run the pre-production docker-desktop file 
 
-4. In a power shell/command front run in the frontend directory (creates the image for the nextJs frontend):
+In a power shell/command front run in the frontend directory (creates the image for the nextJs frontend):
   (cd frontend)
   docker build -t cloudhatch/frontend-prod .
+  
+ Start the production docker compose:
+ docker compose -f compose.prod.yml up --build
+ 
+Navigate to 
 
-5. Open Docker.sln with Visual Studio
 
-6. Set docker-compose as startup project in VS, if not already set
-
-7. Set the tarket run to be Debug=>with Docker Compose, if not already set in the top of the VS window
-
-(VS starts creating the containers)
-
-8. Start debugging (F5)
-
-(The default browser eventually starts, navigates to the login page)
 
