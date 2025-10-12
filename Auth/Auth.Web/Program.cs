@@ -2,11 +2,21 @@ using Auth.App;
 using Auth.App.Interface.RefreshToken;
 using Auth.Infra;
 using Auth.Web.Middleware;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
+using StackExchange.Redis;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+var redisConn = builder.Configuration["REDIS:CONNECTION"]!; // from compose env
+
+var mux = ConnectionMultiplexer.Connect(redisConn);
+// Persist Data Protection keys only to Redis
+builder.Services.AddDataProtection()
+    .SetApplicationName("cloudhatch") // important for sharing across instances
+    .PersistKeysToStackExchangeRedis(mux, "DataProtection-Keys");
 
 // Add services to the container.
 
