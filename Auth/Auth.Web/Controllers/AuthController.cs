@@ -10,31 +10,31 @@ namespace Auth.Web.Controllers
     public class AuthController(JwtTokenService auth) : ControllerBase
     {
         [HttpPost("login")]
-        public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto req)
+        public async Task<ActionResult<HttpLoginResponseDto>> Login([FromBody] HttpLoginRequestDto req)
         {
             var token = await auth.IssueTokenAsync(req.Username, req.Password);
             if (token == null) return Unauthorized();
 
-            return Ok(new LoginResponseDto(
+            return Ok(new HttpLoginResponseDto(
                 token.AccessToken,
                 token.RefreshToken,
                 token.ExpiresAt,
-                new UserResponseDto(token.User.Id, token.User.Username)
+                new HttpUserResponseDto(token.User.Id, token.User.Username)
             ));
         }
 
         [HttpPost("refresh")]
-        public async Task<ActionResult<RefreshResponseDto>> Refresh([FromBody] RefreshRequestDto body)
+        public async Task<ActionResult<HttpRefreshResponseDto>> Refresh([FromBody] HttpRefreshRequestDto body)
         {
             var pair = await auth.RefreshTokensAsync(body.RefreshToken);
             if (pair is null) return Unauthorized();
 
 
-            return Ok(new RefreshResponseDto(
+            return Ok(new HttpRefreshResponseDto(
                pair.AccessToken,
                pair.RefreshToken,
                pair.ExpiresAt,
-               new UserResponseDto(pair.User.Id, pair.User.Username)
+               new HttpUserResponseDto(pair.User.Id, pair.User.Username)
            ));
         }
 
@@ -67,7 +67,7 @@ namespace Auth.Web.Controllers
     }
 
     
-    public record LoginRequestDto(
+    public record HttpLoginRequestDto(
         [Required(ErrorMessage = ValidationConstants.UsernameRequired)]
         [RegularExpression(ValidationConstants.UsernamePattern, ErrorMessage = ValidationConstants.UsernameFormatError)]
         string Username,
@@ -75,28 +75,28 @@ namespace Auth.Web.Controllers
         string Password
     );
 
-    public record UserResponseDto(
+    public record HttpUserResponseDto(
         Guid Id,
         string Username
     );
         
-    public record LoginResponseDto(
+    public record HttpLoginResponseDto(
         string AccessToken,
         string RefreshToken,
         DateTime ExpiresAt,
-        UserResponseDto User
+        HttpUserResponseDto User
     );
 
-    public record RefreshRequestDto(
+    public record HttpRefreshRequestDto(
         [Required]
         string RefreshToken
     );
 
-    public record RefreshResponseDto(
+    public record HttpRefreshResponseDto(
         string AccessToken,
         string RefreshToken,
         DateTime ExpiresAt,
-        UserResponseDto User
+        HttpUserResponseDto User
     );
 
     public record LogoutRequestDto(

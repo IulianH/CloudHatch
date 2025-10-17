@@ -1,6 +1,7 @@
 using Auth.App;
 using Auth.App.Interface.RefreshToken;
 using Auth.Infra;
+using Auth.Web.Extensions;
 using Auth.Web.Middleware;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -21,6 +22,9 @@ builder.Services.AddDataProtection()
 // Add services to the container.
 
 builder.Services.AddControllers();
+
+// Configure AuthCookie options
+builder.Services.Configure<AuthCookieOptions>(builder.Configuration.GetSection("AuthCookie"));
 
 // Add OpenAPI services with Scalar transformers
 builder.Services.AddOpenApi(options => options.AddScalarTransformers());
