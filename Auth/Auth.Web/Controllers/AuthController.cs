@@ -58,11 +58,10 @@ namespace Auth.Web.Controllers
             var pair = await auth.RefreshTokensAsync(body.RefreshToken);
             if (pair is null) return Unauthorized();
 
-            return Ok(new LoginResponseDto(
+            return Ok(new RefreshResponseDto(
                 pair.AccessToken,
                 pair.RefreshToken,
-                pair.ExpiresAt,
-                new UserResponseDto(pair.User.Id, pair.User.Username)
+                pair.ExpiresAt
             ));
         }
 
@@ -88,8 +87,7 @@ namespace Auth.Web.Controllers
             IssueCookie(pair.RefreshToken, protector);
             return Ok(new WebRefreshResponseDto(
                pair.AccessToken,
-               pair.ExpiresAt,
-               new UserResponseDto(pair.User.Id, pair.User.Username)
+               pair.ExpiresAt
            ));
         }
 
@@ -220,17 +218,15 @@ namespace Auth.Web.Controllers
 
     public record WebRefreshResponseDto(
         string AccessToken,
-        DateTime ExpiresAt,
-        UserResponseDto User
+        DateTime ExpiresAt
     );
 
     public record RefreshResponseDto(
         string AccessToken,
         string RefreshToken,
-        DateTime ExpiresAt,
-        UserResponseDto User
+        DateTime ExpiresAt
         
-    ) : WebRefreshResponseDto(AccessToken, ExpiresAt, User);
+    ) : WebRefreshResponseDto(AccessToken, ExpiresAt);
 
     public record WebLogoutRequestDto(
         bool LogoutAll
