@@ -28,7 +28,7 @@ namespace Auth.Web.Controllers
                 token.AccessToken,
                 token.RefreshToken,
                 token.ExpiresAt,
-                new UserResponseDto(token.User.Id, token.User.Username)
+                new UserResponseDto(token.User.Username)
 
             ));
         }
@@ -50,7 +50,7 @@ namespace Auth.Web.Controllers
             return Ok(new WebLoginResponseDto(
                 token.AccessToken,
                 token.ExpiresAt,
-                new UserResponseDto(token.User.Id, token.User.Username)
+                new UserResponseDto(token.User.Username)
             ));
         }
 
@@ -205,7 +205,6 @@ namespace Auth.Web.Controllers
     );
 
     public record UserResponseDto(
-        Guid Id,
         string Username
     );
 
