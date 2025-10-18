@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
 using Auth.App;
 using Auth.Web.Extensions;
 using Microsoft.AspNetCore.DataProtection;
@@ -23,9 +24,31 @@ namespace Auth.Web.Controllers
 
             return Ok(new LoginResponseDto(
                 token.AccessToken,
+                token.RefreshToken,
                 token.ExpiresAt,
-                new UserResponseDto(token.User.Id, token.User.Username),
-                token.RefreshToken
+                new UserResponseDto(token.User.Id, token.User.Username)
+                
+            ));
+        }
+
+        [HttpPost("web-login")]
+        public async Task<ActionResult<WebLoginResponseDto>> WebLogin([FromBody] LoginRequestDto req)
+        {
+            if (!IsAllowedOrigin(Request))
+            {
+                logger.LogWarning("Login request is not from an allowed origin");
+                return Forbid();  // simple CSRF guard 
+            }
+            
+            var token = await auth.IssueTokenAsync(req.Username, req.Password);
+            if (token == null) return Unauthorized();
+
+            var protector = CreateProtector();
+            IssueCookie(token.RefreshToken, protector);
+            return Ok(new WebLoginResponseDto(
+                token.AccessToken,
+                token.ExpiresAt,
+                new UserResponseDto(token.User.Id, token.User.Username)
             ));
         }
 
@@ -35,54 +58,40 @@ namespace Auth.Web.Controllers
             var pair = await auth.RefreshTokensAsync(body.RefreshToken);
             if (pair is null) return Unauthorized();
 
-
-            return Ok(new RefreshResponseDto(
-               pair.AccessToken,
-               pair.ExpiresAt,
-               new UserResponseDto(pair.User.Id, pair.User.Username),
-               pair.RefreshToken
-           ));
+            return Ok(new LoginResponseDto(
+                pair.AccessToken,
+                pair.RefreshToken,
+                pair.ExpiresAt,
+                new UserResponseDto(pair.User.Id, pair.User.Username)
+            ));
         }
 
-        [HttpPost("webrefresh")]
-        public async Task<ActionResult<RefreshResponseDto>> WebRefresh([FromBody] RefreshRequestDto body)
+        [HttpPost("web-refresh")]
+        public async Task<ActionResult<WebRefreshResponseDto>> WebRefresh()
         {
             if (!IsAllowedOrigin(Request)) 
             {
-                logger.LogWarning("Request is not from an allowed origin");
-                return Forbid();  // simple CSRF guard  :contentReference[oaicite:2]{index=2}
+                logger.LogWarning("Refresh request is not from an allowed origin");
+                return Forbid();  // simple CSRF guard 
             }
-            if (!Request.Cookies.TryGetValue(_cookieOptions.Name, out var protectedValue))
+            
+            var protector = CreateProtector();
+            var refreshToken = ReadRefreshTokenFromCookie(protector);
+            if (refreshToken == null)
             {
-                logger.LogWarning("No cookie was sent in the request");
                 return Unauthorized();
             }
 
-            var pair = await auth.RefreshTokensAsync(body.RefreshToken);
+            var pair = await auth.RefreshTokensAsync(refreshToken);
             if (pair is null) return Unauthorized();
 
-            var protector = CreateProtector();
-            try
-            {
-                var unprotectedValue = protector.Unprotect(protectedValue);
-                if (unprotectedValue == null) return Unauthorized();
-            }
-            catch (System.Security.Cryptography.CryptographicException)
-            {
-                logger.LogWarning("Failed to unprotect refresh token");
-                return Unauthorized();
-            }
-            var unprotectedValue = protector.Unprotect(protectedValue);
-            if (unprotectedValue == null) return Unauthorized();
-
-            return Ok(new RefreshResponseDto(
+            IssueCookie(pair.RefreshToken, protector);
+            return Ok(new WebRefreshResponseDto(
                pair.AccessToken,
                pair.ExpiresAt,
-               new UserResponseDto(pair.User.Id, pair.User.Username),
-               pair.RefreshToken
+               new UserResponseDto(pair.User.Id, pair.User.Username)
            ));
         }
-
 
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] LogoutRequestDto req)
@@ -91,11 +100,67 @@ namespace Auth.Web.Controllers
             return NoContent();
         }
 
+        [HttpPost("web-logout")]
+        public async Task<IActionResult> WebLogout([FromBody] WebLogoutRequestDto req)
+        {
+            if (!IsAllowedOrigin(Request))
+            {
+                logger.LogWarning("Logout request is not from an allowed origin");
+                return Forbid();  // simple CSRF guard 
+            }
+            
+            var refreshToken = ReadRefreshTokenFromCookie(CreateProtector());
+            if (refreshToken == null)
+            {
+                return NoContent();
+            }
+            
+            await auth.RevokeRefreshTokenAsync(refreshToken);
+            return NoContent();
+        }
+
+        private string? ReadRefreshTokenFromCookie(IDataProtector protector)
+        {
+            if (!Request.Cookies.TryGetValue(_cookieOptions.Name, out var protectedValue))
+            {
+                return null;
+            }
+
+            string json;
+            try
+            {
+                json = protector.Unprotect(protectedValue);
+            }
+            catch (CryptographicException)
+            {
+                logger.LogWarning("Failed to unprotect refresh token");
+                return null;
+            }
+            var dto = System.Text.Json.JsonSerializer.Deserialize<RefreshDto>(json);
+            return dto!.rt;
+        }
+
         private IDataProtector CreateProtector() => dp.CreateProtector("Tokens.Cookie:v1");
         
         private bool IsAllowedOrigin(HttpRequest r) =>
              r.Headers["Origin"] == $"https://{_cookieOptions.Domain}"
                 || r.Headers["Referer"].ToString().StartsWith($"https://{_cookieOptions.Domain}/");
+
+        private void IssueCookie(string refreshToken, IDataProtector dp)
+        {
+            var newJson = System.Text.Json.JsonSerializer.Serialize(new { rt = refreshToken, v = 1 });
+            var newProtected = dp.Protect(newJson);
+
+            Response.Cookies.Append(_cookieOptions.Name, newProtected, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Lax,
+                Path = _cookieOptions.Path,
+                MaxAge = TimeSpan.FromHours(_cookieOptions.MaxAgeHours),
+                Domain = _cookieOptions.Domain
+            });
+        }
     }
 
     
@@ -119,7 +184,8 @@ namespace Auth.Web.Controllers
         public const string PasswordFormatError = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
     }
 
-    
+    record RefreshDto(string rt, int v);
+
     public record LoginRequestDto(
         [Required(ErrorMessage = ValidationConstants.UsernameRequired)]
         [RegularExpression(ValidationConstants.UsernamePattern, ErrorMessage = ValidationConstants.UsernameFormatError)]
@@ -141,9 +207,10 @@ namespace Auth.Web.Controllers
         
     public record LoginResponseDto(
         string AccessToken,
+        string RefreshToken,
         DateTime ExpiresAt,
-        UserResponseDto User,
-        string RefreshToken
+        UserResponseDto User
+        
     ) : WebLoginResponseDto(AccessToken, ExpiresAt, User);
 
     public record RefreshRequestDto(
@@ -159,15 +226,19 @@ namespace Auth.Web.Controllers
 
     public record RefreshResponseDto(
         string AccessToken,
+        string RefreshToken,
         DateTime ExpiresAt,
-        UserResponseDto User,
-        string RefreshToken
+        UserResponseDto User
+        
     ) : WebRefreshResponseDto(AccessToken, ExpiresAt, User);
 
+    public record WebLogoutRequestDto(
+        bool LogoutAll
+    );
 
     public record LogoutRequestDto(
         [Required]
         string RefreshToken,
         bool LogoutAll
-    );
+    ) : WebLogoutRequestDto(LogoutAll);
 }
