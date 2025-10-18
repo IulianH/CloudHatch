@@ -7,22 +7,13 @@ class ApiClient {
     // No need to store baseURL anymore - we'll resolve it dynamically
   }
 
-  // Make authenticated API requests with automatic token refresh
+  // Make authenticated API requests
+  // Access token is sent in Authorization header
+  // Refresh token is in HttpOnly cookie sent automatically
   async request(endpoint: string, options: RequestInit = {}): Promise<Response> {
     // Resolve the URL dynamically - handle both relative and absolute URLs
     const url = isRelativeUrl(endpoint) ? buildApiUrl(endpoint) : endpoint;
     
-    // Check if we need to refresh the token
-    if (AuthService.isAccessTokenExpired()) {
-      const refreshed = await AuthService.refreshTokenIfNeeded();
-      if (!refreshed) {
-        // Redirect to login if refresh failed
-        window.location.href = '/login';
-        throw new Error('Authentication expired');
-      }
-    }
-    
-    // Add authentication header
     const headers = {
       'Content-Type': 'application/json',
       ...AuthService.getAuthHeader(),
@@ -32,11 +23,12 @@ class ApiClient {
     const response = await fetch(url, {
       ...options,
       headers,
+      credentials: 'include', // Important: Include cookies (for refresh token)
     });
 
     // Handle 401 responses (token expired)
     if (response.status === 401) {
-      // Try to refresh token once more
+      // Try to refresh token using the HttpOnly cookie
       const refreshed = await AuthService.refreshTokenIfNeeded();
       if (!refreshed) {
         AuthService.logout();
@@ -44,7 +36,7 @@ class ApiClient {
         throw new Error('Authentication expired');
       }
       
-      // Retry the request with new token
+      // Retry the request with the new access token
       const retryResponse = await fetch(url, {
         ...options,
         headers: {
@@ -52,6 +44,7 @@ class ApiClient {
           ...AuthService.getAuthHeader(),
           ...options.headers,
         },
+        credentials: 'include',
       });
       
       return retryResponse;
@@ -69,6 +62,7 @@ class ApiClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
+      credentials: 'include', // Important: Receive and store cookies from the server
     });
 
     if (!response.ok) {
@@ -84,13 +78,9 @@ class ApiClient {
   // Logout method
   async logout(): Promise<void> {
     try {
-      // Get refresh token to send in request body
-      const refreshToken = AuthService.getRefreshToken();
-      
-      // Call logout endpoint using configured URL with refresh token in body
+      // Call logout endpoint - cookies will be sent automatically
       await this.request(API_CONFIG.LOGOUT_URL, { 
-        method: 'POST',
-        body: JSON.stringify({ refreshToken })
+        method: 'POST'
       });
     } catch {
       console.warn('Logout endpoint not available');
