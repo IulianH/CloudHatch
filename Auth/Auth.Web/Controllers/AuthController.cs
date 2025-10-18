@@ -11,10 +11,12 @@ namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route("/")]
-    public class AuthController(JwtTokenService auth, IDataProtectionProvider dp, 
-    IOptions<AuthCookieOptions> cookieOptions, ILogger<AuthController> logger) : ControllerBase
+    public class AuthController(JwtTokenService auth, IDataProtectionProvider dp,
+        IConfiguration config, 
+        IOptions<AuthCookieOptions> cookieOptions, ILogger<AuthController> logger) : ControllerBase
     {
         private readonly AuthCookieOptions _cookieOptions = cookieOptions.Value;
+        private readonly string _requestOrigin = config["RequestOrigin"] ?? throw new ArgumentException("No \"RequestOrigin\" config key found");
 
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto req)
@@ -27,7 +29,7 @@ namespace Auth.Web.Controllers
                 token.RefreshToken,
                 token.ExpiresAt,
                 new UserResponseDto(token.User.Id, token.User.Username)
-                
+
             ));
         }
 
@@ -39,7 +41,7 @@ namespace Auth.Web.Controllers
                 logger.LogWarning("Login request is not from an allowed origin");
                 return Forbid();  // simple CSRF guard 
             }
-            
+
             var token = await auth.IssueTokenAsync(req.Username, req.Password);
             if (token == null) return Unauthorized();
 
@@ -68,12 +70,12 @@ namespace Auth.Web.Controllers
         [HttpPost("web-refresh")]
         public async Task<ActionResult<WebRefreshResponseDto>> WebRefresh()
         {
-            if (!IsAllowedOrigin(Request)) 
+            if (!IsAllowedOrigin(Request))
             {
                 logger.LogWarning("Refresh request is not from an allowed origin");
                 return Forbid();  // simple CSRF guard 
             }
-            
+
             var protector = CreateProtector();
             var refreshToken = ReadRefreshTokenFromCookie(protector);
             if (refreshToken == null)
@@ -106,14 +108,15 @@ namespace Auth.Web.Controllers
                 logger.LogWarning("Logout request is not from an allowed origin");
                 return Forbid();  // simple CSRF guard 
             }
-            
+
             var refreshToken = ReadRefreshTokenFromCookie(CreateProtector());
             if (refreshToken == null)
             {
                 return NoContent();
             }
-            
+
             await auth.RevokeRefreshTokenAsync(refreshToken);
+            DeleteCookie();
             return NoContent();
         }
 
@@ -139,10 +142,10 @@ namespace Auth.Web.Controllers
         }
 
         private IDataProtector CreateProtector() => dp.CreateProtector("Tokens.Cookie:v1");
-        
+
         private bool IsAllowedOrigin(HttpRequest r) =>
-             r.Headers["Origin"] == $"https://{_cookieOptions.Domain}"
-                || r.Headers["Referer"].ToString().StartsWith($"https://{_cookieOptions.Domain}/");
+             r.Headers["Origin"] == $"https://{_requestOrigin}"
+                || r.Headers["Referer"].ToString().StartsWith($"https://{_requestOrigin}/");
 
         private void IssueCookie(string refreshToken, IDataProtector dp)
         {
@@ -159,16 +162,25 @@ namespace Auth.Web.Controllers
                 Domain = _cookieOptions.Domain
             });
         }
+        
+        private void DeleteCookie()
+        {
+            Response.Cookies.Delete(_cookieOptions.Name, new CookieOptions
+            {
+                Path = _cookieOptions.Path,
+                Domain = _cookieOptions.Domain
+            });
+        }
     }
 
-    
-    
+
+
     public static class ValidationConstants
     {
         public const string UsernameRequired = "Username is required.";
         public const string PasswordRequired = "Password is required.";
         public const string RefreshTokenRequired = "Refresh token is required.";
-        
+
         // Regex patterns
         //3–20 characters
         //Letters, digits, underscores(_), dots(.), hyphens(-)
@@ -176,7 +188,7 @@ namespace Auth.Web.Controllers
         //Cannot have consecutive..or --
         public const string UsernamePattern = @"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9._-]{1,18}[a-zA-Z0-9])?|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$";
         public const string PasswordPattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$";
-        
+
         // Error messages for regex validation
         public const string UsernameFormatError = "3–20 characters, letters, digits, underscores(_), dots(.), hyphens(-), cannot start or end with.or -, cannot have consecutive..or --";
         public const string PasswordFormatError = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
@@ -202,13 +214,13 @@ namespace Auth.Web.Controllers
         DateTime ExpiresAt,
         UserResponseDto User
     );
-        
+
     public record LoginResponseDto(
         string AccessToken,
         string RefreshToken,
         DateTime ExpiresAt,
         UserResponseDto User
-        
+
     ) : WebLoginResponseDto(AccessToken, ExpiresAt, User);
 
     public record RefreshRequestDto(
@@ -225,7 +237,7 @@ namespace Auth.Web.Controllers
         string AccessToken,
         string RefreshToken,
         DateTime ExpiresAt
-        
+
     ) : WebRefreshResponseDto(AccessToken, ExpiresAt);
 
     public record WebLogoutRequestDto(
