@@ -4,7 +4,7 @@ using Users.Domain;
 
 namespace Users.Web.Controllers
 {
-    [Route("[controller]")]
+    [Route("login")]
     [ApiController]
     public class LoginController(LoginService loginService) : ControllerBase
     {
@@ -28,6 +28,13 @@ namespace Users.Web.Controllers
                 Username = user.Username,
                 CreatedAt = user.CreatedAt
             };
+        }
+
+        public class UserResponse
+        {
+            public required string Username { get; set; }
+            public required Guid Id { get; set; }
+            public required DateTime CreatedAt { get; set; }
         }
     }
 }
