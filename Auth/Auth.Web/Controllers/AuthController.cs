@@ -27,7 +27,7 @@ namespace Auth.Web.Controllers
             return Ok(new LoginResponseDto(
                 token.AccessToken,
                 token.RefreshToken,
-                token.ExpiresAt,
+                token.ExpiresIn,
                 new UserResponseDto(token.User.Username)
 
             ));
@@ -49,7 +49,7 @@ namespace Auth.Web.Controllers
             IssueCookie(token.RefreshToken, protector);
             return Ok(new WebLoginResponseDto(
                 token.AccessToken,
-                token.ExpiresAt,
+                token.ExpiresIn,
                 new UserResponseDto(token.User.Username)
             ));
         }
@@ -63,7 +63,7 @@ namespace Auth.Web.Controllers
             return Ok(new RefreshResponseDto(
                 pair.AccessToken,
                 pair.RefreshToken,
-                pair.ExpiresAt
+                pair.ExpiresIn
             ));
         }
 
@@ -87,9 +87,11 @@ namespace Auth.Web.Controllers
             if (pair is null) return Unauthorized();
 
             IssueCookie(pair.RefreshToken, protector);
+            
+            
             return Ok(new WebRefreshResponseDto(
                pair.AccessToken,
-               pair.ExpiresAt
+               pair.ExpiresIn
            ));
         }
 
@@ -210,17 +212,17 @@ namespace Auth.Web.Controllers
 
     public record WebLoginResponseDto(
         string AccessToken,
-        DateTime ExpiresAt,
+        int ExpiresIn,
         UserResponseDto User
     );
 
     public record LoginResponseDto(
         string AccessToken,
         string RefreshToken,
-        DateTime ExpiresAt,
+        int ExpiresIn,
         UserResponseDto User
 
-    ) : WebLoginResponseDto(AccessToken, ExpiresAt, User);
+    ) : WebLoginResponseDto(AccessToken, ExpiresIn, User);
 
     public record RefreshRequestDto(
         [Required]
@@ -229,15 +231,15 @@ namespace Auth.Web.Controllers
 
     public record WebRefreshResponseDto(
         string AccessToken,
-        DateTime ExpiresAt
+        int ExpiresIn
     );
 
     public record RefreshResponseDto(
         string AccessToken,
         string RefreshToken,
-        DateTime ExpiresAt
+        int ExpiresIn
 
-    ) : WebRefreshResponseDto(AccessToken, ExpiresAt);
+    ) : WebRefreshResponseDto(AccessToken, ExpiresIn);
 
     public record WebLogoutRequestDto(
         bool LogoutAll

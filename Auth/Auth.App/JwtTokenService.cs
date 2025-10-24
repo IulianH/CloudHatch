@@ -3,6 +3,7 @@ using Auth.App.Interface.Users;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 
@@ -24,16 +25,7 @@ namespace Auth.App
             var user = await users.FindByIdAsync(record.UserId);
             if (user == null) return null;
 
-            var newJwt = GenerateJwtToken(user);
-            var newRToken = GenerateRefreshToken();
-            await rtRepo.SaveAsync(new RefreshTokenRecord
-            {
-                Token = newRToken,
-                UserId = user.Id,
-                ExpiresAt = DateTime.UtcNow.AddDays(30)
-            });
-
-            return new TokenPair(newJwt.Token, newRToken, newJwt.ExpiresAt, user);
+            return await IssueTokens(user);
         }
 
         public async Task RevokeRefreshTokenAsync(string refreshToken)
@@ -53,18 +45,7 @@ namespace Auth.App
                 return null;
             }
 
-            // Create tokens
-            var jwt = GenerateJwtToken(user);
-            var rToken = GenerateRefreshToken();
-
-            await rtRepo.SaveAsync(new RefreshTokenRecord
-            {
-                Token = rToken,
-                UserId = user.Id,
-                ExpiresAt = DateTime.UtcNow.AddDays(30)
-            });
-
-            return new TokenPair(jwt.Token, rToken, jwt.ExpiresAt, user);
+            return await IssueTokens(user);
 
         }
         
@@ -77,7 +58,22 @@ namespace Auth.App
             return true;
         }
 
-        private dynamic GenerateJwtToken(User user)
+        private async Task<TokenPair> IssueTokens(User user)
+        {
+            var jwt = GenerateJwtToken(user);
+            var rToken = GenerateRefreshToken();
+
+            await rtRepo.SaveAsync(new RefreshTokenRecord
+            {
+                Token = rToken,
+                UserId = user.Id,
+                ExpiresAt = DateTime.UtcNow.AddHours(config.GetValue<int>("Rt:ExpiresInHours"))
+            });
+
+            return new TokenPair(jwt, rToken, config.GetValue<int>("Jwt:ExpiresInSeconds"), user);
+        }
+
+        private string GenerateJwtToken(User user)
         {
             var keyBytes = Convert.FromBase64String(config["Jwt:Key"]!);
             var creds = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256);
@@ -98,10 +94,10 @@ namespace Auth.App
                 expires: expires,
                 signingCredentials: creds
             );
-            
+           
             var tokenStr = new JwtSecurityTokenHandler().WriteToken(token);
 
-            return new {Token = tokenStr, ExpiresAt = expires };
+            return tokenStr;
         }
         private static string GenerateRefreshToken()
         {
