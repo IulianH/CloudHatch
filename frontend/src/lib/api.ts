@@ -80,7 +80,12 @@ class ApiClient {
     try {
       // Call logout endpoint - cookies will be sent automatically
       await this.request(API_CONFIG.LOGOUT_URL, { 
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({"logoutAll": true}),
+        credentials: 'include'
       });
     } catch {
       console.warn('Logout endpoint not available');
