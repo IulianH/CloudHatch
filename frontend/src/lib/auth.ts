@@ -3,8 +3,8 @@ import { buildApiUrl, isRelativeUrl } from './url-utils';
 
 export interface AuthResponse {
   accessToken: string;
+  expiresIn: number;
   user?: {
-    id: string;
     username: string;
     email?: string;
   };
@@ -18,6 +18,8 @@ export interface LoginCredentials {
 class AuthService {
   private static readonly USER_KEY = 'user_data';
   private static accessToken: string | null = null;
+  private static refreshTimeoutId: NodeJS.Timeout | null = null;
+  private static readonly DELTA = 20000; // 20 seconds
 
   // Store authentication data
   // Access token is stored in memory (cleared on page refresh)
@@ -33,6 +35,10 @@ class AuthService {
         localStorage.setItem(this.USER_KEY, JSON.stringify(data.user));
       }
     }
+
+    const delayMilliseconds = data.expiresIn * 1000 - this.DELTA; 
+    // Schedule automatic refresh after 5 minutes (300,000 ms)
+    this.scheduleTokenRefresh(delayMilliseconds);
   }
 
   // Get access token from memory
@@ -65,11 +71,34 @@ class AuthService {
     // Clear access token from memory
     this.accessToken = null;
     
+    // Clear the refresh timeout
+    if (this.refreshTimeoutId) {
+      clearTimeout(this.refreshTimeoutId);
+      this.refreshTimeoutId = null;
+    }
+    
     // Clear user data from localStorage
     if (typeof window !== 'undefined') {
       localStorage.removeItem(this.USER_KEY);
     }
     // Note: HttpOnly refresh token cookie will be cleared by the backend on logout
+  }
+
+  // Schedule automatic token refresh
+  private static scheduleTokenRefresh(delayMilliseconds: number): void {
+    // Clear any existing timeout
+    if (this.refreshTimeoutId) {
+      clearTimeout(this.refreshTimeoutId);
+    }
+
+    // Set new timeout for 5 minutes
+    this.refreshTimeoutId = setTimeout(async () => {
+      console.log('Auto-refreshing token...');
+      const success = await this.refreshTokenIfNeeded();
+      if (!success) {
+        console.warn('Auto token refresh failed');
+      }
+    }, delayMilliseconds); 
   }
 
   // Refresh token using HttpOnly cookie
