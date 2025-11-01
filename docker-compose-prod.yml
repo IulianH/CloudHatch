@@ -6,10 +6,13 @@ services:
       dockerfile: Auth/Auth.Web/Dockerfile
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
+      - REDIS__CONNECTION=redis:6379,password=devredispassword,defaultDatabase=0
     ports:
       - "8080"
     networks:
-      - private                  
+      - private    
+    depends_on:
+      - redis
 
   res.web:
     image: ${DOCKER_REGISTRY-}resweb
@@ -35,7 +38,7 @@ services:
     networks:
       - private                  
 
-  # Pre-built Next.js development service
+   # Pre-built Next.js development service
   frontend:
     image: cloudhatch/frontend-prod:latest
     restart: unless-stopped
@@ -57,6 +60,22 @@ services:
       - res.web
       - users.web
       - frontend
+
+  redis:
+    image: redis:7
+    command: [ "redis-server", "--appendonly", "yes" ]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "devredispassword", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - private
+  
+volumes:
+  redisdata: { }
      
 networks:
   private:
