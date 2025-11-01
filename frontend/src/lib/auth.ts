@@ -19,7 +19,7 @@ class AuthService {
   private static readonly USER_KEY = 'user_data';
   private static accessToken: string | null = null;
   private static refreshTimeoutId: NodeJS.Timeout | null = null;
-  private static readonly DELTA = 20000; // 20 seconds
+  private static readonly DELTA = 15000; // 15 seconds
 
   // Store authentication data
   // Access token is stored in memory (cleared on page refresh)
