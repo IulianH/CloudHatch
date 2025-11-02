@@ -28,19 +28,6 @@ services:
     networks:
       - private                  
 
-  users.web:
-    image: ${DOCKER_REGISTRY-}usersweb
-    build:
-      context: .
-      dockerfile: Users/Users.Web/Dockerfile
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8080
-    ports:
-      - "8080"
-    networks:
-      - private                  
-
   # Next.js development service with hot reload and debugging
   frontend:
     build:
@@ -75,7 +62,6 @@ services:
     depends_on:
       - auth.web
       - res.web
-      - users.web
       - frontend
 
   redis:

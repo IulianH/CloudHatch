@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 using StackExchange.Redis;
+using Users.App.Interface;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -64,6 +65,6 @@ app.UseMiddleware<UnhandledExceptionMiddleware>();
 app.MapControllers();
 
 app.Services.GetRequiredService<IRefreshTokenRepository>().Migrate();
-
+app.Services.GetRequiredService<IUserRepo>().Migrate();
 Console.WriteLine($"Starting Auth.Web in {app.Environment.EnvironmentName}");
 app.Run();
