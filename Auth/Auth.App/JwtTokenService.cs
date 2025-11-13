@@ -16,14 +16,19 @@ namespace Auth.App
             // 1) Lookup the record
             var record = await rtRepo.GetByTokenAsync(refreshToken);
             if (record == null || record.ExpiresAt < DateTime.UtcNow)
+            {
                 return null;
+            }
 
             // 2) (Optional) rotate: delete old, issue new
             await rtRepo.DeleteAsync(record.Token);
 
             // 3) Issue new JWT + RT
             var user = await users.FindByIdAsync(record.UserId);
-            if (user == null) return null;
+            if (user == null)
+            {
+                return null;
+            }
 
             return await IssueTokens(user);
         }
