@@ -1,15 +1,11 @@
-Setup of the local environment
-All it is needed to be done is to install Docker and create SSL certificate for development purposes
+Create SSL certificate for development purposes
 The below steps are for Windows, for a different OS you need to research on how you can achieve the below steps.
 
 Prerequisites
-- Git
-- Docker
+- Openssl (it can be installed separately but is it found in the GIT install). 
 
-1. Install Docker Desktop for Windows
-
-2. Certificate creation
-The Nginx configuration needs 2 files to run. 
+Certificate creation
+The Nginx configuration needs 2 files to run: 
 [root]/nigix/ssl/self-signed.key (also .pem, but for .pem you also need to change nginx config files)
 [root]/nigix/ssl/self-signed.crt (also .pem, but for .pem you also need to change nginx config files)
 
@@ -18,17 +14,16 @@ There are multiple ways to create a self-signed certificate under Windows, If yo
 files, skip to step 3 
 We will use the openssl exe to create a self signed certificate for dev purposes. Openssl usually comes with Git. 
 If it is not in the Git directories you can install it separately. Usually in Git openssl can be found under 
-"c:\Program Files\Git\usr\bin\" but the path can differ from one distribution to another. 
+"c:\Program Files\Git\usr\bin\" but the path can differ from one distribution to another.
+ 
 Steps:
-a). Create an empty directory called "ssl" under [root]/nigix where [root] is your local path to the repo
+1). Create an empty directory called "ssl" under [root]/nigix where [root] is your local path to the repo
 folder.
-b). Run powershell (preferably as administrator)
-
-c). check to see if there are local cerificates installed, usually there are. Excute:
+2). Run powershell (preferably as administrator)
+3). check to see if there are local cerificates installed, usually there are. Excute:
 Get-ChildItem -Path "cert:\LocalMachine\My"
 If you do not see any certificate, please research on other method to create the two files for nginx
-
-d). Run the following 
+4). Run the following 
 
   $cert = Get-ChildItem -Path "cert:\LocalMachine\My" |
         Where-Object { $_.Subject -like "*CN=localhost*" } |
@@ -38,40 +33,29 @@ d). Run the following
 
 then:
 $pwd = ConvertTo-SecureString -String "certpassword" -Force -AsPlainText
-(set a password)
+(sets "certpassword" as password)
 
 then (replace [root] with your local path:
 Export-PfxCertificate -Cert $cert -FilePath "[root]\nginx\ssl\self-signed.pfx" -Password $pwd
 
 (the file self-signed.pfx appears in the directory)
 
-e). (optional) Make sure the cerificate is trusted:
+5). (optional) Make sure the cerificate is trusted:
     $store = New-Object System.Security.Cryptography.X509Certificates.X509Store "Root", "LocalMachine"
     $store.Open("ReadWrite")
     $store.Add($cert)
     $store.Close()
 
-f). Extract the key
+6). Extract the key
 - point powershell to the openssl.exe directory
  cd "c:\Program Files\Git\usr\bin"
 - extract the key, it will ask for the password, enter "certpassword"
 .\openssl pkcs12 -in "[root]\nginx\ssl\self-signed.pfx" -nocerts -out "[root]\nginx\ssl\self-signed.key" -nodes
 (the file self-signed.key appears)
 
-- extract the crt
+7) extract the crt
 .\openssl pkcs12 -in "[root]\nginx\ssl\self-signed.pfx" -clcerts -nokeys -out "[root]\nginx\ssl\self-signed.crt"
 (the file self-signed.crt appears)
-
-3. Optional to run the pre-production docker-desktop file 
-
-In a power shell/command front run in the frontend directory (creates the image for the nextJs frontend):
-  (cd frontend)
-  docker build -t cloudhatch/frontend-prod .
-  
- Start the production docker compose:
- docker compose -f docker-compose-prod.yml up --build
- 
-Navigate to 
 
 
 
