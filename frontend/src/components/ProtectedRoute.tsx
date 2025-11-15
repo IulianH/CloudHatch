@@ -13,16 +13,10 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = () => {
       try {
         if (AuthService.isAuthenticated()) {
-          // Try to refresh token if needed
-          const refreshed = await AuthService.refreshTokenIfNeeded();
-          if (refreshed) {
-            setIsLoading(false);
-          } else {
-            router.push('/login');
-          }
+          setIsLoading(false);
         } else {
           router.push('/login');
         }

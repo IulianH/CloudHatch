@@ -27,18 +27,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Check authentication status on mount
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = () => {
       try {
         if (AuthService.isAuthenticated()) {
-          // Try to refresh token if needed
-          const refreshed = await AuthService.refreshTokenIfNeeded();
-          if (refreshed) {
-            setIsAuthenticated(true);
-            setUser(AuthService.getUser());
-          } else {
-            setIsAuthenticated(false);
-            setUser(null);
-          }
+          setIsAuthenticated(true);
+          setUser(AuthService.getUser());
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
         }
       } catch (error) {
         console.error('Auth check failed:', error);

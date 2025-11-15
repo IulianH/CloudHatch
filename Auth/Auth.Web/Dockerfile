@@ -14,7 +14,10 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["Auth/Auth.Web/Auth.Web.csproj", "Auth/Auth.Web/"]
 COPY ["Auth/Auth.App/Auth.App.csproj", "Auth/Auth.App/"]
+COPY ["Auth/Users.App/Users.App.csproj", "Auth/Users.App/"]
+COPY ["Auth/Users.Domain/Users.Domain.csproj", "Auth/Users.Domain/"]
 COPY ["Auth/Auth.Infra/Auth.Infra.csproj", "Auth/Auth.Infra/"]
+COPY ["Auth/Users.Infra/Users.Infra.csproj", "Auth/Users.Infra/"]
 RUN dotnet restore "./Auth/Auth.Web/Auth.Web.csproj"
 COPY . .
 WORKDIR "/src/Auth/Auth.Web"

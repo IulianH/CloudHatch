@@ -1,0 +1,8 @@
+Prerequisite: the steps from "LocalSslCertificateSetup.txt" to be completed
+
+Steps:
+
+1. Open Docker.sln
+2. Set the run to be docker-compose
+3. Hit F5 - the default browser should navigate to "https://localhost:5100"
+4. Log in with user: "admin" and pass "admin1!"

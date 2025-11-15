@@ -1,56 +1,44 @@
-using Auth.App.Exceptions;
-using System.Text.Json;
-using Auth.App;
 using Auth.App.Interface.Users;
+using Users.App;
+using Users.App.Interface;
 
 namespace Auth.Infra
 {
-    public class UserService(HttpClient httpClient) : IUserService
+    public class UserService(LoginService loginService, IUserRepo userRepo) : IUserService
     {
-        private static readonly JsonSerializerOptions SerializeOption = new()
-        {
-            PropertyNameCaseInsensitive = true
-        };
-
         public async Task<User?> LoginAsync(string username, string password)
         {
-            var loginRequest = new LoginRequest(username, password);
-            var json = JsonSerializer.Serialize(loginRequest);
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var loginRequest = new LoginRequest(username, password, true);
 
-            var response = await httpClient.PostAsync("login", content);
+            var response = await loginService.Login(loginRequest);
 
-            if (response.IsSuccessStatusCode)
+            if (response != null)
             {
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var user = JsonSerializer.Deserialize<User>(responseContent, SerializeOption);
-                return user;
-            } 
-            if ((int)response.StatusCode >= 400 && (int)response.StatusCode < 500)
-            {
-                return null;
+                return new User
+                {
+                    Id = response.Id,
+                    Username = response.Username,
+                    CreatedAt = response.CreatedAt
+                };
             }
-            
-            throw new AppException($"Failed when calling user service: {response}");
+            return null;
         }
 
         public async Task<User?> FindByIdAsync(Guid userId)
         {
-            var response = await httpClient.GetAsync($"users/{userId}");
+            var response = await userRepo.FindByIdAsync(userId);
 
-            if (response.IsSuccessStatusCode)
+            if (response != null)
             {
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var user = JsonSerializer.Deserialize<User>(responseContent, SerializeOption);
-                return user;
-            }
-            
-            if ((int)response.StatusCode >= 400 && (int)response.StatusCode < 500)
-            {
-                return null;
+                return new User
+                {
+                    Id = response.Id,
+                    Username = response.Username,
+                    CreatedAt = response.CreatedAt
+                };
             }
 
-            throw new AppException($"Failed when calling user service: {response}");
+            return null;
         }
     }
 }

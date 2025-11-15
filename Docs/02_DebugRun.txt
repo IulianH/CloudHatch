@@ -1,5 +1,0 @@
-Prerequisite: the steps from 01 to be completed
-
-1. OPen Docker.sln
-
-Hit F5
