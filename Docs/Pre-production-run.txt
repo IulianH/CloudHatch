@@ -1,0 +1,23 @@
+Prerequisite
+The steps from "LocalSslCertificateSetup.txt" completed
+
+Steps
+
+1.Start Docker Desktop
+2. Open PowerShell
+3. Create the image for the front end service:
+- move to the frontend directory: 
+	cd frontend
+- run: 
+	docker build -t cloudhatch/frontend-prod .
+
+4. Move to the repo root directory:
+	cd ..
+5. Build the production Docker compose file:
+docker compose -f docker-compose-prod.yml up --build
+
+6. Navigate to https://localhost:5100/
+The app should start
+Log in with user: "admin" and pass "admin1!"
+
+7. Hit Ctr+C in the PowerShell window to kill the containers

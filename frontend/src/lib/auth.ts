@@ -3,11 +3,8 @@ import { buildApiUrl, isRelativeUrl } from './url-utils';
 
 export interface AuthResponse {
   accessToken: string;
-  refreshToken: string;
-  expiresIn?: number; // seconds until expiration
-  expiresAt?: string; // ISO date string when token expires
+  expiresIn: number;
   user?: {
-    id: string;
     username: string;
     email?: string;
   };
@@ -19,72 +16,39 @@ export interface LoginCredentials {
 }
 
 class AuthService {
-  private static readonly ACCESS_TOKEN_KEY = 'access_token';
-  private static readonly REFRESH_TOKEN_KEY = 'refresh_token';
   private static readonly USER_KEY = 'user_data';
-  private static readonly TOKEN_EXPIRY_KEY = 'token_expiry';
+  private static accessToken: string | null = null;
+  private static refreshTimeoutId: NodeJS.Timeout | null = null;
+  private static readonly DELTA = 15000; // 15 seconds
 
-  // Store authentication data using server-provided expiration
+  // Store authentication data
+  // Access token is stored in memory (cleared on page refresh)
+  // Refresh token is stored in HttpOnly cookie (set by backend)
+  // User data is stored in localStorage for persistence
   static setAuthData(data: AuthResponse): void {
+    // Store access token in memory
+    this.accessToken = data.accessToken;
+    
+    // Store user data in localStorage
     if (typeof window !== 'undefined') {
-      localStorage.setItem(this.ACCESS_TOKEN_KEY, data.accessToken);
-      localStorage.setItem(this.REFRESH_TOKEN_KEY, data.refreshToken);
-      
-      // Use server-provided expiration
-      if (data.expiresIn) {
-        // Server provides seconds until expiration
-        const expiryTime = Date.now() + (data.expiresIn * 1000);
-        localStorage.setItem(this.TOKEN_EXPIRY_KEY, expiryTime.toString());
-      } else if (data.expiresAt) {
-        // Server provides ISO date string
-        const expiryTime = new Date(data.expiresAt).getTime();
-        localStorage.setItem(this.TOKEN_EXPIRY_KEY, expiryTime.toString());
-      }
-      
       if (data.user) {
         localStorage.setItem(this.USER_KEY, JSON.stringify(data.user));
       }
-
-      // Set refresh token in cookie
-      this.setRefreshTokenCookie(data.refreshToken);
     }
+
+    const delayMilliseconds = data.expiresIn * 1000 - this.DELTA; 
+    // Schedule automatic refresh after 5 minutes (300,000 ms)
+    this.scheduleTokenRefresh(delayMilliseconds);
   }
 
-  // Set refresh token in cookie
-  private static setRefreshTokenCookie(token: string): void {
-    if (typeof document !== 'undefined') {
-      // Set cookie with httpOnly-like properties
-      document.cookie = `refresh_token=${token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Strict`;
-    }
-  }
-
-  // Get stored access token
+  // Get access token from memory
   static getAccessToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(this.ACCESS_TOKEN_KEY);
-    }
-    return null;
+    return this.accessToken;
   }
 
-  // Get refresh token from cookie or localStorage
-  static getRefreshToken(): string | null {
-    if (typeof document !== 'undefined') {
-      // Try to get from cookie first
-      const cookies = document.cookie.split(';');
-      const refreshTokenCookie = cookies.find(cookie => 
-        cookie.trim().startsWith('refresh_token=')
-      );
-      
-      if (refreshTokenCookie) {
-        return refreshTokenCookie.split('=')[1];
-      }
-    }
-    
-    // Fallback to localStorage
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(this.REFRESH_TOKEN_KEY);
-    }
-    return null;
+  // Get authorization header
+  static getAuthHeader(): { Authorization: string } | Record<string, never> {
+    return this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {};
   }
 
   // Get stored user data
@@ -97,63 +61,51 @@ class AuthService {
   }
 
   // Check if user is authenticated
+  // Since tokens are in HttpOnly cookies, we check if user data exists
   static isAuthenticated(): boolean {
-    const token = this.getAccessToken();
-    if (!token) return false;
-    
-    // Check if token is expired using server-provided expiration
-    return !this.isAccessTokenExpired();
-  }
-
-  // Check if access token is expired using server expiration
-  static isAccessTokenExpired(): boolean {
-    const expiry = localStorage.getItem(this.TOKEN_EXPIRY_KEY);
-    if (!expiry) return true;
-    
-    // Add a small buffer (5 minutes) to refresh before actual expiration
-    const bufferTime = 5 * 60 * 1000; // 5 minutes in milliseconds
-    return Date.now() > (parseInt(expiry) - bufferTime);
-  }
-
-  // Get time until token expires (useful for debugging)
-  static getTimeUntilExpiry(): number | null {
-    const expiry = localStorage.getItem(this.TOKEN_EXPIRY_KEY);
-    if (!expiry) return null;
-    
-    const timeLeft = parseInt(expiry) - Date.now();
-    return timeLeft > 0 ? timeLeft : 0;
+    return this.getUser() !== null;
   }
 
   // Clear authentication data
   static logout(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(this.ACCESS_TOKEN_KEY);
-      localStorage.removeItem(this.REFRESH_TOKEN_KEY);
-      localStorage.removeItem(this.TOKEN_EXPIRY_KEY);
-      localStorage.removeItem(this.USER_KEY);
+    // Clear access token from memory
+    this.accessToken = null;
+    
+    // Clear the refresh timeout
+    if (this.refreshTimeoutId) {
+      clearTimeout(this.refreshTimeoutId);
+      this.refreshTimeoutId = null;
     }
     
-    // Clear cookie
-    if (typeof document !== 'undefined') {
-      document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    // Clear user data from localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(this.USER_KEY);
     }
+    // Note: HttpOnly refresh token cookie will be cleared by the backend on logout
   }
 
-  // Get authorization header
-  static getAuthHeader(): { Authorization: string } | Record<string, never> {
-    const token = this.getAccessToken();
-    return token ? { Authorization: `Bearer ${token}` } : {};
+  // Schedule automatic token refresh
+  private static scheduleTokenRefresh(delayMilliseconds: number): void {
+    // Clear any existing timeout
+    if (this.refreshTimeoutId) {
+      clearTimeout(this.refreshTimeoutId);
+    }
+
+    // Set new timeout for 5 minutes
+    this.refreshTimeoutId = setTimeout(async () => {
+      console.log('Auto-refreshing token...');
+      const success = await this.refreshTokenIfNeeded();
+      if (!success) {
+        console.warn('Auto token refresh failed');
+      }
+    }, delayMilliseconds); 
   }
 
-  // Auto-refresh token if needed
+  // Refresh token using HttpOnly cookie
+  // The refresh token cookie is automatically sent by the browser
   static async refreshTokenIfNeeded(): Promise<boolean> {
-    if (!this.isAccessTokenExpired()) {
-      return true; // Token is still valid
-    }
-
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      return false; // No refresh token available
+    if (!this.isAuthenticated()) {
+      return false; // No user session
     }
 
     try {
@@ -164,7 +116,7 @@ class AuthService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ refreshToken }),
+        credentials: 'include', // Important: Include cookies in the request
       });
 
       if (response.ok) {
