@@ -1,6 +1,7 @@
 using Auth.App;
 using Auth.App.Interface.RefreshToken;
 using Auth.Infra;
+using Auth.Web.Configuration;
 using Auth.Web.Extensions;
 using Auth.Web.Middleware;
 using Microsoft.AspNetCore.DataProtection;
@@ -23,6 +24,8 @@ builder.Services.AddDataProtection()
 // Add services to the container.
 
 builder.Services.AddControllers();
+
+builder.Services.AddTransient<OriginValidator>();
 
 // Configure AuthCookie options
 builder.Services.Configure<AuthCookieOptions>(builder.Configuration.GetSection("AuthCookie"));

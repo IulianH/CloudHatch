@@ -115,6 +115,7 @@ class AuthService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          "Cache-Control": "no-store"
         },
         credentials: 'include', // Important: Include cookies in the request
       });

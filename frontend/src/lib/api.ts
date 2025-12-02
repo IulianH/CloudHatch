@@ -60,6 +60,7 @@ class ApiClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        "Cache-Control": "no-store"
       },
       body: JSON.stringify(credentials),
       credentials: 'include', // Important: Receive and store cookies from the server
