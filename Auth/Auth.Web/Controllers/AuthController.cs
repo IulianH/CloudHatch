@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using Auth.App;
+using Auth.Web.Configuration;
 using Auth.Web.Extensions;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
@@ -11,14 +12,13 @@ namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route("/")]
-    public class AuthController(JwtTokenService auth, IDataProtectionProvider dp,
-        IConfiguration config, 
+    public class AuthController(JwtTokenService auth, IDataProtectionProvider dp, OriginValidator originValidator, 
         IOptions<AuthCookieOptions> cookieOptions, ILogger<AuthController> logger) : ControllerBase
     {
         private readonly AuthCookieOptions _cookieOptions = cookieOptions.Value;
-        private readonly string _requestOrigin = config["RequestOrigin"] ?? throw new ArgumentException("No \"RequestOrigin\" config key found");
 
         [HttpPost("login")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto req)
         {
             var token = await auth.IssueTokenAsync(req.Username, req.Password);
@@ -34,11 +34,12 @@ namespace Auth.Web.Controllers
         }
 
         [HttpPost("web-login")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<ActionResult<WebLoginResponseDto>> WebLogin([FromBody] LoginRequestDto req)
         {
             if (!IsAllowedOrigin(Request))
             {
-                logger.LogWarning("Login request is not from an allowed origin");
+                logger.LogWarning(originValidator.Error);
                 return Forbid();  // simple CSRF guard 
             }
 
@@ -55,6 +56,7 @@ namespace Auth.Web.Controllers
         }
 
         [HttpPost("refresh")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<ActionResult<RefreshResponseDto>> Refresh([FromBody] RefreshRequestDto body)
         {
             var pair = await auth.RefreshTokensAsync(body.RefreshToken);
@@ -68,11 +70,12 @@ namespace Auth.Web.Controllers
         }
 
         [HttpPost("web-refresh")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<ActionResult<WebRefreshResponseDto>> WebRefresh()
         {
             if (!IsAllowedOrigin(Request))
             {
-                logger.LogWarning("Refresh request is not from an allowed origin");
+                logger.LogWarning(originValidator.Error);
                 return Forbid();  // simple CSRF guard 
             }
 
@@ -107,7 +110,7 @@ namespace Auth.Web.Controllers
         {
             if (!IsAllowedOrigin(Request))
             {
-                logger.LogWarning("Logout request is not from an allowed origin");
+                logger.LogWarning(originValidator.Error);
                 return Forbid();  // simple CSRF guard 
             }
 
@@ -145,9 +148,7 @@ namespace Auth.Web.Controllers
 
         private IDataProtector CreateProtector() => dp.CreateProtector("Tokens.Cookie:v1");
 
-        private bool IsAllowedOrigin(HttpRequest r) =>
-             r.Headers["Origin"] == $"https://{_requestOrigin}"
-                || r.Headers["Referer"].ToString().StartsWith($"https://{_requestOrigin}/");
+        private bool IsAllowedOrigin(HttpRequest r) => originValidator.IsAllowedOrigin(r);
 
         private void IssueCookie(string refreshToken, IDataProtector dp)
         {
