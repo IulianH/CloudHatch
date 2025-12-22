@@ -16,19 +16,18 @@ services:
     depends_on:
       - redis
 
-  res.web:
-    image: ${DOCKER_REGISTRY-}resweb
+  backapi.web:
+    image: ${DOCKER_REGISTRY-}backapiweb
     build:
       context: .
-      dockerfile: Res/Res.Web/Dockerfile
+      dockerfile: BackApi/BackApi.Web/Dockerfile
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - DOCKER_PRIVATE_NETWORK_SUBNET=172.20.0.0/16
     ports:
       - "8080"
     networks:
-      - private                  
+      - private                       
 
   # Next.js development service with hot reload and debugging
   frontend:
@@ -63,7 +62,7 @@ services:
       - private                  # reach the private app
     depends_on:
       - auth.web
-      - res.web
+      - backapi.web
       - frontend
 
   redis:
