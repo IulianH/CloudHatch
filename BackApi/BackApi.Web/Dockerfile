@@ -12,19 +12,19 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["Res/Res.Web/Res.Web.csproj", "Res/Res.Web/"]
-RUN dotnet restore "./Res/Res.Web/Res.Web.csproj"
+COPY ["BackApi/BackApi.Web/BackApi.Web.csproj", "BackApi/BackApi.Web/"]
+RUN dotnet restore "./BackApi/BackApi.Web/BackApi.Web.csproj"
 COPY . .
-WORKDIR "/src/Res/Res.Web"
-RUN dotnet build "./Res.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/BackApi/BackApi.Web"
+RUN dotnet build "./BackApi.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./Res.Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./BackApi.Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Res.Web.dll"]
+ENTRYPOINT ["dotnet", "BackApi.Web.dll"]
