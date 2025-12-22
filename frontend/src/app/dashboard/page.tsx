@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/contexts/AuthContext';
+import apiClient from '@/lib/api';
 
 export default function DashboardPage() {
   return (
@@ -13,6 +15,25 @@ export default function DashboardPage() {
 
 function DashboardContent() {
   const { user } = useAuth();
+  const [fullName, setFullName] = useState<string>('User');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const profile = await apiClient.getProfile();
+        const name = `${profile.givenName} ${profile.familyName}`.trim();
+        setFullName(name || 'User');
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+        // Fallback to username if profile fetch fails
+        setFullName(user?.username || 'User');
+      }
+    };
+
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -25,7 +46,7 @@ function DashboardContent() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="text-lg font-semibold text-blue-900">Welcome Back!</h3>
-              <p className="text-blue-700">Hello, {user?.username || 'User'}!</p>
+              <p className="text-blue-700">Hello, {fullName}!</p>
             </div>
             
             <div className="bg-green-50 p-4 rounded-lg">

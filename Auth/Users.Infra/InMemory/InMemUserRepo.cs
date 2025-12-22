@@ -40,6 +40,19 @@ namespace Users.Infra.InMemory
                 Id = Guid.NewGuid()
             };
             _users.Add(user);
+
+            user = new User
+            {
+                CreatedAt = DateTime.UtcNow,
+                Username = "customer",
+                NormalizedUsername = "CUSTOMER",
+                GivenName = "Jane",
+                FamilyName = "Doe",
+                Roles = "customer",
+                Password = PasswordHasher.Hash("customer1!"),
+                Id = Guid.NewGuid()
+            };
+            _users.Add(user);
         }
 
         public Task UpdateAsync(User user)
