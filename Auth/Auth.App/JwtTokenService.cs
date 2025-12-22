@@ -1,6 +1,9 @@
-﻿using Auth.App.Interface.RefreshToken;
+﻿using Auth.App.Env;
+using Auth.App.Exceptions;
+using Auth.App.Interface.RefreshToken;
 using Auth.App.Interface.Users;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
@@ -9,8 +12,10 @@ using System.Security.Cryptography;
 
 namespace Auth.App
 {
-    public class JwtTokenService(IUserService users, IConfiguration config, IRefreshTokenRepository rtRepo)
+    public class JwtTokenService(IUserService users, IOptions<JwtConfig> jwtConfig, IConfiguration config, IRefreshTokenRepository rtRepo)
     {
+        private readonly JwtConfig _jwtConfig = jwtConfig.Value;
+        
         public async Task<TokenPair?> RefreshTokensAsync(string refreshToken)
         {
             // 1) Lookup the record
@@ -75,19 +80,14 @@ namespace Auth.App
                 ExpiresAt = DateTime.UtcNow.AddHours(config.GetValue<int>("Rt:ExpiresInHours"))
             });
 
-            return new TokenPair(jwt, rToken, config.GetValue<int>("Jwt:ExpiresInSeconds"), user);
+            return new TokenPair(jwt, rToken, _jwtConfig.ExpiresInSeconds, user);
         }
 
         private string GenerateJwtToken(User user)
         {
-            var jwtKey = config["Jwt:Key"]!;
-            if(string.IsNullOrWhiteSpace(jwtKey))
-            {
-                throw new ArgumentException("Jwt key is empty");
-            }
-            var keyBytes = Convert.FromBase64String(jwtKey);
+            var keyBytes = Convert.FromBase64String(_jwtConfig.Key);
             var creds = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256);
-            var expires = DateTime.UtcNow.AddSeconds(config.GetValue<int>("Jwt:ExpiresInSeconds"));
+            var expires = DateTime.UtcNow.AddSeconds(_jwtConfig.ExpiresInSeconds);
 
             var claims = new List<Claim> {
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -108,8 +108,8 @@ namespace Auth.App
             claims.AddRange(user.Roles.Select(x => new Claim(ClaimTypes.Role, x)));
 
             var token = new JwtSecurityToken(
-                issuer: config["Jwt:Issuer"],
-                audience: config["Jwt:Audience"],
+                issuer: _jwtConfig.Issuer,
+                audience: _jwtConfig.Audience,
                 claims: claims,
                 expires: expires,
                 signingCredentials: creds
