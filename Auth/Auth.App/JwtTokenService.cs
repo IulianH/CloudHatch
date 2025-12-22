@@ -80,17 +80,32 @@ namespace Auth.App
 
         private string GenerateJwtToken(User user)
         {
-            var keyBytes = Convert.FromBase64String(config["Jwt:Key"]!);
+            var jwtKey = config["Jwt:Key"]!;
+            if(string.IsNullOrWhiteSpace(jwtKey))
+            {
+                throw new ArgumentException("Jwt key is empty");
+            }
+            var keyBytes = Convert.FromBase64String(jwtKey);
             var creds = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256);
             var expires = DateTime.UtcNow.AddSeconds(config.GetValue<int>("Jwt:ExpiresInSeconds"));
 
-            var claims = new[] {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.PreferredUsername, user.Username),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.Role, "owner")
-            // add role claims here if needed
-        };
+            var claims = new List<Claim> {
+                new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new(JwtRegisteredClaimNames.PreferredUsername, user.Username),
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            if(user.GivenName != null)
+            {
+                claims.Add(new(JwtRegisteredClaimNames.GivenName, user.GivenName));
+            }
+
+            if (user.FamilyName != null)
+            {
+                claims.Add(new(JwtRegisteredClaimNames.FamilyName, user.FamilyName));
+            }
+
+            claims.AddRange(user.Roles.Select(x => new Claim(ClaimTypes.Role, x)));
 
             var token = new JwtSecurityToken(
                 issuer: config["Jwt:Issuer"],

@@ -14,12 +14,7 @@ namespace Auth.Infra
 
             if (response != null)
             {
-                return new User
-                {
-                    Id = response.Id,
-                    Username = response.Username,
-                    CreatedAt = response.CreatedAt
-                };
+               return GetUser(response);
             }
             return null;
         }
@@ -30,15 +25,23 @@ namespace Auth.Infra
 
             if (response != null)
             {
-                return new User
-                {
-                    Id = response.Id,
-                    Username = response.Username,
-                    CreatedAt = response.CreatedAt
-                };
+                return GetUser(response);
             }
 
             return null;
+        }
+
+        private User GetUser(Users.Domain.User user)
+        {
+            return new User
+            {
+                Id = user.Id,
+                Username = user.Username,
+                CreatedAt = user.CreatedAt,
+                GivenName = user.GivenName,
+                FamilyName = user.FamilyName,
+                Roles = user.Roles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            };
         }
     }
 }
