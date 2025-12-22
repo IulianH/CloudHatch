@@ -203,7 +203,7 @@ namespace Auth.Web.Controllers
         [Required(ErrorMessage = ValidationConstants.UsernameRequired)]
         [RegularExpression(ValidationConstants.UsernamePattern, ErrorMessage = ValidationConstants.UsernameFormatError)]
         string Username,
-        [Required(ErrorMessage = ValidationConstants.PasswordRequired)]
+        [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.PasswordRequired)]
         string Password
     );
 
@@ -226,7 +226,7 @@ namespace Auth.Web.Controllers
     ) : WebLoginResponseDto(AccessToken, ExpiresIn, User);
 
     public record RefreshRequestDto(
-        [Required]
+        [Required(AllowEmptyStrings = false)]
         string RefreshToken
     );
 
@@ -247,7 +247,7 @@ namespace Auth.Web.Controllers
     );
 
     public record LogoutRequestDto(
-        [Required]
+        [Required(AllowEmptyStrings = false)]
         string RefreshToken,
         bool LogoutAll
     ) : WebLogoutRequestDto(LogoutAll);

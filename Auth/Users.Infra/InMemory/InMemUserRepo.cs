@@ -33,7 +33,23 @@ namespace Users.Infra.InMemory
                 CreatedAt = DateTime.UtcNow,
                 Username = "admin",
                 NormalizedUsername = "ADMIN",
+                GivenName = "John",
+                FamilyName = "Doe",
+                Roles = "customer,admin",
                 Password = PasswordHasher.Hash("admin1!"),
+                Id = Guid.NewGuid()
+            };
+            _users.Add(user);
+
+            user = new User
+            {
+                CreatedAt = DateTime.UtcNow,
+                Username = "customer",
+                NormalizedUsername = "CUSTOMER",
+                GivenName = "Jane",
+                FamilyName = "Doe",
+                Roles = "customer",
+                Password = PasswordHasher.Hash("customer1!"),
                 Id = Guid.NewGuid()
             };
             _users.Add(user);
