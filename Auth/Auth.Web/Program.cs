@@ -6,6 +6,7 @@ using Auth.Web.Extensions;
 using Auth.Web.Middleware;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Logging;
 using Scalar.AspNetCore;
 using StackExchange.Redis;
 using Users.App.Interface;
@@ -47,6 +48,38 @@ var fwd = new ForwardedHeadersOptions
 // If running in containers, Kestrel may not recognize the proxy by default:
 fwd.KnownNetworks.Clear();
 fwd.KnownProxies.Clear();
+
+// Harden security: Only accept forwarded headers from the private Docker network
+// Since the 'private' network is internal: true, only containers on that network
+// can reach this service. This is secure because:
+// 1. The network is isolated (internal: true)
+// 2. Only nginx reverse-proxy forwards headers to this service
+// 3. Other containers on the network can't spoof headers because they don't proxy
+var privateNetworkSubnet = builder.Configuration["DOCKER_PRIVATE_NETWORK_SUBNET"] ?? "172.20.0.0/16";
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+try
+{
+    // Parse CIDR notation (e.g., "172.20.0.0/16")
+    var parts = privateNetworkSubnet.Split('/');
+    if (parts.Length == 2 && 
+        System.Net.IPAddress.TryParse(parts[0], out var networkAddress) &&
+        int.TryParse(parts[1], out var prefixLength) &&
+        prefixLength >= 0 && prefixLength <= 128)
+    {
+        var network = new Microsoft.AspNetCore.HttpOverrides.IPNetwork(networkAddress, prefixLength);
+        fwd.KnownNetworks.Add(network);
+        logger.LogInformation("Configured forwarded headers to trust network: {Subnet}", privateNetworkSubnet);
+    }
+    else
+    {
+        logger.LogError("Invalid DOCKER_PRIVATE_NETWORK_SUBNET format: {Subnet}. Expected format: IP/PrefixLength (e.g., 172.20.0.0/16). Forwarded headers will be insecure!", privateNetworkSubnet);
+    }
+}
+catch (Exception ex)
+{
+    logger.LogError(ex, "Failed to parse DOCKER_PRIVATE_NETWORK_SUBNET: {Subnet}. Forwarded headers will be insecure!", privateNetworkSubnet);
+}
 
 app.UseForwardedHeaders(fwd);
 

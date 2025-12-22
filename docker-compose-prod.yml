@@ -7,6 +7,7 @@ services:
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
       - REDIS__CONNECTION=redis:6379,password=devredispassword,defaultDatabase=0
+      - DOCKER_PRIVATE_NETWORK_SUBNET=172.20.0.0/16
     ports:
       - "8080"
     networks:
@@ -21,18 +22,7 @@ services:
       dockerfile: Res/Res.Web/Dockerfile
     environment:
       - ASPNETCORE_HTTP_PORTS=8080
-    ports:
-      - "8080"
-    networks:
-      - private                  
-
-  users.web:
-    image: ${DOCKER_REGISTRY-}usersweb
-    build:
-      context: .
-      dockerfile: Users/Users.Web/Dockerfile
-    environment:
-      - ASPNETCORE_HTTP_PORTS=8080
+      - DOCKER_PRIVATE_NETWORK_SUBNET=172.20.0.0/16
     ports:
       - "8080"
     networks:
@@ -79,4 +69,7 @@ volumes:
      
 networks:
   private:
-    internal: true 
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
