@@ -1,10 +1,12 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Navigation() {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const router = useRouter();
   const { isAuthenticated, user, logout } = useAuth();
 
@@ -19,49 +21,81 @@ export default function Navigation() {
     }
   };
 
+  const toggleDock = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sidebar-width', isCollapsed ? '4rem' : '16rem');
+  }, [isCollapsed]);
+
   return (
-    <nav className="border-b">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="flex justify-between h-16 items-center">
-          <div>
+    <nav className={`border-r h-screen fixed left-0 top-0 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'}`}>
+      <div className="flex flex-col h-full">
+        <div className="flex items-center justify-between p-4 border-b">
+          {!isCollapsed && (
             <Link href="/" className="text-xl font-bold">
               CloudHatch
             </Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="hover:underline"
-            >
-              Home
-            </Link>
-            {isAuthenticated ? (
-              <>
-                <Link
-                  href="/dashboard"
-                  className="hover:underline"
-                >
-                  Dashboard
-                </Link>
-                <span className="text-sm">
-                  {user?.username || 'User'}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="border border-gray-400 px-4 py-1 hover:bg-gray-100"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
+          )}
+          <button
+            onClick={toggleDock}
+            className="border border-gray-400 px-2 py-1 hover:bg-gray-100"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? '→' : '←'}
+          </button>
+        </div>
+        
+        <div className="flex-1 flex flex-col p-4 gap-4">
+          <Link
+            href="/"
+            className="hover:underline"
+          >
+            {isCollapsed ? 'H' : 'Home'}
+          </Link>
+          
+          {isAuthenticated ? (
+            <>
               <Link
-                href="/login"
-                className="border border-black px-4 py-1 hover:bg-black hover:text-white"
+                href="/dashboard"
+                className="hover:underline"
               >
-                Login
+                {isCollapsed ? 'D' : 'Dashboard'}
               </Link>
-            )}
-          </div>
+              {!isCollapsed && (
+                <div className="mt-auto space-y-4">
+                  <div className="text-sm border-t pt-4">
+                    {user?.username || 'User'}
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full border border-gray-400 px-4 py-1 hover:bg-gray-100"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+              {isCollapsed && (
+                <div className="mt-auto">
+                  <button
+                    onClick={handleLogout}
+                    className="border border-gray-400 px-2 py-1 hover:bg-gray-100"
+                    title="Logout"
+                  >
+                    L
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className={`border border-black ${isCollapsed ? 'px-2' : 'px-4'} py-1 hover:bg-black hover:text-white`}
+            >
+              {isCollapsed ? 'L' : 'Login'}
+            </Link>
+          )}
         </div>
       </div>
     </nav>
