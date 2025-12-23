@@ -4,6 +4,7 @@ using Auth.App;
 using Auth.Web.Configuration;
 using Auth.Web.Extensions;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -53,6 +54,13 @@ namespace Auth.Web.Controllers
                 token.ExpiresIn,
                 new UserResponseDto(token.User.Username)
             ));
+        }
+
+        [HttpGet("web-google")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<ActionResult<WebLoginResponseDto>> WebGoogle()
+        {
+            return Ok();
         }
 
         [HttpPost("refresh")]

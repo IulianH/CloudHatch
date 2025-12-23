@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function Navigation() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, loading } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -26,8 +26,18 @@ export default function Navigation() {
   };
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--sidebar-width', isCollapsed ? '4rem' : '16rem');
-  }, [isCollapsed]);
+    if (loading || !isAuthenticated) {
+      // Set sidebar width to 0 when not authenticated
+      document.documentElement.style.setProperty('--sidebar-width', '0');
+    } else {
+      document.documentElement.style.setProperty('--sidebar-width', isCollapsed ? '4rem' : '16rem');
+    }
+  }, [isCollapsed, isAuthenticated, loading]);
+
+  // Don't display sidebar if user is not authenticated
+  if (loading || !isAuthenticated) {
+    return null;
+  }
 
   return (
     <nav className={`border-r h-screen fixed left-0 top-0 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'}`}>
