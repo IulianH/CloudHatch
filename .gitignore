@@ -420,3 +420,4 @@ FodyWeavers.xsd
 .vscode/launch.json
 .idea/
 /nginx/ssl
+/Auth/Auth.Web/appsettings.Development.json
