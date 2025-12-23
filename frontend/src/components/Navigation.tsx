@@ -20,18 +20,18 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link href="/" className="text-xl font-bold text-gray-900">
+    <nav className="border-b">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="flex justify-between h-16 items-center">
+          <div>
+            <Link href="/" className="text-xl font-bold">
               CloudHatch
             </Link>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-4">
             <Link
               href="/"
-              className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+              className="hover:underline"
             >
               Home
             </Link>
@@ -39,16 +39,16 @@ export default function Navigation() {
               <>
                 <Link
                   href="/dashboard"
-                  className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                  className="hover:underline"
                 >
                   Dashboard
                 </Link>
-                <span className="text-gray-700 px-3 py-2 text-sm">
-                  Welcome, {user?.username || 'User'}
+                <span className="text-sm">
+                  {user?.username || 'User'}
                 </span>
                 <button
                   onClick={handleLogout}
-                  className="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-md text-sm font-medium"
+                  className="border border-gray-400 px-4 py-1 hover:bg-gray-100"
                 >
                   Logout
                 </button>
@@ -56,7 +56,7 @@ export default function Navigation() {
             ) : (
               <Link
                 href="/login"
-                className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-md text-sm font-medium"
+                className="border border-black px-4 py-1 hover:bg-black hover:text-white"
               >
                 Login
               </Link>

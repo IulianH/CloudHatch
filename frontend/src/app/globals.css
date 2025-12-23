@@ -20,7 +20,3 @@ body {
   font-family: var(--font-inter), system-ui, sans-serif;
 }
 
-/* Debug: Ensure Tailwind is working */
-.debug-tailwind {
-  @apply bg-red-500 text-white p-4 rounded;
-}
