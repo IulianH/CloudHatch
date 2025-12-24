@@ -43,7 +43,7 @@ var app = builder.Build();
 // IMPORTANT: do this early, before auth/routing/etc.
 var fwd = new ForwardedHeadersOptions
 {
-    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost
 };
 // If running in containers, Kestrel may not recognize the proxy by default:
 fwd.KnownNetworks.Clear();

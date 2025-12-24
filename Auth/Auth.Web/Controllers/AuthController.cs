@@ -56,12 +56,6 @@ namespace Auth.Web.Controllers
             ));
         }
 
-        [HttpGet("web-google")]
-        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-        public async Task<ActionResult<WebLoginResponseDto>> WebGoogle()
-        {
-            return Ok();
-        }
 
         [HttpPost("refresh")]
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]

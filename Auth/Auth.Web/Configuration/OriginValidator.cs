@@ -21,10 +21,10 @@ namespace Auth.Web.Configuration
                 return false;
             }
 
-            var allowed = _allowedOrigins.Any(x => origin == $"https://{x.Trim()}");
+            var allowed = _allowedOrigins.Any(x => origin == x.Trim());
             if(!allowed)
             {
-                Error = $"Oringin {origin} is not in the allowed list";
+                Error = $"Origin {origin} is not in the allowed list";
             }
 
             return allowed;
@@ -32,7 +32,7 @@ namespace Auth.Web.Configuration
 
         private string? GetOrigin(HttpRequest r)
         {
-            var origin = r.Headers.Origin.ToString()?.ToLower()?.Trim();
+            var origin = r.Headers.Host.ToString()?.ToLower()?.Trim();
             if (string.IsNullOrEmpty(origin))
             {
                 return null;
