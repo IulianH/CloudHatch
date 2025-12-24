@@ -4,5 +4,6 @@ namespace Auth.App.Interface.Users
     {
         Task<User?> LoginAsync(string username, string password);
         Task<User?> FindByIdAsync(Guid userId);
+        Task<User?> FindByEmailAsync(string email);
     }
 }

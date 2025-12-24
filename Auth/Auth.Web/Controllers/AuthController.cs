@@ -1,8 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using Auth.App;
 using Auth.Web.Configuration;
 using Auth.Web.Extensions;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +15,7 @@ namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route("/")]
-    public class AuthController(JwtTokenService auth, IDataProtectionProvider dp, OriginValidator originValidator, 
+    public class AuthController(JwtTokenService auth, GoogleOAuthService googleOAuth, IDataProtectionProvider dp, OriginValidator originValidator, 
         IOptions<AuthCookieOptions> cookieOptions, ILogger<AuthController> logger) : ControllerBase
     {
         private readonly AuthCookieOptions _cookieOptions = cookieOptions.Value;
@@ -125,6 +127,97 @@ namespace Auth.Web.Controllers
             await auth.RevokeRefreshTokenAsync(refreshToken);
             DeleteCookie();
             return NoContent();
+        }
+
+        [HttpGet("google-login")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public IActionResult GoogleLogin()
+        {
+            var properties = new AuthenticationProperties { RedirectUri = "/google-callback" };
+            return Challenge(properties, "Google");
+        }
+
+        [HttpGet("google-callback")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<IActionResult> GoogleCallback()
+        {
+            var result = await HttpContext.AuthenticateAsync("Google");
+            if (!result.Succeeded || result.Principal == null)
+            {
+                logger.LogWarning("Google authentication failed");
+                await HttpContext.SignOutAsync("Google");
+                return Unauthorized(new { error = "Google authentication failed" });
+            }
+
+            var tokenPair = await googleOAuth.AuthenticateAsync(result.Principal);
+            
+            // Sign out the Google scheme to clean up temporary authentication cookie
+            await HttpContext.SignOutAsync("Google");
+            
+            if (tokenPair == null)
+            {
+                logger.LogWarning("User not found for Google email");
+                return Unauthorized(new { error = "No account found with this email address. Please create an account first." });
+            }
+
+            return Ok(new LoginResponseDto(
+                tokenPair.AccessToken,
+                tokenPair.RefreshToken,
+                tokenPair.ExpiresIn,
+                new UserResponseDto(tokenPair.User.Username)
+            ));
+        }
+
+        [HttpGet("web-google-login")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public IActionResult WebGoogleLogin()
+        {
+            if (!IsAllowedOrigin(Request))
+            {
+                logger.LogWarning(originValidator.Error);
+                return Forbid();  // simple CSRF guard 
+            }
+
+            var properties = new AuthenticationProperties { RedirectUri = "/web-google-callback" };
+            return Challenge(properties, "Google");
+        }
+
+        [HttpGet("web-google-callback")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<IActionResult> WebGoogleCallback()
+        {
+            if (!IsAllowedOrigin(Request))
+            {
+                logger.LogWarning(originValidator.Error);
+                return Forbid();  // simple CSRF guard 
+            }
+
+            var result = await HttpContext.AuthenticateAsync("Google");
+            if (!result.Succeeded || result.Principal == null)
+            {
+                logger.LogWarning("Google authentication failed");
+                await HttpContext.SignOutAsync("Google");
+                return Unauthorized(new { error = "Google authentication failed" });
+            }
+
+            var tokenPair = await googleOAuth.AuthenticateAsync(result.Principal);
+            
+            // Sign out the Google scheme to clean up temporary authentication cookie
+            await HttpContext.SignOutAsync("Google");
+            
+            if (tokenPair == null)
+            {
+                logger.LogWarning("User not found for Google email");
+                return Unauthorized(new { error = "No account found with this email address. Please create an account first." });
+            }
+
+            var protector = CreateProtector();
+            IssueCookie(tokenPair.RefreshToken, protector);
+            return Ok(new WebLoginResponseDto(
+                tokenPair.AccessToken,
+                tokenPair.ExpiresIn,
+                new UserResponseDto(tokenPair.User.Username)
+            ));
         }
 
         private string? ReadRefreshTokenFromCookie(IDataProtector protector)

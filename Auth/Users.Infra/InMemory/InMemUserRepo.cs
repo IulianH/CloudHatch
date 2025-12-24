@@ -26,6 +26,16 @@ namespace Users.Infra.InMemory
             return Task.FromResult(user);
         }
 
+        public Task<User?> FindByEmailAsync(string email)
+        {
+            // Match by email if username is in email format, or by normalized username
+            var normalizedEmail = email.ToUpperInvariant();
+            var user = _users.FirstOrDefault(x => 
+                x.NormalizedUsername.Equals(normalizedEmail, StringComparison.InvariantCultureIgnoreCase) ||
+                x.Username.Equals(email, StringComparison.InvariantCultureIgnoreCase));
+            return Task.FromResult(user);
+        }
+
         public void Migrate()
         {
             var user = new User

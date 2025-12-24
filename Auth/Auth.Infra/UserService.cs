@@ -31,6 +31,18 @@ namespace Auth.Infra
             return null;
         }
 
+        public async Task<User?> FindByEmailAsync(string email)
+        {
+            var response = await userRepo.FindByEmailAsync(email);
+
+            if (response != null)
+            {
+                return GetUser(response);
+            }
+
+            return null;
+        }
+
         private User GetUser(Users.Domain.User user)
         {
             return new User

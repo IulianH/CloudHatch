@@ -58,6 +58,11 @@ namespace Auth.App
             return await IssueTokens(user);
 
         }
+
+        public async Task<TokenPair> IssueTokenForUserAsync(User user)
+        {
+            return await IssueTokens(user);
+        }
         
         private static bool ValidateRefreshToken(string refreshToken)
         {

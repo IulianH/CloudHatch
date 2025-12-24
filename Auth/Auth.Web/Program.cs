@@ -1,4 +1,5 @@
 using Auth.App;
+using Auth.App.Env;
 using Auth.App.Interface.RefreshToken;
 using Auth.Infra;
 using Auth.Web.Configuration;
@@ -7,6 +8,7 @@ using Auth.Web.Middleware;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 using StackExchange.Redis;
 using Users.App.Interface;
@@ -33,6 +35,21 @@ builder.Services.Configure<AuthCookieOptions>(builder.Configuration.GetSection("
 
 // Add OpenAPI services with Scalar transformers
 builder.Services.AddOpenApi(options => options.AddScalarTransformers());
+
+// Configure Google OAuth
+var googleConfig = builder.Configuration.GetSection("Google").Get<GoogleOAuthConfig>();
+if (googleConfig != null && !string.IsNullOrEmpty(googleConfig.ClientId) && !string.IsNullOrEmpty(googleConfig.ClientSecret))
+{
+    builder.Services.AddAuthentication()
+        .AddGoogle(options =>
+        {
+            options.ClientId = googleConfig.ClientId;
+            options.ClientSecret = googleConfig.ClientSecret;
+            options.CallbackPath = googleConfig.CallbackPath;
+            options.Scope.Add("email");
+            options.Scope.Add("profile");
+        });
+}
 
 builder.Services.RegisterApplication(builder.Configuration);
 
@@ -82,6 +99,10 @@ catch (Exception ex)
 }
 
 app.UseForwardedHeaders(fwd);
+
+// Add authentication and authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
