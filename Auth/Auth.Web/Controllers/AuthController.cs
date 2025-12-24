@@ -133,7 +133,11 @@ namespace Auth.Web.Controllers
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public IActionResult GoogleLogin()
         {
-            var properties = new AuthenticationProperties { RedirectUri = "/google-callback" };
+            // Build the full redirect URI using the current request's scheme and host
+            // This ensures it matches what's registered in Google Cloud Console
+            var redirectUri = $"{Request.Scheme}://{Request.Host}/google-callback";
+            logger.LogInformation("Initiating Google OAuth with redirect URI: {RedirectUri}", redirectUri);
+            var properties = new AuthenticationProperties { RedirectUri = redirectUri };
             return Challenge(properties, "Google");
         }
 
@@ -141,17 +145,23 @@ namespace Auth.Web.Controllers
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<IActionResult> GoogleCallback()
         {
-            var result = await HttpContext.AuthenticateAsync("Google");
-            if (!result.Succeeded || result.Principal == null)
+            // Try to get the ticket from TempCookie (where Google handler signs it in)
+            // or from Google scheme directly
+            var result = await HttpContext.AuthenticateAsync("TempCookie") 
+                ?? await HttpContext.AuthenticateAsync("Google");
+            
+            if (result == null || !result.Succeeded || result.Principal == null)
             {
                 logger.LogWarning("Google authentication failed");
+                await HttpContext.SignOutAsync("TempCookie");
                 await HttpContext.SignOutAsync("Google");
                 return Unauthorized(new { error = "Google authentication failed" });
             }
 
             var tokenPair = await googleOAuth.AuthenticateAsync(result.Principal);
             
-            // Sign out the Google scheme to clean up temporary authentication cookie
+            // Sign out both schemes to clean up temporary authentication cookies
+            await HttpContext.SignOutAsync("TempCookie");
             await HttpContext.SignOutAsync("Google");
             
             if (tokenPair == null)
@@ -178,7 +188,11 @@ namespace Auth.Web.Controllers
                 return Forbid();  // simple CSRF guard 
             }
 
-            var properties = new AuthenticationProperties { RedirectUri = "/web-google-callback" };
+            // Build the full redirect URI using the current request's scheme and host
+            // This ensures it matches what's registered in Google Cloud Console
+            var redirectUri = $"{Request.Scheme}://{Request.Host}/web-google-callback";
+            logger.LogInformation("Initiating Google OAuth (web) with redirect URI: {RedirectUri}", redirectUri);
+            var properties = new AuthenticationProperties { RedirectUri = redirectUri };
             return Challenge(properties, "Google");
         }
 
@@ -192,17 +206,23 @@ namespace Auth.Web.Controllers
                 return Forbid();  // simple CSRF guard 
             }
 
-            var result = await HttpContext.AuthenticateAsync("Google");
-            if (!result.Succeeded || result.Principal == null)
+            // Try to get the ticket from TempCookie (where Google handler signs it in)
+            // or from Google scheme directly
+            var result = await HttpContext.AuthenticateAsync("TempCookie") 
+                ?? await HttpContext.AuthenticateAsync("Google");
+            
+            if (result == null || !result.Succeeded || result.Principal == null)
             {
                 logger.LogWarning("Google authentication failed");
+                await HttpContext.SignOutAsync("TempCookie");
                 await HttpContext.SignOutAsync("Google");
                 return Unauthorized(new { error = "Google authentication failed" });
             }
 
             var tokenPair = await googleOAuth.AuthenticateAsync(result.Principal);
             
-            // Sign out the Google scheme to clean up temporary authentication cookie
+            // Sign out both schemes to clean up temporary authentication cookies
+            await HttpContext.SignOutAsync("TempCookie");
             await HttpContext.SignOutAsync("Google");
             
             if (tokenPair == null)

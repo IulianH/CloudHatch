@@ -41,13 +41,27 @@ var googleConfig = builder.Configuration.GetSection("Google").Get<GoogleOAuthCon
 if (googleConfig != null && !string.IsNullOrEmpty(googleConfig.ClientId) && !string.IsNullOrEmpty(googleConfig.ClientSecret))
 {
     builder.Services.AddAuthentication()
-        .AddGoogle(options =>
+        .AddCookie("TempCookie") // Temporary cookie scheme for OAuth flow
+        .AddGoogle("Google", options =>
         {
             options.ClientId = googleConfig.ClientId;
             options.ClientSecret = googleConfig.ClientSecret;
             options.CallbackPath = googleConfig.CallbackPath;
             options.Scope.Add("email");
             options.Scope.Add("profile");
+            options.SaveTokens = false;
+            // Use temp cookie scheme - ticket will be available via AuthenticateAsync("Google")
+            options.SignInScheme = "TempCookie";
+            // Prevent automatic redirect after callback
+            options.Events.OnTicketReceived = context =>
+            {
+                // Clear the ReturnUrl to prevent automatic redirect
+                // The ticket will be signed in to TempCookie scheme
+                // Controller can retrieve it via AuthenticateAsync("Google") which will
+                // return the ticket from the TempCookie
+                context.Properties.RedirectUri = null;
+                return Task.CompletedTask;
+            };
         });
 }
 
