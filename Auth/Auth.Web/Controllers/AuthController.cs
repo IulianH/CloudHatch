@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Auth.App;
+using Auth.App.Env;
 using Auth.Web.Configuration;
 using Auth.Web.Extensions;
 using Microsoft.AspNetCore.Authentication;
@@ -16,9 +17,10 @@ namespace Auth.Web.Controllers
     [ApiController]
     [Route("/")]
     public class AuthController(JwtTokenService auth, GoogleOAuthService googleOAuth, IDataProtectionProvider dp, OriginValidator originValidator, 
-        IOptions<AuthCookieOptions> cookieOptions, ILogger<AuthController> logger) : ControllerBase
+        IOptions<AuthCookieOptions> cookieOptions, IOptions<GoogleOAuthConfig> googleConfig, ILogger<AuthController> logger) : ControllerBase
     {
         private readonly AuthCookieOptions _cookieOptions = cookieOptions.Value;
+        private readonly GoogleOAuthConfig _googleConfig = googleConfig.Value;
 
         [HttpPost("login")]
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
@@ -129,55 +131,6 @@ namespace Auth.Web.Controllers
             return NoContent();
         }
 
-        [HttpGet("google-login")]
-        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-        public IActionResult GoogleLogin()
-        {
-            // Build the full redirect URI using the current request's scheme and host
-            // This ensures it matches what's registered in Google Cloud Console
-            var redirectUri = "https://localhost:5001/api/auth/web-google-callback";
-            logger.LogInformation("Initiating Google OAuth with redirect URI: {RedirectUri}", redirectUri);
-            var properties = new AuthenticationProperties { RedirectUri = redirectUri };
-            return Challenge(properties, "Google");
-        }
-
-        [HttpGet("google-callback")]
-        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-        public async Task<IActionResult> GoogleCallback()
-        {
-            // Try to get the ticket from TempCookie (where Google handler signs it in)
-            // or from Google scheme directly
-            var result = await HttpContext.AuthenticateAsync("TempCookie") 
-                ?? await HttpContext.AuthenticateAsync("Google");
-            
-            if (result == null || !result.Succeeded || result.Principal == null)
-            {
-                logger.LogWarning("Google authentication failed");
-                await HttpContext.SignOutAsync("TempCookie");
-                await HttpContext.SignOutAsync("Google");
-                return Unauthorized(new { error = "Google authentication failed" });
-            }
-
-            var tokenPair = await googleOAuth.AuthenticateAsync(result.Principal);
-            
-            // Sign out both schemes to clean up temporary authentication cookies
-            await HttpContext.SignOutAsync("TempCookie");
-            await HttpContext.SignOutAsync("Google");
-            
-            if (tokenPair == null)
-            {
-                logger.LogWarning("User not found for Google email");
-                return Unauthorized(new { error = "No account found with this email address. Please create an account first." });
-            }
-
-            return Ok(new LoginResponseDto(
-                tokenPair.AccessToken,
-                tokenPair.RefreshToken,
-                tokenPair.ExpiresIn,
-                new UserResponseDto(tokenPair.User.Username)
-            ));
-        }
-
         [HttpGet("web-google-login")]
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public IActionResult WebGoogleLogin()
@@ -189,9 +142,37 @@ namespace Auth.Web.Controllers
             }
 
             // Build the full redirect URI using the current request's scheme and host
-            // This ensures it matches what's registered in Google Cloud Console
-            var redirectUri = "https://localhost:5001/api/auth/web-google-callback";
-            logger.LogInformation("Initiating Google OAuth (web) with redirect URI: {RedirectUri}", redirectUri);
+            // Use the configured CallbackPath from appsettings.json
+            // Construct host with explicit port handling
+            // Use X-Forwarded-Port header (from nginx) if available, otherwise fall back to Request.Host.Port
+            var host = Request.Host.Host;
+            int? port = null;
+            
+            // Check X-Forwarded-Port header first (set by nginx reverse proxy)
+            if (Request.Headers.TryGetValue("X-Forwarded-Port", out var forwardedPort) && 
+                int.TryParse(forwardedPort.ToString(), out var forwardedPortValue))
+            {
+                port = forwardedPortValue;
+            }
+            // Fall back to Request.Host.Port if available
+            else if (Request.Host.Port.HasValue)
+            {
+                port = Request.Host.Port.Value;
+            }
+            // Last resort: use connection local port
+            else
+            {
+                port = HttpContext.Connection.LocalPort;
+            }
+            
+            // Build the host string with port
+            var hostWithPort = port > 0 ? $"{host}:{port}" : host;
+            
+            // Use the configured callback path from appsettings.json
+            var redirectUri = $"{Request.Scheme}://{hostWithPort}{_googleConfig.CallbackPath}";
+            var forwardedPortHeader = Request.Headers["X-Forwarded-Port"].ToString();
+            logger.LogInformation("Initiating Google OAuth (web) with redirect URI: {RedirectUri}. Request.Host: {RequestHost}, X-Forwarded-Port: {ForwardedPort}, Connection.LocalPort: {LocalPort}", 
+                redirectUri, Request.Host, forwardedPortHeader, HttpContext.Connection.LocalPort);
             var properties = new AuthenticationProperties { RedirectUri = redirectUri };
             return Challenge(properties, "Google");
         }

@@ -33,6 +33,9 @@ builder.Services.AddTransient<OriginValidator>();
 // Configure AuthCookie options
 builder.Services.Configure<AuthCookieOptions>(builder.Configuration.GetSection("AuthCookie"));
 
+// Configure Google OAuth options
+builder.Services.Configure<GoogleOAuthConfig>(builder.Configuration.GetSection("Google"));
+
 // Add OpenAPI services with Scalar transformers
 builder.Services.AddOpenApi(options => options.AddScalarTransformers());
 
