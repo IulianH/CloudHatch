@@ -135,7 +135,7 @@ namespace Auth.Web.Controllers
         {
             // Build the full redirect URI using the current request's scheme and host
             // This ensures it matches what's registered in Google Cloud Console
-            var redirectUri = $"{Request.Scheme}://{Request.Host}/google-callback";
+            var redirectUri = "https://localhost:5001/api/auth/web-google-callback";
             logger.LogInformation("Initiating Google OAuth with redirect URI: {RedirectUri}", redirectUri);
             var properties = new AuthenticationProperties { RedirectUri = redirectUri };
             return Challenge(properties, "Google");
@@ -190,7 +190,7 @@ namespace Auth.Web.Controllers
 
             // Build the full redirect URI using the current request's scheme and host
             // This ensures it matches what's registered in Google Cloud Console
-            var redirectUri = $"{Request.Scheme}://{Request.Host}/web-google-callback";
+            var redirectUri = "https://localhost:5001/api/auth/web-google-callback";
             logger.LogInformation("Initiating Google OAuth (web) with redirect URI: {RedirectUri}", redirectUri);
             var properties = new AuthenticationProperties { RedirectUri = redirectUri };
             return Challenge(properties, "Google");
