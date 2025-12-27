@@ -12,7 +12,11 @@ services:
     ports:
       - "8080"
     networks:
-      - private    
+      - private  
+      - default
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     depends_on:
       - redis
 

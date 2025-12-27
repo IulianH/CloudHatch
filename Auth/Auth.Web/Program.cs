@@ -7,14 +7,75 @@ using Auth.Web.Extensions;
 using Auth.Web.Middleware;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Scalar.AspNetCore;
 using StackExchange.Redis;
 using Users.App.Interface;
-
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = "Google";
+})
+.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+{
+    // Temporary cookie used only during external login
+    options.Cookie.Name = "__Host.external";
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+})
+.AddOpenIdConnect("Google", options =>
+{
+    options.Authority = "https://accounts.google.com";
+    options.ClientId = builder.Configuration["Google:ClientId"];
+    options.ClientSecret = builder.Configuration["Google:ClientSecret"];
+
+    options.CallbackPath = "/api/auth/web-google-callback";
+
+    options.ResponseType = OpenIdConnectResponseType.Code;
+    options.UsePkce = true;
+
+    options.Scope.Clear();
+    options.Scope.Add("openid");
+    options.Scope.Add("email");
+    options.Scope.Add("profile");
+
+    options.SaveTokens = false;
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        NameClaimType = "name",
+        RoleClaimType = "role"
+    };
+
+    options.Events = new OpenIdConnectEvents
+    {
+        OnTokenValidated = ctx =>
+        {
+            var sub = ctx.Principal!.FindFirst("sub")?.Value;
+            var email = ctx.Principal.FindFirst("email")?.Value;
+
+            // Here you will:
+            // 1. Link or create local user
+            // 2. Issue your own tokens
+            // 3. Redirect back to SPA
+
+            return Task.CompletedTask;
+        },
+
+        OnRedirectToIdentityProvider = ctx =>
+        {
+            // Ensures correct https redirect behind Nginx
+            ctx.ProtocolMessage.RedirectUri =
+                "https://localhost:5001/api/auth/web-google-callback";
+            return Task.CompletedTask;
+        }
+    };
+});
 
 var redisConn = builder.Configuration["REDIS:CONNECTION"]!; // from compose env
 
@@ -36,37 +97,9 @@ builder.Services.Configure<AuthCookieOptions>(builder.Configuration.GetSection("
 // Configure Google OAuth options
 builder.Services.Configure<GoogleOAuthConfig>(builder.Configuration.GetSection("Google"));
 
-// Add OpenAPI services with Scalar transformers
-builder.Services.AddOpenApi(options => options.AddScalarTransformers());
 
-// Configure Google OAuth
-var googleConfig = builder.Configuration.GetSection("Google").Get<GoogleOAuthConfig>();
-if (googleConfig != null && !string.IsNullOrEmpty(googleConfig.ClientId) && !string.IsNullOrEmpty(googleConfig.ClientSecret))
-{
-    builder.Services.AddAuthentication()
-        .AddCookie("TempCookie") // Temporary cookie scheme for OAuth flow
-        .AddGoogle("Google", options =>
-        {
-            options.ClientId = googleConfig.ClientId;
-            options.ClientSecret = googleConfig.ClientSecret;
-            options.CallbackPath = googleConfig.CallbackPath;
-            options.Scope.Add("email");
-            options.Scope.Add("profile");
-            options.SaveTokens = false;
-            // Use temp cookie scheme - ticket will be available via AuthenticateAsync("Google")
-            options.SignInScheme = "TempCookie";
-            // Prevent automatic redirect after callback
-            options.Events.OnTicketReceived = context =>
-            {
-                // Clear the ReturnUrl to prevent automatic redirect
-                // The ticket will be signed in to TempCookie scheme
-                // Controller can retrieve it via AuthenticateAsync("Google") which will
-                // return the ticket from the TempCookie
-                context.Properties.RedirectUri = null;
-                return Task.CompletedTask;
-            };
-        });
-}
+// Google OAuth is now handled manually in the controller
+// No need for AddGoogle or TempCookie - the controller implements the full OAuth flow
 
 builder.Services.RegisterApplication(builder.Configuration);
 
@@ -122,14 +155,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    // Add OpenAPI document generation
-    app.MapOpenApi();
-    
-    // Add Scalar UI for API documentation
-    app.MapScalarApiReference();
-}
 
 
 // Add global exception handling for Token library exceptions
