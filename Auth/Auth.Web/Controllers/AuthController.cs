@@ -160,7 +160,7 @@ namespace Auth.Web.Controllers
             // - Claims are in HttpContext.User
             // - You should issue your own tokens here
 
-            return Redirect("https://localhost:5001");
+            return Redirect("https://localhost:5100");
         }
 
         private string? ReadRefreshTokenFromCookie(IDataProtector protector)

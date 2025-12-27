@@ -8,15 +8,10 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - REDIS__CONNECTION=redis:6379,password=devredispassword,defaultDatabase=0
-      - DOCKER_PRIVATE_NETWORK_SUBNET=172.20.0.0/16
     ports:
       - "8080"
     networks:
-      - private  
       - default
-    dns:
-      - 1.1.1.1
-      - 8.8.8.8
     depends_on:
       - redis
 
@@ -28,11 +23,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
-      - DOCKER_PRIVATE_NETWORK_SUBNET=172.20.0.0/16
     ports:
       - "8080"
     networks:
-      - private                       
+      - default                      
 
   # Next.js development service with hot reload and debugging
   frontend:
@@ -52,7 +46,6 @@ services:
       - WATCHPACK_POLLING=true
       - NODE_OPTIONS=--inspect=0.0.0.0:9229
     networks:
-      - private
       - default        # Allow direct access for debugging
 
   reverse-proxy:
@@ -63,8 +56,7 @@ services:
       - "5100:5100"
       - "443:443"
     networks:
-      - default                  # egress to Internet (OCSP/ACME/etc.)
-      - private                  # reach the private app
+      - default                  # egress to Internet (OCSP/ACME/etc.)    # reach the private app
     depends_on:
       - auth.web
       - backapi.web
@@ -81,14 +73,7 @@ services:
       timeout: 3s
       retries: 10
     networks:
-      - private
+      - default
   
 volumes:
   redisdata: { }
-     
-networks:
-  private:
-    internal: true
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
