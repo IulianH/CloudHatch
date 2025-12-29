@@ -18,12 +18,5 @@ public static class ApplicationRegistration
 
         services.AddTransient<JwtTokenService>();
         services.AddTransient<LoginService>();
-        services.AddTransient<GoogleOAuthService>();
-
-        // Configure Google OAuth options with validation
-        services.AddOptions<GoogleOAuthConfig>()
-            .Bind(configuration.GetSection("Google"))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
     }
 }

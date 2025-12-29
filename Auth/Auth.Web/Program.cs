@@ -5,85 +5,110 @@ using Auth.Infra;
 using Auth.Web.Configuration;
 using Auth.Web.Extensions;
 using Auth.Web.Middleware;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.HttpOverrides;
-using StackExchange.Redis;
-using Users.App.Interface;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
+using Users.App.Interface;
 
 var builder = WebApplication.CreateBuilder(args);
+const string originSectionName = "Origin";
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = "Google";
-})
-.AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-{
-    // Temporary cookie used only during external login
-    options.Cookie.Name = "__Host.external";
-    options.Cookie.SameSite = SameSiteMode.None;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-})
-.AddOpenIdConnect("Google", options =>
-{
-    options.Authority = "https://accounts.google.com";
-    options.ClientId = builder.Configuration["Google:ClientId"];
-    options.ClientSecret = builder.Configuration["Google:ClientSecret"];
+builder.Services.AddOptions<OriginConfig>()
+    .Bind(builder.Configuration.GetSection(originSectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
-    options.CallbackPath = "/web-google-callback";
+const string googleSectionName = "GoogleOAuth";
+builder.Services.Configure<GoogleOAuthConfig>(builder.Configuration.GetSection(googleSectionName));
+var googleConfig = builder.Configuration.GetSection(googleSectionName).Get<GoogleOAuthConfig>();
 
-    options.ResponseType = OpenIdConnectResponseType.Code;
-    options.UsePkce = true;
 
-    options.Scope.Clear();
-    options.Scope.Add("openid");
-    options.Scope.Add("email");
-    options.Scope.Add("profile");
+bool hasFederatedAuthentication = false;
+bool hasGoogleAuthentication = false; 
+hasFederatedAuthentication = hasGoogleAuthentication = googleConfig?.Enabled ?? false;
 
-    options.SaveTokens = false;
-
-    options.TokenValidationParameters = new TokenValidationParameters
+if (hasGoogleAuthentication)
+{ 
+    if(string.IsNullOrWhiteSpace(googleConfig?.ClientId) || string.IsNullOrWhiteSpace(googleConfig?.ClientSecret))
     {
-        NameClaimType = "name",
-        RoleClaimType = "role"
-    };
+        throw new ApplicationException("Google credentials not provided");
+    }
+    var originConfig = builder.Configuration.GetSection(originSectionName).Get<OriginConfig>();
 
-    options.Events = new OpenIdConnectEvents
+    builder.Services.AddAuthentication(options =>
     {
-        OnTokenValidated = ctx =>
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = "Google";
+    })
+    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+    {
+        // Temporary cookie used only during external login
+        options.Cookie.Name = "__Host.external";
+        options.Cookie.SameSite = SameSiteMode.None;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    })
+    .AddOpenIdConnect("Google", options =>
+    {
+
+        options.Authority = "https://accounts.google.com";
+        options.ClientId = googleConfig?.ClientId;
+        options.ClientSecret = googleConfig?.ClientSecret;
+
+        options.CallbackPath = "/web-google-callback";
+
+        options.ResponseType = OpenIdConnectResponseType.Code;
+        options.UsePkce = true;
+
+        options.Scope.Clear();
+        options.Scope.Add("openid");
+        options.Scope.Add("email");
+        options.Scope.Add("profile");
+
+        options.SaveTokens = false;
+
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            var sub = ctx.Principal!.FindFirst("sub")?.Value;
-            var email = ctx.Principal.FindFirst("email")?.Value;
+            NameClaimType = "name",
+            RoleClaimType = "role"
+        };
 
-            // Here you will:
-            // 1. Link or create local user
-            // 2. Issue your own tokens
-            // 3. Redirect back to SPA
-
-            return Task.CompletedTask;
-        },
-
-        OnRedirectToIdentityProvider = ctx =>
+        options.Events = new OpenIdConnectEvents
         {
-            // Ensures correct https redirect behind Nginx
-            ctx.ProtocolMessage.RedirectUri =
-                "https://localhost:5100/api/auth/web-google-callback";
-            return Task.CompletedTask;
-        }
-    };
-    options.CorrelationCookie.Path = "/";
-    options.NonceCookie.Path = "/";
+            OnTokenValidated = ctx =>
+            {
+                var sub = ctx.Principal!.FindFirst("sub")?.Value;
+                var email = ctx.Principal.FindFirst("email")?.Value;
 
-    options.CorrelationCookie.SameSite = SameSiteMode.None;
-    options.NonceCookie.SameSite = SameSiteMode.None;
+                // Here you will:
+                // 1. Link or create local user
+                // 2. Issue your own tokens
+                // 3. Redirect back to SPA
 
-    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
-});
+                return Task.CompletedTask;
+            },
+
+            OnRedirectToIdentityProvider = ctx =>
+            {
+                // Ensures correct https redirect behind Nginx
+                ctx.ProtocolMessage.RedirectUri = $"{originConfig?.HostWithSchemeAndPath}web-google-callback";
+                return Task.CompletedTask;
+            }
+        };
+        options.CorrelationCookie.Path = "/";
+        options.NonceCookie.Path = "/";
+
+        options.CorrelationCookie.SameSite = SameSiteMode.None;
+        options.NonceCookie.SameSite = SameSiteMode.None;
+
+        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+    });
+}
 
 var redisConn = builder.Configuration["REDIS:CONNECTION"]!; // from compose env
 
@@ -101,13 +126,6 @@ builder.Services.AddTransient<OriginValidator>();
 
 // Configure AuthCookie options
 builder.Services.Configure<AuthCookieOptions>(builder.Configuration.GetSection("AuthCookie"));
-
-// Configure Google OAuth options
-builder.Services.Configure<GoogleOAuthConfig>(builder.Configuration.GetSection("Google"));
-
-
-// Google OAuth is now handled manually in the controller
-// No need for AddGoogle or TempCookie - the controller implements the full OAuth flow
 
 builder.Services.RegisterApplication(builder.Configuration);
 
@@ -128,9 +146,12 @@ var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
 app.UseForwardedHeaders(fwd);
 
-// Add authentication and authorization middleware
-app.UseAuthentication();
-app.UseAuthorization();
+if (hasFederatedAuthentication)
+{
+    // Add authentication and authorization middleware
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
 
 // Configure the HTTP request pipeline.
 

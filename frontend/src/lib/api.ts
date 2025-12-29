@@ -29,7 +29,8 @@ class ApiClient {
     // Handle 401 responses (token expired)
     if (response.status === 401) {
       // Try to refresh token using the HttpOnly cookie
-      const refreshed = await AuthService.refreshTokenIfNeeded();
+      // Attempt recovery in case localStorage was cleared but cookie still valid
+      const refreshed = await AuthService.refreshTokenIfNeeded(true);
       if (!refreshed) {
         AuthService.logout();
         window.location.href = '/login';
@@ -69,6 +70,28 @@ class ApiClient {
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.message || 'Login failed');
+    }
+
+    const data = await response.json();
+    AuthService.setAuthData(data);
+    return data;
+  }
+
+  // Federated login method (without credentials)
+  async federatedLogin(): Promise<{ token: string; user: { id: string; username: string; email?: string } }> {
+    const url = isRelativeUrl(API_CONFIG.FEDERATED_LOGIN_URL) ? buildApiUrl(API_CONFIG.FEDERATED_LOGIN_URL) : API_CONFIG.FEDERATED_LOGIN_URL;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        "Cache-Control": "no-store"
+      },
+      credentials: 'include', // Important: Receive and store cookies from the server
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || 'Federated login failed');
     }
 
     const data = await response.json();

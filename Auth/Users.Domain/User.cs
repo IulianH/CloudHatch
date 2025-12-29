@@ -8,13 +8,16 @@ namespace Users.Domain
         public required Guid Id { get; set; }
 
         public required string Username { get; set; }
+
+        public required string Email { get; set; }
       
         public required string NormalizedUsername { get; set; }
 
         public string? GivenName {  get; set; }
+
         public string? FamilyName { get; set; }
 
-        public required string Password { get; set; }
+        public string? Password { get; set; }
 
         public required DateTime CreatedAt { get; set; }
 

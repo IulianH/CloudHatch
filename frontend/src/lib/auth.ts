@@ -103,9 +103,14 @@ class AuthService {
 
   // Refresh token using HttpOnly cookie
   // The refresh token cookie is automatically sent by the browser
-  static async refreshTokenIfNeeded(): Promise<boolean> {
-    if (!this.isAuthenticated()) {
-      return false; // No user session
+  // Attempts refresh even if localStorage is empty (for session recovery)
+  static async refreshTokenIfNeeded(attemptRecovery: boolean = false): Promise<boolean> {
+    const hadLocalStorage = this.isAuthenticated();
+    
+    // If not attempting recovery and localStorage is empty, skip the refresh attempt
+    // (This maintains original behavior when localStorage is intentionally empty)
+    if (!attemptRecovery && !hadLocalStorage) {
+      return false;
     }
 
     try {
@@ -125,15 +130,27 @@ class AuthService {
         this.setAuthData(data);
         return true;
       } else {
-        // Refresh failed, user needs to login again
-        this.logout();
+        // Refresh failed - cookie is invalid or expired
+        // Only call logout if we had localStorage data (to clean it up)
+        // Otherwise, we're just trying to recover and it failed
+        if (hadLocalStorage) {
+          this.logout();
+        }
         return false;
       }
     } catch (error) {
       console.error('Token refresh failed:', error);
-      this.logout();
+      // Only call logout if we had localStorage data
+      if (hadLocalStorage) {
+        this.logout();
+      }
       return false;
     }
+  }
+
+  // Attempt to recover session from cookie even if localStorage is empty
+  static async attemptSessionRecovery(): Promise<boolean> {
+    return this.refreshTokenIfNeeded(true);
   }
 }
 

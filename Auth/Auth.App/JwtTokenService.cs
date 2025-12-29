@@ -56,7 +56,22 @@ namespace Auth.App
             }
 
             return await IssueTokens(user);
+        }
 
+        public async Task<TokenPair?> IssueTokenFromClaims(ClaimsPrincipal userIdentity)
+        {
+            if(userIdentity.Identity == null || userIdentity.Identity.IsAuthenticated == false)
+            {
+                throw new AppException("Null or anonymous user identity received"); 
+            }
+
+            var email = userIdentity.FindFirst(ClaimTypes.Email)!.Value;
+            var givenName = userIdentity.FindFirst(ClaimTypes.GivenName)?.Value;
+            var surname = userIdentity.FindFirst(ClaimTypes.Surname)?.Value;
+
+            var user = await users.UpsertAsync(email, givenName, surname);
+
+            return await IssueTokens(user);
         }
 
         public async Task<TokenPair> IssueTokenForUserAsync(User user)
@@ -96,7 +111,8 @@ namespace Auth.App
 
             var claims = new List<Claim> {
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new(JwtRegisteredClaimNames.PreferredUsername, user.Username),
+                new(JwtRegisteredClaimNames.Name, user.GetName()),
+                new(JwtRegisteredClaimNames.Email, user.UserEmail),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 

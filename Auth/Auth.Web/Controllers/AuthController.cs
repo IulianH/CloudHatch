@@ -19,10 +19,10 @@ namespace Auth.Web.Controllers
     [ApiController]
     [Route("/")]
     public class AuthController(JwtTokenService auth, IUserService userService, IDataProtectionProvider dp, OriginValidator originValidator, 
-        IOptions<AuthCookieOptions> cookieOptions, IOptions<GoogleOAuthConfig> googleConfig, ILogger<AuthController> logger) : ControllerBase
+        IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, ILogger<AuthController> logger) : ControllerBase
     {
         private readonly AuthCookieOptions _cookieOptions = cookieOptions.Value;
-        private readonly GoogleOAuthConfig _googleConfig = googleConfig.Value;
+        private readonly OriginConfig _originConfig = originConfig.Value;
 
         [HttpPost("login")]
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
@@ -35,7 +35,7 @@ namespace Auth.Web.Controllers
                 token.AccessToken,
                 token.RefreshToken,
                 token.ExpiresIn,
-                new UserResponseDto(token.User.Username)
+                new UserResponseDto(token.User.GetName())
 
             ));
         }
@@ -58,10 +58,31 @@ namespace Auth.Web.Controllers
             return Ok(new WebLoginResponseDto(
                 token.AccessToken,
                 token.ExpiresIn,
-                new UserResponseDto(token.User.Username)
+                new UserResponseDto(token.User.GetName())
             ));
         }
 
+        [HttpPost("web-federated-login")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<ActionResult<WebLoginResponseDto>> WebLoginFederated()
+        {
+            if (!IsAllowedOrigin(Request))
+            {
+                logger.LogWarning(originValidator.Error);
+                return Forbid();  // simple CSRF guard 
+            }
+
+            var token = await auth.IssueTokenFromClaims(User);
+            if (token == null) return Unauthorized();
+
+            var protector = CreateProtector();
+            IssueCookie(token.RefreshToken, protector);
+            return Ok(new WebLoginResponseDto(
+                token.AccessToken,
+                token.ExpiresIn,
+                new UserResponseDto(token.User.GetName())
+            ));
+        }
 
         [HttpPost("refresh")]
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
@@ -133,7 +154,7 @@ namespace Auth.Web.Controllers
             return NoContent();
         }
 
-        [HttpGet("web-google-login")]
+        [HttpGet("web-google-challenge")]
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public IActionResult WebGoogleLogin()
         {
@@ -146,7 +167,7 @@ namespace Auth.Web.Controllers
             return Challenge(
              new AuthenticationProperties
              {
-                 RedirectUri = "/api/auth/web-google-complete"
+                 RedirectUri = $"{_originConfig.FederationSuccessAbsoluteUrl}"
              },
              "Google");
         }
@@ -160,7 +181,8 @@ namespace Auth.Web.Controllers
             // - Claims are in HttpContext.User
             // - You should issue your own tokens here
 
-            return Redirect("https://localhost:5100");
+            //return Redirect("https://localhost:5100");
+            return Ok();
         }
 
         private string? ReadRefreshTokenFromCookie(IDataProtector protector)
