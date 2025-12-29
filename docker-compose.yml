@@ -12,6 +12,7 @@ services:
       - "8080"
     networks:
       - default
+      - private
     depends_on:
       - redis
 
@@ -26,7 +27,8 @@ services:
     ports:
       - "8080"
     networks:
-      - default                      
+      - default
+      - private                      
 
   # Next.js development service with hot reload and debugging
   frontend:
@@ -57,6 +59,7 @@ services:
       - "443:443"
     networks:
       - default                  # egress to Internet (OCSP/ACME/etc.)    # reach the private app
+      - private
     depends_on:
       - auth.web
       - backapi.web
@@ -73,7 +76,12 @@ services:
       timeout: 3s
       retries: 10
     networks:
-      - default
+      - private
   
 volumes:
   redisdata: { }
+
+networks:
+  private:
+    internal: true
+
