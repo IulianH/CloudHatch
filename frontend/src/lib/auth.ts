@@ -19,7 +19,7 @@ class AuthService {
   private static readonly USER_KEY = 'user_data';
   private static accessToken: string | null = null;
   private static refreshTimeoutId: NodeJS.Timeout | null = null;
-  private static readonly DELTA = 15000; // 15 seconds
+  private static readonly DELTA = 5000; // 5 seconds
 
   // Store authentication data
   // Access token is stored in memory (cleared on page refresh)
@@ -103,9 +103,14 @@ class AuthService {
 
   // Refresh token using HttpOnly cookie
   // The refresh token cookie is automatically sent by the browser
-  static async refreshTokenIfNeeded(): Promise<boolean> {
-    if (!this.isAuthenticated()) {
-      return false; // No user session
+  // Attempts refresh even if localStorage is empty (for session recovery)
+  static async refreshTokenIfNeeded(attemptRecovery: boolean = false): Promise<boolean> {
+    const hadLocalStorage = this.isAuthenticated();
+    
+    // If not attempting recovery and localStorage is empty, skip the refresh attempt
+    // (This maintains original behavior when localStorage is intentionally empty)
+    if (!attemptRecovery && !hadLocalStorage) {
+      return false;
     }
 
     try {
@@ -124,16 +129,39 @@ class AuthService {
         const data = await response.json();
         this.setAuthData(data);
         return true;
+      } else if (response.status === 401) {
+        // 401 is expected when refresh token is missing or expired
+        // This is normal during session recovery attempts, so we handle it silently
+        // Only call logout if we had localStorage data (to clean it up)
+        if (hadLocalStorage) {
+          this.logout();
+        }
+        return false;
       } else {
-        // Refresh failed, user needs to login again
-        this.logout();
+        // Other error statuses (500, 503, etc.) are unexpected
+        console.error(`Token refresh failed with status ${response.status}`);
+        if (hadLocalStorage) {
+          this.logout();
+        }
         return false;
       }
     } catch (error) {
-      console.error('Token refresh failed:', error);
-      this.logout();
+      // Network errors or other exceptions are unexpected
+      // Only log if we had localStorage (meaning we expected a valid session)
+      if (hadLocalStorage) {
+        console.error('Token refresh failed:', error);
+      }
+      // Only call logout if we had localStorage data
+      if (hadLocalStorage) {
+        this.logout();
+      }
       return false;
     }
+  }
+
+  // Attempt to recover session from cookie even if localStorage is empty
+  static async attemptSessionRecovery(): Promise<boolean> {
+    return this.refreshTokenIfNeeded(true);
   }
 }
 

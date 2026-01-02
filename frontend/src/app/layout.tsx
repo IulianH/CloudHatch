@@ -33,7 +33,9 @@ export default function RootLayout({
       >
         <AuthProvider>
           <Navigation />
-          {children}
+          <main className="transition-all duration-300" style={{ marginLeft: 'var(--sidebar-width, 16rem)' }}>
+            {children}
+          </main>
         </AuthProvider>
       </body>
     </html>

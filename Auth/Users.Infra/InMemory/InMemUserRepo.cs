@@ -26,12 +26,20 @@ namespace Users.Infra.InMemory
             return Task.FromResult(user);
         }
 
+        public Task<User?> FindByEmailAsync(string email)
+        {
+            // Match by email if username is in email format, or by normalized username
+            var user = _users.FirstOrDefault(x => x.Email.Equals(email, StringComparison.InvariantCultureIgnoreCase));
+            return Task.FromResult(user);
+        }
+
         public void Migrate()
         {
             var user = new User
             {
                 CreatedAt = DateTime.UtcNow,
                 Username = "admin",
+                Email = "admin@admin.com",
                 NormalizedUsername = "ADMIN",
                 GivenName = "John",
                 FamilyName = "Doe",
@@ -45,6 +53,7 @@ namespace Users.Infra.InMemory
             {
                 CreatedAt = DateTime.UtcNow,
                 Username = "customer",
+                Email = "customer@customer.com",
                 NormalizedUsername = "CUSTOMER",
                 GivenName = "Jane",
                 FamilyName = "Doe",
@@ -52,6 +61,19 @@ namespace Users.Infra.InMemory
                 Password = PasswordHasher.Hash("customer1!"),
                 Id = Guid.NewGuid()
             };
+
+            _users.Add(user);
+
+            user = new User
+            {
+                CreatedAt = DateTime.UtcNow,
+                Username = "iulian.holonca",
+                Email = "iulian.holonca@gmail.com",
+                NormalizedUsername = "IULIAN.HOLONCA",
+                Roles = "customer",
+                Id = Guid.NewGuid()
+            };
+
             _users.Add(user);
         }
 

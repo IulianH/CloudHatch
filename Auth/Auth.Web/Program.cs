@@ -1,18 +1,105 @@
 using Auth.App;
+using Auth.App.Env;
 using Auth.App.Interface.RefreshToken;
 using Auth.Infra;
+using Auth.Web;
 using Auth.Web.Configuration;
-using Auth.Web.Extensions;
 using Auth.Web.Middleware;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.Logging;
-using Scalar.AspNetCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using Users.App.Interface;
 
-
 var builder = WebApplication.CreateBuilder(args);
+const string originSectionName = "Origin";
+
+builder.Services.AddOptions<OriginConfig>()
+    .Bind(builder.Configuration.GetSection(originSectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+const string googleSectionName = "GoogleOAuth";
+builder.Services.Configure<GoogleOAuthConfig>(builder.Configuration.GetSection(googleSectionName));
+var googleConfig = builder.Configuration.GetSection(googleSectionName).Get<GoogleOAuthConfig>();
+
+
+bool hasFederatedAuthentication = false;
+bool hasGoogleAuthentication = false; 
+hasFederatedAuthentication = hasGoogleAuthentication = googleConfig?.Enabled ?? false;
+
+if (hasGoogleAuthentication)
+{ 
+    if(string.IsNullOrWhiteSpace(googleConfig?.ClientId) || string.IsNullOrWhiteSpace(googleConfig?.ClientSecret))
+    {
+        throw new ApplicationException("Google credentials not provided");
+    }
+    var originConfig = builder.Configuration.GetSection(originSectionName).Get<OriginConfig>();
+
+    builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = "Google";
+    })
+    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+    {
+        // Temporary cookie used only during external login
+        options.Cookie.Name = "__Host.external";
+        options.Cookie.SameSite = SameSiteMode.None;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    })
+    .AddOpenIdConnect("Google", options =>
+    {
+        options.Authority = "https://accounts.google.com";
+        options.ClientId = googleConfig?.ClientId;
+        options.ClientSecret = googleConfig?.ClientSecret;
+
+        options.CallbackPath = $"{GlobalConstants.BasePath}/web-google-callback";
+
+        options.ResponseType = OpenIdConnectResponseType.Code;
+        options.UsePkce = true;
+
+        options.Scope.Clear();
+        options.Scope.Add("openid");
+        options.Scope.Add("email");
+        options.Scope.Add("profile");
+
+        options.SaveTokens = false;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            NameClaimType = "name",
+            RoleClaimType = "role"
+        };
+
+
+
+        options.Events = new OpenIdConnectEvents
+        {
+            OnTokenValidated = ctx =>
+            {
+                return Task.CompletedTask;
+            },
+            OnRedirectToIdentityProvider = ctx =>
+            {
+                // Ensures correct https redirect behind Nginx
+                ctx.ProtocolMessage.RedirectUri = $"{originConfig?.HostWithScheme}{GlobalConstants.BasePath}/web-google-callback";
+                return Task.CompletedTask;
+            }
+        };
+        options.CorrelationCookie.Path = GlobalConstants.BasePath;
+        options.NonceCookie.Path = GlobalConstants.BasePath;
+
+        options.CorrelationCookie.SameSite = SameSiteMode.None;
+        options.NonceCookie.SameSite = SameSiteMode.None;
+        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+    });
+}
 
 var redisConn = builder.Configuration["REDIS:CONNECTION"]!; // from compose env
 
@@ -31,9 +118,6 @@ builder.Services.AddTransient<OriginValidator>();
 // Configure AuthCookie options
 builder.Services.Configure<AuthCookieOptions>(builder.Configuration.GetSection("AuthCookie"));
 
-// Add OpenAPI services with Scalar transformers
-builder.Services.AddOpenApi(options => options.AddScalarTransformers());
-
 builder.Services.RegisterApplication(builder.Configuration);
 
 builder.Services.RegisterInfrastructure(builder.Configuration);
@@ -43,55 +127,24 @@ var app = builder.Build();
 // IMPORTANT: do this early, before auth/routing/etc.
 var fwd = new ForwardedHeadersOptions
 {
-    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost
 };
 // If running in containers, Kestrel may not recognize the proxy by default:
-fwd.KnownNetworks.Clear();
 fwd.KnownProxies.Clear();
 
-// Harden security: Only accept forwarded headers from the private Docker network
-// Since the 'private' network is internal: true, only containers on that network
-// can reach this service. This is secure because:
-// 1. The network is isolated (internal: true)
-// 2. Only nginx reverse-proxy forwards headers to this service
-// 3. Other containers on the network can't spoof headers because they don't proxy
-var privateNetworkSubnet = builder.Configuration["DOCKER_PRIVATE_NETWORK_SUBNET"] ?? "172.20.0.0/16";
-var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
-try
-{
-    // Parse CIDR notation (e.g., "172.20.0.0/16")
-    var parts = privateNetworkSubnet.Split('/');
-    if (parts.Length == 2 && 
-        System.Net.IPAddress.TryParse(parts[0], out var networkAddress) &&
-        int.TryParse(parts[1], out var prefixLength) &&
-        prefixLength >= 0 && prefixLength <= 128)
-    {
-        var network = new Microsoft.AspNetCore.HttpOverrides.IPNetwork(networkAddress, prefixLength);
-        fwd.KnownNetworks.Add(network);
-        logger.LogInformation("Configured forwarded headers to trust network: {Subnet}", privateNetworkSubnet);
-    }
-    else
-    {
-        logger.LogError("Invalid DOCKER_PRIVATE_NETWORK_SUBNET format: {Subnet}. Expected format: IP/PrefixLength (e.g., 172.20.0.0/16). Forwarded headers will be insecure!", privateNetworkSubnet);
-    }
-}
-catch (Exception ex)
-{
-    logger.LogError(ex, "Failed to parse DOCKER_PRIVATE_NETWORK_SUBNET: {Subnet}. Forwarded headers will be insecure!", privateNetworkSubnet);
-}
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
 app.UseForwardedHeaders(fwd);
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (hasFederatedAuthentication)
 {
-    // Add OpenAPI document generation
-    app.MapOpenApi();
-    
-    // Add Scalar UI for API documentation
-    app.MapScalarApiReference();
+    // Add authentication and authorization middleware
+    app.UseAuthentication();
+    app.UseAuthorization();
 }
+
+// Configure the HTTP request pipeline.
 
 
 // Add global exception handling for Token library exceptions

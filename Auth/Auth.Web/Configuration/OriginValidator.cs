@@ -1,19 +1,13 @@
-﻿using Auth.App.Exceptions;
+﻿using Microsoft.Extensions.Options;
 
 namespace Auth.Web.Configuration
 {
-    public class OriginValidator(IConfiguration config)
+    public class OriginValidator(IOptions<OriginConfig> originConfig)
     {
-        private readonly string[] _allowedOrigins = config["AllowedOrigins"]?.ToLower().Split(',', StringSplitOptions.RemoveEmptyEntries)
-            ?? throw new AppException("No \"AllowedOrigins\" config key found");
+        private readonly OriginConfig _originConfig = originConfig.Value;
 
         public bool IsAllowedOrigin(HttpRequest r)
         {
-            if (_allowedOrigins.Length == 0)
-            {
-                return true;
-            }
-
             var origin = GetOrigin(r);
             if(origin == null)
             {
@@ -21,10 +15,10 @@ namespace Auth.Web.Configuration
                 return false;
             }
 
-            var allowed = _allowedOrigins.Any(x => origin == $"https://{x.Trim()}");
+            var allowed = origin == _originConfig.Host;
             if(!allowed)
             {
-                Error = $"Oringin {origin} is not in the allowed list";
+                Error = $"Origin {origin} is not in the allowed list";
             }
 
             return allowed;
@@ -32,7 +26,7 @@ namespace Auth.Web.Configuration
 
         private string? GetOrigin(HttpRequest r)
         {
-            var origin = r.Headers.Origin.ToString()?.ToLower()?.Trim();
+            var origin = r.Headers.Host.ToString()?.ToLower()?.Trim();
             if (string.IsNullOrEmpty(origin))
             {
                 return null;

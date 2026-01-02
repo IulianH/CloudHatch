@@ -2,11 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Auth.Web.Controllers
 {
-    [Route("ping")]
+    [Route("/")]
     [ApiController]
     public class PingController : ControllerBase
     {
-        [HttpGet]
+        [HttpGet("ping")]
         public IActionResult Get() => Ok("pong");
     }
 }

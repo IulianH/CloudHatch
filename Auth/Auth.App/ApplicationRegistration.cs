@@ -18,6 +18,5 @@ public static class ApplicationRegistration
 
         services.AddTransient<JwtTokenService>();
         services.AddTransient<LoginService>();
-
     }
 }
