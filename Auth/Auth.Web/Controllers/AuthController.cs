@@ -6,7 +6,6 @@ using Auth.App;
 using Auth.App.Env;
 using Auth.App.Interface.Users;
 using Auth.Web.Configuration;
-using Auth.Web.Extensions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -17,7 +16,7 @@ using Microsoft.Extensions.Options;
 namespace Auth.Web.Controllers
 {
     [ApiController]
-    [Route("/")]
+    [Route(GlobalConstants.BasePath)]
     public class AuthController(JwtTokenService auth, IUserService userService, IDataProtectionProvider dp, OriginValidator originValidator, 
         IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, ILogger<AuthController> logger) : ControllerBase
     {
@@ -172,19 +171,6 @@ namespace Auth.Web.Controllers
              "Google");
         }
 
-        [HttpGet("web-google-complete")]
-        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-        public IActionResult Complete()
-        {
-            // At this point:
-            // - Google identity is validated
-            // - Claims are in HttpContext.User
-            // - You should issue your own tokens here
-
-            //return Redirect("https://localhost:5100");
-            return Ok();
-        }
-
         private string? ReadRefreshTokenFromCookie(IDataProtector protector)
         {
             if (!Request.Cookies.TryGetValue(_cookieOptions.Name, out var protectedValue))
@@ -220,9 +206,9 @@ namespace Auth.Web.Controllers
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.Lax,
-                Path = _cookieOptions.Path,
+                Path = GlobalConstants.BasePath,
                 MaxAge = TimeSpan.FromHours(_cookieOptions.MaxAgeHours),
-                Domain = _cookieOptions.Domain
+                Domain = _originConfig.Host
             });
         }
         
@@ -230,8 +216,8 @@ namespace Auth.Web.Controllers
         {
             Response.Cookies.Delete(_cookieOptions.Name, new CookieOptions
             {
-                Path = _cookieOptions.Path,
-                Domain = _cookieOptions.Domain
+                Path = GlobalConstants.BasePath,
+                Domain = _originConfig.Host
             });
         }
     }

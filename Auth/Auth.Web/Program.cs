@@ -2,8 +2,8 @@ using Auth.App;
 using Auth.App.Env;
 using Auth.App.Interface.RefreshToken;
 using Auth.Infra;
+using Auth.Web;
 using Auth.Web.Configuration;
-using Auth.Web.Extensions;
 using Auth.Web.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -54,12 +54,11 @@ if (hasGoogleAuthentication)
     })
     .AddOpenIdConnect("Google", options =>
     {
-
         options.Authority = "https://accounts.google.com";
         options.ClientId = googleConfig?.ClientId;
         options.ClientSecret = googleConfig?.ClientSecret;
 
-        options.CallbackPath = "/web-google-callback";
+        options.CallbackPath = $"{GlobalConstants.BasePath}/web-google-callback";
 
         options.ResponseType = OpenIdConnectResponseType.Code;
         options.UsePkce = true;
@@ -77,34 +76,26 @@ if (hasGoogleAuthentication)
             RoleClaimType = "role"
         };
 
+
+
         options.Events = new OpenIdConnectEvents
         {
             OnTokenValidated = ctx =>
             {
-                var sub = ctx.Principal!.FindFirst("sub")?.Value;
-                var email = ctx.Principal.FindFirst("email")?.Value;
-
-                // Here you will:
-                // 1. Link or create local user
-                // 2. Issue your own tokens
-                // 3. Redirect back to SPA
-
                 return Task.CompletedTask;
             },
-
             OnRedirectToIdentityProvider = ctx =>
             {
                 // Ensures correct https redirect behind Nginx
-                ctx.ProtocolMessage.RedirectUri = $"{originConfig?.HostWithSchemeAndPath}web-google-callback";
+                ctx.ProtocolMessage.RedirectUri = $"{originConfig?.HostWithScheme}{GlobalConstants.BasePath}/web-google-callback";
                 return Task.CompletedTask;
             }
         };
-        options.CorrelationCookie.Path = "/";
-        options.NonceCookie.Path = "/";
+        options.CorrelationCookie.Path = GlobalConstants.BasePath;
+        options.NonceCookie.Path = GlobalConstants.BasePath;
 
         options.CorrelationCookie.SameSite = SameSiteMode.None;
         options.NonceCookie.SameSite = SameSiteMode.None;
-
         options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
         options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
     });
