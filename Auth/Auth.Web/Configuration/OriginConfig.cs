@@ -6,7 +6,6 @@ namespace Auth.Web.Configuration
     {
         private string _host = string.Empty;
         private string _federationSuccessPath = string.Empty;
-        private short _port = 0;
 
         [Required(AllowEmptyStrings = false, ErrorMessage = "Origin:Host cannot be Empty.")]
         public required string Host
@@ -15,11 +14,6 @@ namespace Auth.Web.Configuration
 
             set => _host = value?.Trim() ?? string.Empty;
         }
-        public short Port
-        {
-            get;
-            set;
-        }
 
         public string FederationSuccessPath
         {
@@ -27,10 +21,8 @@ namespace Auth.Web.Configuration
             set => _federationSuccessPath = value?.Trim() ?? string.Empty;
         }
 
-        public string HostWithScheme => $"https://{Host}{PortPart}";
+        public string HostWithScheme => $"https://{Host}";
 
         public string FederationSuccessAbsoluteUrl => $"{HostWithScheme}{FederationSuccessPath}";
-
-        private string PortPart => Port <= 0 || Port == 80 ? string.Empty : $":{Port}";
     }
 }
