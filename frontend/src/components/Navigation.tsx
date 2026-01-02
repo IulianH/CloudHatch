@@ -67,12 +67,6 @@ export default function Navigation() {
           
           {isAuthenticated ? (
             <>
-              <Link
-                href="/dashboard"
-                className="hover:underline"
-              >
-                {isCollapsed ? 'D' : 'Dashboard'}
-              </Link>
               {!isCollapsed && (
                 <div className="mt-auto space-y-4">
                   <div className="text-sm border-t pt-4">

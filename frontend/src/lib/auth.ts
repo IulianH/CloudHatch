@@ -19,7 +19,7 @@ class AuthService {
   private static readonly USER_KEY = 'user_data';
   private static accessToken: string | null = null;
   private static refreshTimeoutId: NodeJS.Timeout | null = null;
-  private static readonly DELTA = 15000; // 15 seconds
+  private static readonly DELTA = 5000; // 5 seconds
 
   // Store authentication data
   // Access token is stored in memory (cleared on page refresh)
@@ -129,17 +129,28 @@ class AuthService {
         const data = await response.json();
         this.setAuthData(data);
         return true;
-      } else {
-        // Refresh failed - cookie is invalid or expired
+      } else if (response.status === 401) {
+        // 401 is expected when refresh token is missing or expired
+        // This is normal during session recovery attempts, so we handle it silently
         // Only call logout if we had localStorage data (to clean it up)
-        // Otherwise, we're just trying to recover and it failed
+        if (hadLocalStorage) {
+          this.logout();
+        }
+        return false;
+      } else {
+        // Other error statuses (500, 503, etc.) are unexpected
+        console.error(`Token refresh failed with status ${response.status}`);
         if (hadLocalStorage) {
           this.logout();
         }
         return false;
       }
     } catch (error) {
-      console.error('Token refresh failed:', error);
+      // Network errors or other exceptions are unexpected
+      // Only log if we had localStorage (meaning we expected a valid session)
+      if (hadLocalStorage) {
+        console.error('Token refresh failed:', error);
+      }
       // Only call logout if we had localStorage data
       if (hadLocalStorage) {
         this.logout();

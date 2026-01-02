@@ -36,6 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
         } else {
           // localStorage is empty - attempt to recover session from cookie
+          // This will silently fail with 401 if no refresh token cookie exists
+          // which is expected behavior for users who haven't logged in
           const recovered = await AuthService.attemptSessionRecovery();
           if (recovered) {
             setIsAuthenticated(true);
@@ -47,7 +49,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setLoading(false);
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        // Only log unexpected errors (network failures, etc.)
+        // 401 errors from refresh attempts are expected and handled silently
+        if (error instanceof Error && !error.message.includes('401')) {
+          console.error('Auth check failed:', error);
+        }
         setIsAuthenticated(false);
         setUser(null);
         setLoading(false);

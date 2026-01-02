@@ -27,7 +27,6 @@ services:
     ports:
       - "8080"
     networks:
-      - default
       - private                      
 
   # Next.js development service with hot reload and debugging
