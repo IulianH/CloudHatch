@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import AuthService from '@/lib/auth';
 import apiClient from '@/lib/api';
 
@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const fetchingProfileRef = useRef(false);
 
   // Check authentication status on mount
   useEffect(() => {
@@ -64,23 +65,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchProfile = async () => {
+    // Prevent duplicate calls
+    if (fetchingProfileRef.current) {
+      return;
+    }
+    
+    fetchingProfileRef.current = true;
     try {
       const profile = await apiClient.getProfile();
       setUser(profile);
     } catch (error) {
       console.error('Failed to fetch profile:', error);
       setUser(null);
+    } finally {
+      fetchingProfileRef.current = false;
     }
   };
 
   const login = async (credentials: { username: string; password: string }) => {
     await apiClient.login(credentials);
     setIsAuthenticated(true);
+    await fetchProfile();
   };
 
   const federatedLogin = async () => {
     await apiClient.federatedLogin();
     setIsAuthenticated(true);
+    await fetchProfile();
   };
 
   const logout = async () => {
