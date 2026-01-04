@@ -1,7 +1,6 @@
 ﻿using Auth.App.Env;
 using Auth.App.Exceptions;
 using Auth.App.Interface.RefreshToken;
-using Auth.App.Interface.Users;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -9,10 +8,13 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using Users.App;
+using Users.App.Interface;
+using Users.Domain;
 
 namespace Auth.App
 {
-    public class JwtTokenService(IUserService users, IOptions<JwtConfig> jwtConfig, IConfiguration config, IRefreshTokenRepository rtRepo)
+    public class JwtTokenService(IOptions<JwtConfig> jwtConfig, IConfiguration config, IRefreshTokenRepository rtRepo, LoginService loginService, IUserRepo users)
     {
         private readonly JwtConfig _jwtConfig = jwtConfig.Value;
         
@@ -49,7 +51,7 @@ namespace Auth.App
 
         public async Task<TokenPair?> IssueTokenAsync(string username, string password)
         {
-            var user = await users.LoginAsync(username, password);
+            var user = await loginService.LoginAsync(new LoginRequest(username, password, true));
             if (user == null)
             {
                 return null;
@@ -58,18 +60,24 @@ namespace Auth.App
             return await IssueTokens(user);
         }
 
-        public async Task<TokenPair?> IssueTokenFromClaims(ClaimsPrincipal userIdentity)
+        public async Task<TokenPair?> IssueTokenForFederatedUser(ClaimsPrincipal userIdentity)
         {
             if(userIdentity.Identity == null || userIdentity.Identity.IsAuthenticated == false)
             {
                 throw new AppException("Null or anonymous user identity received"); 
             }
 
-            var email = userIdentity.FindFirst(ClaimTypes.Email)!.Value;
-            var givenName = userIdentity.FindFirst(ClaimTypes.GivenName)?.Value;
-            var surname = userIdentity.FindFirst(ClaimTypes.Surname)?.Value;
+            var externalId = userIdentity.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (externalId == null)
+            {
+                throw new AppException("NameIdentifier claim not found");
+            }
 
-            var user = await users.UpsertAsync(email, givenName, surname);
+            var user = await users.FindByExternalIdAsync(externalId);
+            if(user == null)
+            {
+                throw new AppException($"Cound not find an user for namidentifier {externalId}");
+            }
 
             return await IssueTokens(user);
         }
@@ -111,10 +119,14 @@ namespace Auth.App
 
             var claims = new List<Claim> {
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new(JwtRegisteredClaimNames.Name, user.GetName()),
-                new(JwtRegisteredClaimNames.Email, user.UserEmail),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
+
+            var name = GetName(user);
+            if(name != null)
+            {
+                claims.Add(new(JwtRegisteredClaimNames.Name, name));
+            }
 
             if(user.GivenName != null)
             {
@@ -126,7 +138,12 @@ namespace Auth.App
                 claims.Add(new(JwtRegisteredClaimNames.FamilyName, user.FamilyName));
             }
 
-            claims.AddRange(user.Roles.Select(x => new Claim(ClaimTypes.Role, x)));
+            if (user.Email != null)
+            {
+                claims.Add(new(JwtRegisteredClaimNames.Email, user.Email));
+            }
+
+            claims.AddRange((user.Roles?.Split(',') ?? Array.Empty<string>()).Select(x => new Claim(ClaimTypes.Role, x)));
 
             var token = new JwtSecurityToken(
                 issuer: _jwtConfig.Issuer,
@@ -147,6 +164,16 @@ namespace Auth.App
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(bytes);
             return Convert.ToBase64String(bytes);
+        }
+
+        public string? GetName(User user)
+        {
+            var name = $"{user.GivenName ?? string.Empty} {user.FamilyName ?? string.Empty}";
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                return name.Trim();
+            }
+            return user.Email ?? user.Username;
         }
     }
 }

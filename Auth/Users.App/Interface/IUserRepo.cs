@@ -4,7 +4,7 @@ namespace Users.App.Interface
 {
     public interface IUserRepo
     {
-        Task AddAsync(User user);
+        Task InsertAsync(User user);
 
         Task<User?> FindByUserNameAsync(string userName);
 
@@ -15,5 +15,7 @@ namespace Users.App.Interface
         Task UpdateAsync(User user);
 
         void Migrate();
+
+        Task<User?> FindByExternalIdAsync(string nameIdentifier);
     }
 }

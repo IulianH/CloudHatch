@@ -7,7 +7,7 @@ namespace Users.Infra.InMemory
     public class InMemUserRepo : IUserRepo
     {
         private readonly List<User> _users = [];
-        public Task AddAsync(User user)
+        public Task InsertAsync(User user)
         {
             _users.Add(user);
 
@@ -80,6 +80,12 @@ namespace Users.Infra.InMemory
         public Task UpdateAsync(User user)
         {
             return Task.CompletedTask;
+        }
+
+        public Task<User?> FindByExternalIdAsync(string externalId)
+        {
+            var user = _users.FirstOrDefault(x => x.ExternalId == externalId);
+            return Task.FromResult(user);
         }
     }
 }

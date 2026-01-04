@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Auth.Web.Controllers
 {
-    [Route("/")]
+    [Route(GlobalConstants.BasePath)]
     [ApiController]
     public class PingController : ControllerBase
     {

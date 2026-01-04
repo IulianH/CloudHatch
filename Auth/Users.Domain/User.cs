@@ -7,11 +7,11 @@ namespace Users.Domain
         [Key]
         public required Guid Id { get; set; }
 
-        public required string Username { get; set; }
+        public string? Username { get; set; }
 
-        public required string Email { get; set; }
+        public string? Email { get; set; }
       
-        public required string NormalizedUsername { get; set; }
+        public string? NormalizedUsername { get; set; }
 
         public string? GivenName {  get; set; }
 
@@ -27,6 +27,10 @@ namespace Users.Domain
 
         public bool IsLocked { get; set; }
 
-        public string Roles { get; set; } = string.Empty;
+        public string? Roles { get; set; }
+
+        public string? ExternalId { get; set;  }
+
+        public string? Issuer { get; set; }
     }
 }

@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function Navigation() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const router = useRouter();
-  const { isAuthenticated, user, logout, loading } = useAuth();
+  const { isAuthenticated, user, logout, loading, fetchProfile } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -24,6 +24,13 @@ export default function Navigation() {
   const toggleDock = () => {
     setIsCollapsed(!isCollapsed);
   };
+
+  // Fetch profile when component loads and user is authenticated
+  useEffect(() => {
+    if (!loading && isAuthenticated && !user) {
+      fetchProfile();
+    }
+  }, [loading, isAuthenticated, user, fetchProfile]);
 
   useEffect(() => {
     if (loading || !isAuthenticated) {
@@ -45,7 +52,7 @@ export default function Navigation() {
         <div className="flex items-center justify-between p-4 border-b">
           {!isCollapsed && (
             <Link href="/" className="text-xl font-bold">
-              CloudHatch
+              Architecture AI
             </Link>
           )}
           <button
@@ -70,7 +77,7 @@ export default function Navigation() {
               {!isCollapsed && (
                 <div className="mt-auto space-y-4">
                   <div className="text-sm border-t pt-4">
-                    {user?.username || 'User'}
+                    {user?.name || 'User'}
                   </div>
                   <button
                     onClick={handleLogout}

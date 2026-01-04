@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
+using Users.App;
 using Users.App.Interface;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -76,13 +77,12 @@ if (hasGoogleAuthentication)
             RoleClaimType = "role"
         };
 
-
-
         options.Events = new OpenIdConnectEvents
         {
-            OnTokenValidated = ctx =>
+            OnTokenValidated = async ctx =>
             {
-                return Task.CompletedTask;
+                var login = ctx.HttpContext.RequestServices.GetRequiredService<LoginService>();
+                await login.LoginFederatedAsync(ctx.Principal!);
             },
             OnRedirectToIdentityProvider = ctx =>
             {

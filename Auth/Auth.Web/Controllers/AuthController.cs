@@ -4,7 +4,6 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using Auth.App;
 using Auth.App.Env;
-using Auth.App.Interface.Users;
 using Auth.Web.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
@@ -17,7 +16,7 @@ namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route(GlobalConstants.BasePath)]
-    public class AuthController(JwtTokenService auth, IUserService userService, IDataProtectionProvider dp, OriginValidator originValidator, 
+    public class AuthController(JwtTokenService auth, IDataProtectionProvider dp, OriginValidator originValidator, 
         IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, ILogger<AuthController> logger) : ControllerBase
     {
         private readonly AuthCookieOptions _cookieOptions = cookieOptions.Value;
@@ -33,10 +32,8 @@ namespace Auth.Web.Controllers
             return Ok(new LoginResponseDto(
                 token.AccessToken,
                 token.RefreshToken,
-                token.ExpiresIn,
-                new UserResponseDto(token.User.GetName())
-
-            ));
+                token.ExpiresIn)
+                );
         }
 
         [HttpPost("web-login")]
@@ -56,9 +53,8 @@ namespace Auth.Web.Controllers
             IssueCookie(token.RefreshToken, protector);
             return Ok(new WebLoginResponseDto(
                 token.AccessToken,
-                token.ExpiresIn,
-                new UserResponseDto(token.User.GetName())
-            ));
+                token.ExpiresIn)
+            );
         }
 
         [HttpPost("web-federated-login")]
@@ -71,16 +67,15 @@ namespace Auth.Web.Controllers
                 return Forbid();  // simple CSRF guard 
             }
 
-            var token = await auth.IssueTokenFromClaims(User);
+            var token = await auth.IssueTokenForFederatedUser(User);
             if (token == null) return Unauthorized();
 
             var protector = CreateProtector();
             IssueCookie(token.RefreshToken, protector);
             return Ok(new WebLoginResponseDto(
                 token.AccessToken,
-                token.ExpiresIn,
-                new UserResponseDto(token.User.GetName())
-            ));
+                token.ExpiresIn)
+            );
         }
 
         [HttpPost("refresh")]
@@ -253,23 +248,17 @@ namespace Auth.Web.Controllers
         string Password
     );
 
-    public record UserResponseDto(
-        string Username
-    );
-
     public record WebLoginResponseDto(
         string AccessToken,
-        int ExpiresIn,
-        UserResponseDto User
+        int ExpiresIn
     );
 
     public record LoginResponseDto(
         string AccessToken,
         string RefreshToken,
-        int ExpiresIn,
-        UserResponseDto User
+        int ExpiresIn
 
-    ) : WebLoginResponseDto(AccessToken, ExpiresIn, User);
+    ) : WebLoginResponseDto(AccessToken, ExpiresIn);
 
     public record RefreshRequestDto(
         [Required(AllowEmptyStrings = false)]

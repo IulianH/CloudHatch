@@ -5,9 +5,10 @@ import AuthService from '@/lib/auth';
 import apiClient from '@/lib/api';
 
 interface User {
-  id: string;
-  username: string;
-  email?: string;
+  name: string;
+  roles: string;
+  givenName: string;
+  familyName: string;
 }
 
 interface AuthContextType {
@@ -17,6 +18,7 @@ interface AuthContextType {
   federatedLogin: () => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
+  fetchProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,7 +34,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         if (AuthService.isAuthenticated()) {
           setIsAuthenticated(true);
-          setUser(AuthService.getUser());
           setLoading(false);
         } else {
           // localStorage is empty - attempt to recover session from cookie
@@ -41,7 +42,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const recovered = await AuthService.attemptSessionRecovery();
           if (recovered) {
             setIsAuthenticated(true);
-            setUser(AuthService.getUser());
           } else {
             setIsAuthenticated(false);
             setUser(null);
@@ -63,16 +63,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, []);
 
+  const fetchProfile = async () => {
+    try {
+      const profile = await apiClient.getProfile();
+      setUser(profile);
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+      setUser(null);
+    }
+  };
+
   const login = async (credentials: { username: string; password: string }) => {
-    const data = await apiClient.login(credentials);
+    await apiClient.login(credentials);
     setIsAuthenticated(true);
-    setUser(data.user);
   };
 
   const federatedLogin = async () => {
-    const data = await apiClient.federatedLogin();
+    await apiClient.federatedLogin();
     setIsAuthenticated(true);
-    setUser(data.user);
   };
 
   const logout = async () => {
@@ -82,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, federatedLogin, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, federatedLogin, logout, loading, fetchProfile }}>
       {children}
     </AuthContext.Provider>
   );
