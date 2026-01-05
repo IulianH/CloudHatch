@@ -33,7 +33,7 @@ class ApiClient {
       const refreshed = await AuthService.refreshTokenIfNeeded(true);
       if (!refreshed) {
         AuthService.logout();
-        window.location.href = '/login';
+        window.location.href = '/';
         throw new Error('Authentication expired');
       }
       

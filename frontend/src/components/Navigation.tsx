@@ -13,11 +13,11 @@ export default function Navigation() {
   const handleLogout = async () => {
     try {
       await logout();
-      router.push('/login');
+      router.push('/');
     } catch (error) {
       console.error('Logout failed:', error);
       // Force redirect even if logout fails
-      router.push('/login');
+      router.push('/');
     }
   };
 
