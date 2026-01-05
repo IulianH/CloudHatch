@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import AuthService from '@/lib/auth';
 import apiClient from '@/lib/api';
 
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const fetchingProfileRef = useRef(false);
+  const pathname = usePathname();
 
   // Check authentication status on mount
   useEffect(() => {
@@ -37,13 +39,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsAuthenticated(true);
           setLoading(false);
         } else {
-          // localStorage is empty - attempt to recover session from cookie
-          // This will silently fail with 401 if no refresh token cookie exists
-          // which is expected behavior for users who haven't logged in
-          const recovered = await AuthService.attemptSessionRecovery();
-          if (recovered) {
-            setIsAuthenticated(true);
+          // Only attempt session recovery on the main page and if user is not authenticated
+          // Skip recovery for /federatedLogin and other pages
+          if (pathname === '/') {
+            // localStorage is empty - attempt to recover session from cookie
+            // This will silently fail with 401 if no refresh token cookie exists
+            // which is expected behavior for users who haven't logged in
+            const recovered = await AuthService.attemptSessionRecovery();
+            if (recovered) {
+              setIsAuthenticated(true);
+            } else {
+              setIsAuthenticated(false);
+              setUser(null);
+            }
           } else {
+            // On other pages, just set authenticated to false without attempting recovery
             setIsAuthenticated(false);
             setUser(null);
           }
@@ -62,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     checkAuth();
-  }, []);
+  }, [pathname]);
 
   const fetchProfile = async () => {
     // Prevent duplicate calls
