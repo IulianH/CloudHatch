@@ -143,7 +143,8 @@ namespace Auth.App
                 claims.Add(new(JwtRegisteredClaimNames.Email, user.Email));
             }
 
-            claims.AddRange((user.Roles?.Split(',') ?? Array.Empty<string>()).Select(x => new Claim(ClaimTypes.Role, x)));
+            claims.AddRange((user.Roles?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) 
+                ?? Array.Empty<string>()).Select(x => new Claim(ClaimTypes.Role, x)));
 
             var token = new JwtSecurityToken(
                 issuer: _jwtConfig.Issuer,
