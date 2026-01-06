@@ -166,6 +166,18 @@ namespace Auth.Web.Controllers
              "Google");
         }
 
+        [HttpGet("web-microsoft-challenge")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public IActionResult WebMicrosoftLogin([FromQuery] string? returnUrl = null)
+        {
+            var props = new AuthenticationProperties
+            {
+                RedirectUri = $"{_originConfig.FederationSuccessAbsoluteUrl}" +
+                              (returnUrl is null ? "" : $"?returnUrl={Uri.EscapeDataString(returnUrl)}")
+            };
+            return Challenge(props, "Microsoft");
+        }
+
         private string? ReadRefreshTokenFromCookie(IDataProtector protector)
         {
             if (!Request.Cookies.TryGetValue(_cookieOptions.Name, out var protectedValue))

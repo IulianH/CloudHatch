@@ -30,6 +30,16 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     window.location.href = googleOAuthUrl;
   };
 
+  const handleMicrosoftLogin = () => {
+    // Build the Microsoft OAuth URL
+    const microsoftOAuthUrl = isRelativeUrl(API_CONFIG.MICROSOFT_OAUTH_URL)
+      ? buildApiUrl(API_CONFIG.MICROSOFT_OAUTH_URL)
+      : API_CONFIG.MICROSOFT_OAUTH_URL;
+    
+    // Redirect to Microsoft OAuth endpoint
+    window.location.href = microsoftOAuthUrl;
+  };
+
   if (!isOpen) {
     return null;
   }
@@ -49,7 +59,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           </h2>
         </div>
         
-        <div className="space-y-6">
+        <div className="space-y-4">
           <button
             type="button"
             onClick={handleGoogleLogin}
@@ -74,6 +84,32 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               />
             </svg>
             Continue with Google
+          </button>
+          
+          <button
+            type="button"
+            onClick={handleMicrosoftLogin}
+            className="w-full border border-black px-4 py-2 hover:bg-black hover:text-white transition-colors flex items-center justify-center gap-3"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 23 23">
+              <path
+                fill="#f25022"
+                d="M0 0h10.5v10.5H0z"
+              />
+              <path
+                fill="#00a4ef"
+                d="M12.5 0H23v10.5H12.5z"
+              />
+              <path
+                fill="#7fba00"
+                d="M0 12.5h10.5V23H0z"
+              />
+              <path
+                fill="#ffb900"
+                d="M12.5 12.5H23V23H12.5z"
+              />
+            </svg>
+            Continue with Microsoft
           </button>
         </div>
       </div>
