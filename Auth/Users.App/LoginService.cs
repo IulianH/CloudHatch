@@ -62,11 +62,11 @@ namespace Users.App
 
         public async Task<User> LoginFederatedAsync(ClaimsPrincipal ctx)
         {
-            var externalId = ctx.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new ArgumentException("Null name identifier received in federated login");
+            var externalId = ctx.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new ArgumentException("Null NameIdentifier received in federated login");
             var issuer = ctx.FindFirst("iss")?.Value ?? throw new ArgumentException("Null issuer received in federated login");
-            var email = ctx.FindFirst(ClaimTypes.Email)?.Value;
-            var givenName = ctx.FindFirst(ClaimTypes.GivenName)?.Value;
-            var surname = ctx.FindFirst(ClaimTypes.Surname)?.Value;
+            var email = ctx.FindFirst(ClaimTypes.Email)?.Value?.ToLower();
+            var name = ctx.FindFirst("name")?.Value;
+            var username = ctx.FindFirst("preferred_username")?.Value;
 
             var user = await repo.FindByExternalIdAsync(externalId);
             if(user == null)
@@ -76,10 +76,9 @@ namespace Users.App
                     Id = Guid.NewGuid(),
                     ExternalId = externalId,
                     Issuer = issuer,
-                    Email = email?.ToLower(),
-                    Username = email?.ToLower(),
-                    GivenName = givenName,
-                    FamilyName = surname,
+                    Email = email,
+                    Username = username ?? email,
+                    Name = name,
                     LastLogin = DateTime.UtcNow,
                     CreatedAt = DateTime.UtcNow,
                     Roles = "customer"
@@ -87,9 +86,10 @@ namespace Users.App
                 await repo.InsertAsync(user);
                 return user;
             }
+            user.Issuer = issuer;
             user.Email = email;
-            user.GivenName = givenName;
-            user.FamilyName = surname;
+            user.Username = username ?? email;
+            user.Name = name;
             user.LastLogin = DateTime.UtcNow;
             await repo.UpdateAsync(user);
             return user;

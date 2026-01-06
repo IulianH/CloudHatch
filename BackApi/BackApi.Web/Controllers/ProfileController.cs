@@ -15,18 +15,15 @@ namespace BackApi.Web.Controllers
         public IActionResult GetProfile()
         {
             return Ok(new UserProfile(
-                 User.FindFirst(JwtRegisteredClaimNames.Name)?.Value,
-                string.Join(",", User.FindAll(ClaimTypes.Role).Select(c => c.Value)),
-                User.FindFirst(JwtRegisteredClaimNames.GivenName)?.Value,
-                User.FindFirst(JwtRegisteredClaimNames.FamilyName)?.Value
+                 User.FindFirst(JwtRegisteredClaimNames.Name)?.Value ?? 
+                 User.FindFirst(JwtRegisteredClaimNames.Email)?.Value 
+                 ?? User.FindFirst(JwtRegisteredClaimNames.PreferredUsername)?.Value
+                 ?? "External User"
                 ));
         }
     }
 
     public record UserProfile(
-        string? Name,
-        string? Roles,
-        string? GivenName,
-        string? FamilyName
+        string? Name
     );
 }

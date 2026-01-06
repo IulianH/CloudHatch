@@ -22,7 +22,7 @@ namespace Users.Infra.InMemory
 
         public Task<User?> FindByUserNameAsync(string userName)
         {
-            var user = _users.FirstOrDefault(x => x.NormalizedUsername.Equals(userName, StringComparison.InvariantCultureIgnoreCase));
+            var user = _users.FirstOrDefault(x => x.Username.Equals(userName, StringComparison.InvariantCultureIgnoreCase));
             return Task.FromResult(user);
         }
 
@@ -40,9 +40,7 @@ namespace Users.Infra.InMemory
                 CreatedAt = DateTime.UtcNow,
                 Username = "admin",
                 Email = "admin@admin.com",
-                NormalizedUsername = "ADMIN",
-                GivenName = "John",
-                FamilyName = "Doe",
+                Name = "John Doe",
                 Roles = "customer,admin",
                 Password = PasswordHasher.Hash("admin1!"),
                 Id = Guid.NewGuid()
@@ -54,9 +52,7 @@ namespace Users.Infra.InMemory
                 CreatedAt = DateTime.UtcNow,
                 Username = "customer",
                 Email = "customer@customer.com",
-                NormalizedUsername = "CUSTOMER",
-                GivenName = "Jane",
-                FamilyName = "Doe",
+                Name = "Jane Doe",
                 Roles = "customer",
                 Password = PasswordHasher.Hash("customer1!"),
                 Id = Guid.NewGuid()
@@ -69,7 +65,7 @@ namespace Users.Infra.InMemory
                 CreatedAt = DateTime.UtcNow,
                 Username = "iulian.holonca",
                 Email = "iulian.holonca@gmail.com",
-                NormalizedUsername = "IULIAN.HOLONCA",
+                Name = "Iulian Holonca",
                 Roles = "customer",
                 Id = Guid.NewGuid()
             };

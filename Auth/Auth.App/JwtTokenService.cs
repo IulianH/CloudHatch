@@ -122,20 +122,9 @@ namespace Auth.App
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            var name = GetName(user);
-            if(name != null)
+            if(user.Name != null)
             {
-                claims.Add(new(JwtRegisteredClaimNames.Name, name));
-            }
-
-            if(user.GivenName != null)
-            {
-                claims.Add(new(JwtRegisteredClaimNames.GivenName, user.GivenName));
-            }
-
-            if (user.FamilyName != null)
-            {
-                claims.Add(new(JwtRegisteredClaimNames.FamilyName, user.FamilyName));
+                claims.Add(new(JwtRegisteredClaimNames.Name, user.Name));
             }
 
             if (user.Email != null)
@@ -165,16 +154,6 @@ namespace Auth.App
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(bytes);
             return Convert.ToBase64String(bytes);
-        }
-
-        public string? GetName(User user)
-        {
-            var name = $"{user.GivenName ?? string.Empty} {user.FamilyName ?? string.Empty}";
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                return name.Trim();
-            }
-            return user.Email ?? user.Username;
         }
     }
 }
