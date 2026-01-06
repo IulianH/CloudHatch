@@ -7,9 +7,7 @@ import apiClient from '@/lib/api';
 
 interface User {
   name: string;
-  roles: string;
-  givenName: string;
-  familyName: string;
+  idp: string;
 }
 
 interface AuthContextType {

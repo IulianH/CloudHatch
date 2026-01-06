@@ -18,12 +18,14 @@ namespace BackApi.Web.Controllers
                  User.FindFirst(JwtRegisteredClaimNames.Name)?.Value ?? 
                  User.FindFirst(JwtRegisteredClaimNames.Email)?.Value 
                  ?? User.FindFirst(JwtRegisteredClaimNames.PreferredUsername)?.Value
-                 ?? "External User"
+                 ?? "External User",
+                 User.FindFirst("idp")?.Value ?? "local"
                 ));
         }
     }
 
     public record UserProfile(
-        string? Name
+        string? Name,
+        string Idp
     );
 }

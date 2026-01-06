@@ -119,7 +119,7 @@ class ApiClient {
   }
 
   // Get user profile
-  async getProfile(): Promise<{ username: string; roles: string; givenName: string; familyName: string }> {
+  async getProfile(): Promise<{ name: string; idp: string }> {
     const response = await this.request(API_CONFIG.PROFILE_URL);
     if (!response.ok) {
       throw new Error('Failed to fetch profile');

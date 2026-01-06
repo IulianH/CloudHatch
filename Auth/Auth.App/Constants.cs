@@ -1,10 +1,13 @@
-﻿namespace Auth.Web
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Auth.App
 {
-    public static class GlobalConstants
+    public static class Constants
     {
-        public const string BasePath = "/api/auth"; 
         private static readonly string[] issuers = ["apple", "google", "microsoft"];
-        private static string GetIdp(string? issuer)
+        public static string GetIdp(string? issuer)
         {
             if (issuer == null)
             {

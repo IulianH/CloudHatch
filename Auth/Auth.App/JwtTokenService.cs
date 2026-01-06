@@ -17,7 +17,8 @@ namespace Auth.App
     public class JwtTokenService(IOptions<JwtConfig> jwtConfig, IConfiguration config, IRefreshTokenRepository rtRepo, LoginService loginService, IUserRepo users)
     {
         private readonly JwtConfig _jwtConfig = jwtConfig.Value;
-        
+        private static readonly string[] issuers = ["apple", "google", "microsoft"];
+
         public async Task<TokenPair?> RefreshTokensAsync(string refreshToken)
         {
             // 1) Lookup the record
@@ -135,6 +136,8 @@ namespace Auth.App
             claims.AddRange((user.Roles?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) 
                 ?? Array.Empty<string>()).Select(x => new Claim(ClaimTypes.Role, x)));
 
+            claims.Add(new("idp", Constants.GetIdp(user.Issuer)));
+
             var token = new JwtSecurityToken(
                 issuer: _jwtConfig.Issuer,
                 audience: _jwtConfig.Audience,
@@ -147,6 +150,7 @@ namespace Auth.App
 
             return tokenStr;
         }
+
         private static string GenerateRefreshToken()
         {
             // cryptographically secure random
