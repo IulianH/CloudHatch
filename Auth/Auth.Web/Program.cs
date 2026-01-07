@@ -211,6 +211,7 @@ var fwd = new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost
 };
 // If running in containers, Kestrel may not recognize the proxy by default:
+fwd.KnownIPNetworks.Clear();
 fwd.KnownProxies.Clear();
 
 
