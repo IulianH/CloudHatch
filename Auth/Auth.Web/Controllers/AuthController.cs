@@ -69,8 +69,12 @@ namespace Auth.Web.Controllers
             }
 
             var token = await auth.IssueTokenForFederatedUser(User);
-            if (token == null) return Unauthorized();
+            await SignOutFederated();
 
+            if (token == null)
+            {
+                return Unauthorized();
+            }
             var protector = CreateProtector();
             IssueCookie(token.RefreshToken, protector);
             return Ok(new WebLoginResponseDto(
@@ -102,19 +106,18 @@ namespace Auth.Web.Controllers
                 logger.LogWarning(originValidator.Error);
                 return Forbid();  // simple CSRF guard 
             }
+            await SignOutFederated();
 
             var protector = CreateProtector();
             var refreshToken = ReadRefreshTokenFromCookie(protector);
             if (refreshToken == null)
             {
-                await SignOutFederated();
                 return Unauthorized();
             }
 
             var pair = await auth.RefreshTokensAsync(refreshToken);
             if (pair is null)
             {
-                await SignOutFederated();
                 return Unauthorized();
             }
 
