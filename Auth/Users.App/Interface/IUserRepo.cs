@@ -10,8 +10,6 @@ namespace Users.App.Interface
 
         Task<User?> FindByIdAsync(Guid id);
 
-        Task<User?> FindByEmailAsync(string email);
-
         Task UpdateAsync(User user);
 
         void Migrate();

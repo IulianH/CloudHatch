@@ -2,6 +2,7 @@
 using Auth.App.Exceptions;
 using Auth.App.Interface.RefreshToken;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -14,7 +15,8 @@ using Users.Domain;
 
 namespace Auth.App
 {
-    public class JwtTokenService(IOptions<JwtConfig> jwtConfig, IConfiguration config, IRefreshTokenRepository rtRepo, LoginService loginService, IUserRepo users)
+    public class JwtTokenService(IOptions<JwtConfig> jwtConfig, IConfiguration config, IRefreshTokenRepository rtRepo, LoginService loginService, IUserRepo users,
+        ILogger<JwtTokenService> logger)
     {
         private readonly JwtConfig _jwtConfig = jwtConfig.Value;
 
@@ -60,23 +62,26 @@ namespace Auth.App
             return await IssueTokens(user);
         }
 
-        public async Task<TokenPair?> IssueTokenForFederatedUser(ClaimsPrincipal userIdentity)
+        public async Task<TokenPair?> IssueTokenForFederatedUser(ClaimsPrincipal? userIdentity)
         {
-            if(userIdentity.Identity == null || userIdentity.Identity.IsAuthenticated == false)
+            if(userIdentity?.Identity == null || userIdentity?.Identity.IsAuthenticated == false)
             {
-                throw new AppException("Null or anonymous user identity received"); 
+                logger.LogError("IssueTokenForFederatedUser: Received null user identity or not authenticated");
+                return null;            
             }
 
-            var externalId = userIdentity.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var externalId = userIdentity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (externalId == null)
             {
-                throw new AppException("NameIdentifier claim not found");
+                logger.LogError("IssueTokenForFederatedUser: The NameIdentifier claim was not found");
+                return null;
             }
 
             var user = await users.FindByExternalIdAsync(externalId);
             if(user == null)
             {
-                throw new AppException($"Cound not find an user for namidentifier {externalId}");
+                logger.LogError($"IssueTokenForFederatedUser: User with external id '{externalId}' not found");
+                return null;
             }
 
             return await IssueTokens(user);

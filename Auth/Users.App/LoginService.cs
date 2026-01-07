@@ -23,9 +23,13 @@ namespace Users.App
                 }
             }
 
-#pragma warning disable CS8604 // Possible null reference argument.
+            if(user.Password == null)
+            {
+                return null;
+            }
+
             var matched = PasswordHasher.Verify(user.Password, request.Password);
-#pragma warning restore CS8604 // Possible null reference argument.
+
 
             if (!matched)
             {
