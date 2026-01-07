@@ -211,6 +211,24 @@ namespace Auth.Web.Controllers
             return Challenge(props, "Microsoft");
         }
 
+        [HttpGet("web-apple-challenge")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public IActionResult WebAppleLogin([FromQuery] string? returnUrl = null)
+        {
+            if (!IsAllowedOrigin(Request))
+            {
+                logger.LogWarning(originValidator.Error);
+                return Forbid();  // simple CSRF guard 
+            }
+
+            var props = new AuthenticationProperties
+            {
+                RedirectUri = $"{_originConfig.FederationSuccessAbsoluteUrl}" +
+                              (returnUrl is null ? "" : $"?returnUrl={Uri.EscapeDataString(returnUrl)}")
+            };
+            return Challenge(props, "Apple");
+        }
+
         private string? ReadRefreshTokenFromCookie(IDataProtector protector)
         {
             if (!Request.Cookies.TryGetValue(_cookieOptions.Name, out var protectedValue))

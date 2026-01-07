@@ -5,6 +5,7 @@ using Auth.Infra;
 using Auth.Web;
 using Auth.Web.Configuration;
 using Auth.Web.Middleware;
+using Auth.Web.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.DataProtection;
@@ -32,9 +33,14 @@ const string microsoftSectionName = "MicrosoftOAuth";
 builder.Services.Configure<MicrosoftOAuthConfig>(builder.Configuration.GetSection(microsoftSectionName));
 var microsoftConfig = builder.Configuration.GetSection(microsoftSectionName).Get<MicrosoftOAuthConfig>();
 
+const string appleSectionName = "AppleOAuth";
+builder.Services.Configure<AppleOAuthConfig>(builder.Configuration.GetSection(appleSectionName));
+var appleConfig = builder.Configuration.GetSection(appleSectionName).Get<AppleOAuthConfig>();
+
 bool hasGoogleAuthentication = googleConfig?.Enabled ?? false;
 bool hasMicrosoftAuthentication = microsoftConfig?.Enabled ?? false;
-bool hasFederatedAuthentication = hasGoogleAuthentication || hasMicrosoftAuthentication;
+bool hasAppleAuthentication = appleConfig?.Enabled ?? false;
+bool hasFederatedAuthentication = hasGoogleAuthentication || hasMicrosoftAuthentication || hasAppleAuthentication;
 
 if (hasFederatedAuthentication)
 {
@@ -50,6 +56,10 @@ if (hasFederatedAuthentication)
         else if (hasMicrosoftAuthentication)
         {
             options.DefaultChallengeScheme = "Microsoft";
+        }
+        else if (hasAppleAuthentication)
+        {
+            options.DefaultChallengeScheme = "Apple";
         }
     })
     .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
@@ -168,6 +178,78 @@ if (hasFederatedAuthentication)
                 {
                     // Ensures correct https redirect behind Nginx
                     ctx.ProtocolMessage.RedirectUri = $"{originConfig?.HostWithScheme}{GlobalConstants.BasePath}/web-microsoft-callback";
+                    return Task.CompletedTask;
+                }
+            };
+            options.CorrelationCookie.Path = GlobalConstants.BasePath;
+            options.NonceCookie.Path = GlobalConstants.BasePath;
+
+            options.CorrelationCookie.SameSite = SameSiteMode.None;
+            options.NonceCookie.SameSite = SameSiteMode.None;
+            options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+        });
+    }
+
+    if (hasAppleAuthentication)
+    {
+        if(string.IsNullOrWhiteSpace(appleConfig?.ClientId) || string.IsNullOrWhiteSpace(appleConfig?.TeamId) || 
+           string.IsNullOrWhiteSpace(appleConfig?.KeyId) || string.IsNullOrWhiteSpace(appleConfig?.PrivateKey))
+        {
+            throw new ApplicationException("Apple credentials not provided");
+        }
+
+        // Register Apple JWT client secret service
+        builder.Services.AddSingleton<IAppleJwtClientSecretService, AppleJwtClientSecretService>();
+
+        authenticationBuilder.AddOpenIdConnect("Apple", options =>
+        {
+            options.Authority = "https://appleid.apple.com";
+            options.ClientId = appleConfig?.ClientId;
+            // ClientSecret will be set dynamically in OnRedirectToIdentityProvider
+
+            options.CallbackPath = $"{GlobalConstants.BasePath}/web-apple-callback";
+
+            options.ResponseType = OpenIdConnectResponseType.Code;
+            options.UsePkce = true;
+
+            options.Scope.Clear();
+            options.Scope.Add("openid");
+            options.Scope.Add("email");
+            options.Scope.Add("name");
+
+            options.SaveTokens = false;
+
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                NameClaimType = "name",
+                RoleClaimType = "role"
+            };
+
+            options.Events = new OpenIdConnectEvents
+            {
+                OnTokenValidated = async ctx =>
+                {
+                    var login = ctx.HttpContext.RequestServices.GetRequiredService<LoginService>();
+                    await login.LoginFederatedAsync(ctx.Principal!);
+                },
+                OnRedirectToIdentityProvider = ctx =>
+                {
+                    // Generate JWT client secret dynamically
+                    var appleJwtService = ctx.HttpContext.RequestServices.GetRequiredService<IAppleJwtClientSecretService>();
+                    var clientSecret = appleJwtService.GenerateClientSecret();
+                    ctx.ProtocolMessage.ClientSecret = clientSecret;
+
+                    // Ensures correct https redirect behind Nginx
+                    ctx.ProtocolMessage.RedirectUri = $"{originConfig?.HostWithScheme}{GlobalConstants.BasePath}/web-apple-callback";
+                    return Task.CompletedTask;
+                },
+                OnAuthorizationCodeReceived = ctx =>
+                {
+                    // Generate JWT client secret dynamically for token exchange
+                    var appleJwtService = ctx.HttpContext.RequestServices.GetRequiredService<IAppleJwtClientSecretService>();
+                    var clientSecret = appleJwtService.GenerateClientSecret();
+                    ctx.TokenEndpointRequest.ClientSecret = clientSecret;
                     return Task.CompletedTask;
                 }
             };
