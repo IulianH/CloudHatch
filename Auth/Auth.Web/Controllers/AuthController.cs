@@ -154,6 +154,7 @@ namespace Auth.Web.Controllers
                 return Forbid();  // simple CSRF guard 
             }
 
+            await SignOutFederated();
             var refreshToken = ReadRefreshTokenFromCookie(CreateProtector());
             if (refreshToken == null)
             {
@@ -162,8 +163,6 @@ namespace Auth.Web.Controllers
 
             await auth.RevokeRefreshTokenAsync(refreshToken);
             DeleteCookie();
-
-            await SignOutFederated();
 
             return NoContent();
         }
