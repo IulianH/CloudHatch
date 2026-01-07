@@ -22,14 +22,7 @@ namespace Users.Infra.InMemory
 
         public Task<User?> FindByUserNameAsync(string userName)
         {
-            var user = _users.FirstOrDefault(x => x.Username.Equals(userName, StringComparison.InvariantCultureIgnoreCase));
-            return Task.FromResult(user);
-        }
-
-        public Task<User?> FindByEmailAsync(string email)
-        {
-            // Match by email if username is in email format, or by normalized username
-            var user = _users.FirstOrDefault(x => x.Email.Equals(email, StringComparison.InvariantCultureIgnoreCase));
+            var user = _users.FirstOrDefault(x => string.Equals(x.Username, userName, StringComparison.InvariantCultureIgnoreCase));
             return Task.FromResult(user);
         }
 
