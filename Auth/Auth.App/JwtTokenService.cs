@@ -17,7 +17,6 @@ namespace Auth.App
     public class JwtTokenService(IOptions<JwtConfig> jwtConfig, IConfiguration config, IRefreshTokenRepository rtRepo, LoginService loginService, IUserRepo users)
     {
         private readonly JwtConfig _jwtConfig = jwtConfig.Value;
-        private static readonly string[] issuers = ["apple", "google", "microsoft"];
 
         public async Task<TokenPair?> RefreshTokensAsync(string refreshToken)
         {
@@ -52,7 +51,7 @@ namespace Auth.App
 
         public async Task<TokenPair?> IssueTokenAsync(string username, string password)
         {
-            var user = await loginService.LoginAsync(new LoginRequest(username, password, true));
+            var user = await loginService.LoginAsync(new LoginRequest(username, password, true, _jwtConfig.Issuer));
             if (user == null)
             {
                 return null;

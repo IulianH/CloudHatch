@@ -27,6 +27,6 @@ namespace Users.Domain
 
         public string? ExternalId { get; set;  }
 
-        public string? Issuer { get; set; }
+        public required string Issuer { get; set; }
     }
 }

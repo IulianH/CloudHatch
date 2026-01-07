@@ -3,15 +3,5 @@
     public static class GlobalConstants
     {
         public const string BasePath = "/api/auth"; 
-        private static readonly string[] issuers = ["apple", "google", "microsoft"];
-        private static string GetIdp(string? issuer)
-        {
-            if (issuer == null)
-            {
-                return "local";
-            }
-            var idp = issuers.FirstOrDefault(x => issuer.Contains(x, StringComparison.InvariantCultureIgnoreCase));
-            return idp ?? "local";
-        }
     }
 }

@@ -4,6 +4,7 @@ namespace Users.App
 { public record LoginRequest(
    string Username,
    string Password,
-   bool LockEnabled
+   bool LockEnabled,
+   string Issuer
    );
 }

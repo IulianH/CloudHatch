@@ -1,15 +1,16 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Net.Http.Json;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using Auth.App;
+﻿using Auth.App;
 using Auth.App.Env;
 using Auth.Web.Configuration;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Http.Json;
+using System.Security.Claims;
+using System.Security.Cryptography;
 
 
 namespace Auth.Web.Controllers
@@ -106,19 +107,32 @@ namespace Auth.Web.Controllers
             var refreshToken = ReadRefreshTokenFromCookie(protector);
             if (refreshToken == null)
             {
+                await SignOutFederated();
                 return Unauthorized();
             }
 
             var pair = await auth.RefreshTokensAsync(refreshToken);
-            if (pair is null) return Unauthorized();
+            if (pair is null)
+            {
+                await SignOutFederated();
+                return Unauthorized();
+            }
 
             IssueCookie(pair.RefreshToken, protector);
-            
             
             return Ok(new WebRefreshResponseDto(
                pair.AccessToken,
                pair.ExpiresIn
            ));
+        }
+
+        private bool HasFederatedIdentity()
+        {
+            if (User is null || User.Identity is null || User.Identity.IsAuthenticated == false)
+            {
+                return false;
+            }
+            return true;
         }
 
         [HttpPost("logout")]
@@ -145,7 +159,18 @@ namespace Auth.Web.Controllers
 
             await auth.RevokeRefreshTokenAsync(refreshToken);
             DeleteCookie();
+
+            await SignOutFederated();
+
             return NoContent();
+        }
+
+        private async Task SignOutFederated()
+        {
+            if (HasFederatedIdentity())
+            {
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            }
         }
 
         [HttpGet("web-google-challenge")]
@@ -299,7 +324,9 @@ namespace Auth.Web.Controllers
         bool LogoutAll
     ) : WebLogoutRequestDto(LogoutAll);
 
-    // Helper classes for Google OAuth responses
-    internal record GoogleTokenResponse(string AccessToken, string? RefreshToken, string TokenType, int ExpiresIn);
-    internal record GoogleUserInfo(string Email, string? Name, string? Picture);
+    public record IdentityInfoResponse(
+        string? Idp,
+        string? Name,
+        string? Email
+    );
 }

@@ -43,7 +43,8 @@ namespace Users.Infra.InMemory
                 Name = "John Doe",
                 Roles = "customer,admin",
                 Password = PasswordHasher.Hash("admin1!"),
-                Id = Guid.NewGuid()
+                Id = Guid.NewGuid(),
+                Issuer = "local"
             };
             _users.Add(user);
 
@@ -55,7 +56,8 @@ namespace Users.Infra.InMemory
                 Name = "Jane Doe",
                 Roles = "customer",
                 Password = PasswordHasher.Hash("customer1!"),
-                Id = Guid.NewGuid()
+                Id = Guid.NewGuid(),
+                Issuer = "local"
             };
 
             _users.Add(user);
@@ -67,7 +69,8 @@ namespace Users.Infra.InMemory
                 Email = "iulian.holonca@gmail.com",
                 Name = "Iulian Holonca",
                 Roles = "customer",
-                Id = Guid.NewGuid()
+                Id = Guid.NewGuid(),
+                Issuer = "local"
             };
 
             _users.Add(user);
