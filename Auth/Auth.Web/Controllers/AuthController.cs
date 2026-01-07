@@ -1,23 +1,23 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Net.Http.Json;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using Auth.App;
+﻿using Auth.App;
 using Auth.App.Env;
-using Auth.App.Interface.Users;
 using Auth.Web.Configuration;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Http.Json;
+using System.Security.Claims;
+using System.Security.Cryptography;
 
 
 namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route(GlobalConstants.BasePath)]
-    public class AuthController(JwtTokenService auth, IUserService userService, IDataProtectionProvider dp, OriginValidator originValidator, 
+    public class AuthController(JwtTokenService auth, IDataProtectionProvider dp, OriginValidator originValidator, 
         IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, ILogger<AuthController> logger) : ControllerBase
     {
         private readonly AuthCookieOptions _cookieOptions = cookieOptions.Value;
@@ -33,10 +33,8 @@ namespace Auth.Web.Controllers
             return Ok(new LoginResponseDto(
                 token.AccessToken,
                 token.RefreshToken,
-                token.ExpiresIn,
-                new UserResponseDto(token.User.GetName())
-
-            ));
+                token.ExpiresIn)
+                );
         }
 
         [HttpPost("web-login")]
@@ -56,9 +54,8 @@ namespace Auth.Web.Controllers
             IssueCookie(token.RefreshToken, protector);
             return Ok(new WebLoginResponseDto(
                 token.AccessToken,
-                token.ExpiresIn,
-                new UserResponseDto(token.User.GetName())
-            ));
+                token.ExpiresIn)
+            );
         }
 
         [HttpPost("web-federated-login")]
@@ -71,16 +68,19 @@ namespace Auth.Web.Controllers
                 return Forbid();  // simple CSRF guard 
             }
 
-            var token = await auth.IssueTokenFromClaims(User);
-            if (token == null) return Unauthorized();
+            var token = await auth.IssueTokenForFederatedUser(User);
+            await SignOutFederated();
 
+            if (token == null)
+            {
+                return Unauthorized();
+            }
             var protector = CreateProtector();
             IssueCookie(token.RefreshToken, protector);
             return Ok(new WebLoginResponseDto(
                 token.AccessToken,
-                token.ExpiresIn,
-                new UserResponseDto(token.User.GetName())
-            ));
+                token.ExpiresIn)
+            );
         }
 
         [HttpPost("refresh")]
@@ -106,6 +106,7 @@ namespace Auth.Web.Controllers
                 logger.LogWarning(originValidator.Error);
                 return Forbid();  // simple CSRF guard 
             }
+            await SignOutFederated();
 
             var protector = CreateProtector();
             var refreshToken = ReadRefreshTokenFromCookie(protector);
@@ -115,15 +116,26 @@ namespace Auth.Web.Controllers
             }
 
             var pair = await auth.RefreshTokensAsync(refreshToken);
-            if (pair is null) return Unauthorized();
+            if (pair is null)
+            {
+                return Unauthorized();
+            }
 
             IssueCookie(pair.RefreshToken, protector);
-            
             
             return Ok(new WebRefreshResponseDto(
                pair.AccessToken,
                pair.ExpiresIn
            ));
+        }
+
+        private bool HasFederatedIdentity()
+        {
+            if (User is null || User.Identity is null || User.Identity.IsAuthenticated == false)
+            {
+                return false;
+            }
+            return true;
         }
 
         [HttpPost("logout")]
@@ -142,6 +154,7 @@ namespace Auth.Web.Controllers
                 return Forbid();  // simple CSRF guard 
             }
 
+            await SignOutFederated();
             var refreshToken = ReadRefreshTokenFromCookie(CreateProtector());
             if (refreshToken == null)
             {
@@ -150,7 +163,16 @@ namespace Auth.Web.Controllers
 
             await auth.RevokeRefreshTokenAsync(refreshToken);
             DeleteCookie();
+
             return NoContent();
+        }
+
+        private async Task SignOutFederated()
+        {
+            if (HasFederatedIdentity())
+            {
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            }
         }
 
         [HttpGet("web-google-challenge")]
@@ -169,6 +191,24 @@ namespace Auth.Web.Controllers
                  RedirectUri = $"{_originConfig.FederationSuccessAbsoluteUrl}"
              },
              "Google");
+        }
+
+        [HttpGet("web-microsoft-challenge")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public IActionResult WebMicrosoftLogin([FromQuery] string? returnUrl = null)
+        {
+            if (!IsAllowedOrigin(Request))
+            {
+                logger.LogWarning(originValidator.Error);
+                return Forbid();  // simple CSRF guard 
+            }
+
+            var props = new AuthenticationProperties
+            {
+                RedirectUri = $"{_originConfig.FederationSuccessAbsoluteUrl}" +
+                              (returnUrl is null ? "" : $"?returnUrl={Uri.EscapeDataString(returnUrl)}")
+            };
+            return Challenge(props, "Microsoft");
         }
 
         private string? ReadRefreshTokenFromCookie(IDataProtector protector)
@@ -253,23 +293,17 @@ namespace Auth.Web.Controllers
         string Password
     );
 
-    public record UserResponseDto(
-        string Username
-    );
-
     public record WebLoginResponseDto(
         string AccessToken,
-        int ExpiresIn,
-        UserResponseDto User
+        int ExpiresIn
     );
 
     public record LoginResponseDto(
         string AccessToken,
         string RefreshToken,
-        int ExpiresIn,
-        UserResponseDto User
+        int ExpiresIn
 
-    ) : WebLoginResponseDto(AccessToken, ExpiresIn, User);
+    ) : WebLoginResponseDto(AccessToken, ExpiresIn);
 
     public record RefreshRequestDto(
         [Required(AllowEmptyStrings = false)]
@@ -298,7 +332,9 @@ namespace Auth.Web.Controllers
         bool LogoutAll
     ) : WebLogoutRequestDto(LogoutAll);
 
-    // Helper classes for Google OAuth responses
-    internal record GoogleTokenResponse(string AccessToken, string? RefreshToken, string TokenType, int ExpiresIn);
-    internal record GoogleUserInfo(string Email, string? Name, string? Picture);
+    public record IdentityInfoResponse(
+        string? Idp,
+        string? Name,
+        string? Email
+    );
 }

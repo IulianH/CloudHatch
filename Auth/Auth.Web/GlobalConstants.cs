@@ -2,6 +2,6 @@
 {
     public static class GlobalConstants
     {
-        public const string BasePath = "/api/auth";
+        public const string BasePath = "/api/auth"; 
     }
 }

@@ -1,4 +1,4 @@
-﻿using Auth.App.Interface.Users;
+﻿using Users.Domain;
 
 namespace Auth.App
 {

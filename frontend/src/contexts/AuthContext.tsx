@@ -1,13 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import AuthService from '@/lib/auth';
 import apiClient from '@/lib/api';
 
 interface User {
-  id: string;
-  username: string;
-  email?: string;
+  name: string;
+  idp: string;
 }
 
 interface AuthContextType {
@@ -17,6 +17,7 @@ interface AuthContextType {
   federatedLogin: () => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
+  fetchProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +26,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const fetchingProfileRef = useRef(false);
+  const pathname = usePathname();
 
   // Check authentication status on mount
   useEffect(() => {
@@ -32,17 +35,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         if (AuthService.isAuthenticated()) {
           setIsAuthenticated(true);
-          setUser(AuthService.getUser());
           setLoading(false);
         } else {
-          // localStorage is empty - attempt to recover session from cookie
-          // This will silently fail with 401 if no refresh token cookie exists
-          // which is expected behavior for users who haven't logged in
-          const recovered = await AuthService.attemptSessionRecovery();
-          if (recovered) {
-            setIsAuthenticated(true);
-            setUser(AuthService.getUser());
+          // Attempt session recovery from cookie on all pages except /federatedLogin
+          // Skip recovery for /federatedLogin since that's where OAuth callback happens
+          if (pathname !== '/federatedLogin') {
+            // localStorage is empty - attempt to recover session from cookie
+            // This will silently fail with 401 if no refresh token cookie exists
+            // which is expected behavior for users who haven't logged in
+            const recovered = await AuthService.attemptSessionRecovery();
+            if (recovered) {
+              setIsAuthenticated(true);
+            } else {
+              setIsAuthenticated(false);
+              setUser(null);
+            }
           } else {
+            // On /federatedLogin, skip recovery as OAuth flow will handle authentication
             setIsAuthenticated(false);
             setUser(null);
           }
@@ -61,18 +70,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     checkAuth();
-  }, []);
+  }, [pathname]);
+
+  const fetchProfile = async () => {
+    // Prevent duplicate calls
+    if (fetchingProfileRef.current) {
+      return;
+    }
+    
+    fetchingProfileRef.current = true;
+    try {
+      const profile = await apiClient.getProfile();
+      setUser(profile);
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+      setUser(null);
+    } finally {
+      fetchingProfileRef.current = false;
+    }
+  };
 
   const login = async (credentials: { username: string; password: string }) => {
-    const data = await apiClient.login(credentials);
+    await apiClient.login(credentials);
     setIsAuthenticated(true);
-    setUser(data.user);
+    await fetchProfile();
   };
 
   const federatedLogin = async () => {
-    const data = await apiClient.federatedLogin();
+    await apiClient.federatedLogin();
     setIsAuthenticated(true);
-    setUser(data.user);
+    await fetchProfile();
   };
 
   const logout = async () => {
@@ -82,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, federatedLogin, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, federatedLogin, logout, loading, fetchProfile }}>
       {children}
     </AuthContext.Provider>
   );

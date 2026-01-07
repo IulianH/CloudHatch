@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
+using Users.App;
 using Users.App.Interface;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,23 +28,29 @@ const string googleSectionName = "GoogleOAuth";
 builder.Services.Configure<GoogleOAuthConfig>(builder.Configuration.GetSection(googleSectionName));
 var googleConfig = builder.Configuration.GetSection(googleSectionName).Get<GoogleOAuthConfig>();
 
+const string microsoftSectionName = "MicrosoftOAuth";
+builder.Services.Configure<MicrosoftOAuthConfig>(builder.Configuration.GetSection(microsoftSectionName));
+var microsoftConfig = builder.Configuration.GetSection(microsoftSectionName).Get<MicrosoftOAuthConfig>();
 
-bool hasFederatedAuthentication = false;
-bool hasGoogleAuthentication = false; 
-hasFederatedAuthentication = hasGoogleAuthentication = googleConfig?.Enabled ?? false;
+bool hasGoogleAuthentication = googleConfig?.Enabled ?? false;
+bool hasMicrosoftAuthentication = microsoftConfig?.Enabled ?? false;
+bool hasFederatedAuthentication = hasGoogleAuthentication || hasMicrosoftAuthentication;
 
-if (hasGoogleAuthentication)
-{ 
-    if(string.IsNullOrWhiteSpace(googleConfig?.ClientId) || string.IsNullOrWhiteSpace(googleConfig?.ClientSecret))
-    {
-        throw new ApplicationException("Google credentials not provided");
-    }
+if (hasFederatedAuthentication)
+{
     var originConfig = builder.Configuration.GetSection(originSectionName).Get<OriginConfig>();
-
-    builder.Services.AddAuthentication(options =>
+    var authenticationBuilder = builder.Services.AddAuthentication(options =>
     {
         options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = "Google";
+        // Set default challenge scheme to first enabled provider
+        if (hasGoogleAuthentication)
+        {
+            options.DefaultChallengeScheme = "Google";
+        }
+        else if (hasMicrosoftAuthentication)
+        {
+            options.DefaultChallengeScheme = "Microsoft";
+        }
     })
     .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
     {
@@ -51,54 +58,128 @@ if (hasGoogleAuthentication)
         options.Cookie.Name = "__Host.external";
         options.Cookie.SameSite = SameSiteMode.None;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    })
-    .AddOpenIdConnect("Google", options =>
-    {
-        options.Authority = "https://accounts.google.com";
-        options.ClientId = googleConfig?.ClientId;
-        options.ClientSecret = googleConfig?.ClientSecret;
-
-        options.CallbackPath = $"{GlobalConstants.BasePath}/web-google-callback";
-
-        options.ResponseType = OpenIdConnectResponseType.Code;
-        options.UsePkce = true;
-
-        options.Scope.Clear();
-        options.Scope.Add("openid");
-        options.Scope.Add("email");
-        options.Scope.Add("profile");
-
-        options.SaveTokens = false;
-
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            NameClaimType = "name",
-            RoleClaimType = "role"
-        };
-
-
-
-        options.Events = new OpenIdConnectEvents
-        {
-            OnTokenValidated = ctx =>
-            {
-                return Task.CompletedTask;
-            },
-            OnRedirectToIdentityProvider = ctx =>
-            {
-                // Ensures correct https redirect behind Nginx
-                ctx.ProtocolMessage.RedirectUri = $"{originConfig?.HostWithScheme}{GlobalConstants.BasePath}/web-google-callback";
-                return Task.CompletedTask;
-            }
-        };
-        options.CorrelationCookie.Path = GlobalConstants.BasePath;
-        options.NonceCookie.Path = GlobalConstants.BasePath;
-
-        options.CorrelationCookie.SameSite = SameSiteMode.None;
-        options.NonceCookie.SameSite = SameSiteMode.None;
-        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
     });
+
+    if (hasGoogleAuthentication)
+    {
+        if(string.IsNullOrWhiteSpace(googleConfig?.ClientId) || string.IsNullOrWhiteSpace(googleConfig?.ClientSecret))
+        {
+            throw new ApplicationException("Google credentials not provided");
+        }
+
+        authenticationBuilder.AddOpenIdConnect("Google", options =>
+        {
+            options.Authority = "https://accounts.google.com";
+            options.ClientId = googleConfig?.ClientId;
+            options.ClientSecret = googleConfig?.ClientSecret;
+
+            options.CallbackPath = $"{GlobalConstants.BasePath}/web-google-callback";
+
+            options.ResponseType = OpenIdConnectResponseType.Code;
+            options.UsePkce = true;
+
+            options.Scope.Clear();
+            options.Scope.Add("openid");
+            options.Scope.Add("email");
+            options.Scope.Add("profile");
+
+            options.SaveTokens = false;
+
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                NameClaimType = "name",
+                RoleClaimType = "role"
+            };
+
+            options.Events = new OpenIdConnectEvents
+            {
+                OnTokenValidated = async ctx =>
+                {
+                    var login = ctx.HttpContext.RequestServices.GetRequiredService<LoginService>();
+                    await login.LoginFederatedAsync(ctx.Principal!);
+                },
+                OnRedirectToIdentityProvider = ctx =>
+                {
+                    // Ensures correct https redirect behind Nginx
+                    ctx.ProtocolMessage.RedirectUri = $"{originConfig?.HostWithScheme}{GlobalConstants.BasePath}/web-google-callback";
+                    return Task.CompletedTask;
+                }
+            };
+            options.CorrelationCookie.Path = GlobalConstants.BasePath;
+            options.NonceCookie.Path = GlobalConstants.BasePath;
+
+            options.CorrelationCookie.SameSite = SameSiteMode.None;
+            options.NonceCookie.SameSite = SameSiteMode.None;
+            options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+        });
+    }
+
+    if (hasMicrosoftAuthentication)
+    {
+        if(string.IsNullOrWhiteSpace(microsoftConfig?.ClientId) || string.IsNullOrWhiteSpace(microsoftConfig?.ClientSecret))
+        {
+            throw new ApplicationException("Microsoft credentials not provided");
+        }
+
+        authenticationBuilder.AddOpenIdConnect("Microsoft", options =>
+        {
+            options.Authority = "https://login.microsoftonline.com/common/v2.0";
+            options.ClientId = microsoftConfig?.ClientId;
+            options.ClientSecret = microsoftConfig?.ClientSecret;
+
+            options.CallbackPath = $"{GlobalConstants.BasePath}/web-microsoft-callback";
+
+            options.ResponseType = OpenIdConnectResponseType.Code;
+            options.UsePkce = true;
+
+            options.Scope.Clear();
+            options.Scope.Add("openid");
+            options.Scope.Add("email");
+            options.Scope.Add("profile");
+
+            options.SaveTokens = false;
+
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                IssuerValidator = (issuer, token, parameters) =>
+                {
+                    // Accept both:
+                    // - https://login.microsoftonline.com/<tenantId>/v2.0
+                    // - https://login.microsoftonline.com/<tenantId>/
+                    // depending on token/version
+                    if (issuer.StartsWith("https://login.microsoftonline.com/", StringComparison.OrdinalIgnoreCase))
+                        return issuer;
+
+                    throw new SecurityTokenInvalidIssuerException($"Invalid issuer: {issuer}");
+                }
+            };
+
+
+            options.Events = new OpenIdConnectEvents
+            {
+                OnTokenValidated = async ctx =>
+                {
+                    var login = ctx.HttpContext.RequestServices.GetRequiredService<LoginService>();
+                    await login.LoginFederatedAsync(ctx.Principal!);
+                },
+                OnRedirectToIdentityProvider = ctx =>
+                {
+                    // Ensures correct https redirect behind Nginx
+                    ctx.ProtocolMessage.RedirectUri = $"{originConfig?.HostWithScheme}{GlobalConstants.BasePath}/web-microsoft-callback";
+                    return Task.CompletedTask;
+                }
+            };
+            options.CorrelationCookie.Path = GlobalConstants.BasePath;
+            options.NonceCookie.Path = GlobalConstants.BasePath;
+
+            options.CorrelationCookie.SameSite = SameSiteMode.None;
+            options.NonceCookie.SameSite = SameSiteMode.None;
+            options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+        });
+    }
 }
 
 var redisConn = builder.Configuration["REDIS:CONNECTION"]!; // from compose env
@@ -130,6 +211,7 @@ var fwd = new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost
 };
 // If running in containers, Kestrel may not recognize the proxy by default:
+fwd.KnownIPNetworks.Clear();
 fwd.KnownProxies.Clear();
 
 

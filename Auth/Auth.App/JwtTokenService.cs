@@ -1,21 +1,25 @@
 ﻿using Auth.App.Env;
 using Auth.App.Exceptions;
 using Auth.App.Interface.RefreshToken;
-using Auth.App.Interface.Users;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using Users.App;
+using Users.App.Interface;
+using Users.Domain;
 
 namespace Auth.App
 {
-    public class JwtTokenService(IUserService users, IOptions<JwtConfig> jwtConfig, IConfiguration config, IRefreshTokenRepository rtRepo)
+    public class JwtTokenService(IOptions<JwtConfig> jwtConfig, IConfiguration config, IRefreshTokenRepository rtRepo, LoginService loginService, IUserRepo users,
+        ILogger<JwtTokenService> logger)
     {
         private readonly JwtConfig _jwtConfig = jwtConfig.Value;
-        
+
         public async Task<TokenPair?> RefreshTokensAsync(string refreshToken)
         {
             // 1) Lookup the record
@@ -49,7 +53,7 @@ namespace Auth.App
 
         public async Task<TokenPair?> IssueTokenAsync(string username, string password)
         {
-            var user = await users.LoginAsync(username, password);
+            var user = await loginService.LoginAsync(new LoginRequest(username, password, true, _jwtConfig.Issuer));
             if (user == null)
             {
                 return null;
@@ -58,18 +62,27 @@ namespace Auth.App
             return await IssueTokens(user);
         }
 
-        public async Task<TokenPair?> IssueTokenFromClaims(ClaimsPrincipal userIdentity)
+        public async Task<TokenPair?> IssueTokenForFederatedUser(ClaimsPrincipal? userIdentity)
         {
-            if(userIdentity.Identity == null || userIdentity.Identity.IsAuthenticated == false)
+            if(userIdentity?.Identity == null || userIdentity?.Identity.IsAuthenticated == false)
             {
-                throw new AppException("Null or anonymous user identity received"); 
+                logger.LogError("IssueTokenForFederatedUser: Received null user identity or not authenticated");
+                return null;            
             }
 
-            var email = userIdentity.FindFirst(ClaimTypes.Email)!.Value;
-            var givenName = userIdentity.FindFirst(ClaimTypes.GivenName)?.Value;
-            var surname = userIdentity.FindFirst(ClaimTypes.Surname)?.Value;
+            var externalId = userIdentity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (externalId == null)
+            {
+                logger.LogError("IssueTokenForFederatedUser: The NameIdentifier claim was not found");
+                return null;
+            }
 
-            var user = await users.UpsertAsync(email, givenName, surname);
+            var user = await users.FindByExternalIdAsync(externalId);
+            if(user == null)
+            {
+                logger.LogError($"IssueTokenForFederatedUser: User with external id '{externalId}' not found");
+                return null;
+            }
 
             return await IssueTokens(user);
         }
@@ -111,22 +124,23 @@ namespace Auth.App
 
             var claims = new List<Claim> {
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new(JwtRegisteredClaimNames.Name, user.GetName()),
-                new(JwtRegisteredClaimNames.Email, user.UserEmail),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            if(user.GivenName != null)
+            if(user.Name != null)
             {
-                claims.Add(new(JwtRegisteredClaimNames.GivenName, user.GivenName));
+                claims.Add(new(JwtRegisteredClaimNames.Name, user.Name));
             }
 
-            if (user.FamilyName != null)
+            if (user.Email != null)
             {
-                claims.Add(new(JwtRegisteredClaimNames.FamilyName, user.FamilyName));
+                claims.Add(new(JwtRegisteredClaimNames.Email, user.Email));
             }
 
-            claims.AddRange(user.Roles.Select(x => new Claim(ClaimTypes.Role, x)));
+            claims.AddRange((user.Roles?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) 
+                ?? Array.Empty<string>()).Select(x => new Claim(ClaimTypes.Role, x)));
+
+            claims.Add(new("idp", Constants.GetIdp(user.Issuer)));
 
             var token = new JwtSecurityToken(
                 issuer: _jwtConfig.Issuer,
@@ -140,6 +154,7 @@ namespace Auth.App
 
             return tokenStr;
         }
+
         private static string GenerateRefreshToken()
         {
             // cryptographically secure random

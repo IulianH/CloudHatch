@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace BackApi.Web.Controllers
@@ -13,20 +14,18 @@ namespace BackApi.Web.Controllers
         [HttpGet("profile")]
         public IActionResult GetProfile()
         {
-           
             return Ok(new UserProfile(
-                User.Identity?.Name,
-                string.Join(",", User.FindAll(ClaimTypes.Role).Select(c => c.Value)),
-                User.FindFirst("given_name")?.Value,
-                User.FindFirst("family_name")?.Value
+                 User.FindFirst(JwtRegisteredClaimNames.Name)?.Value ?? 
+                 User.FindFirst(JwtRegisteredClaimNames.Email)?.Value 
+                 ?? User.FindFirst(JwtRegisteredClaimNames.PreferredUsername)?.Value
+                 ?? "External User",
+                 User.FindFirst("idp")?.Value ?? "local"
                 ));
         }
     }
 
     public record UserProfile(
-        string? UserName,
-        string? Roles,
-        string? GivenName,
-        string? FamilyName
+        string? Name,
+        string Idp
     );
 }

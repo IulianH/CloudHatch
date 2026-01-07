@@ -4,10 +4,6 @@ import { buildApiUrl, isRelativeUrl } from './url-utils';
 export interface AuthResponse {
   accessToken: string;
   expiresIn: number;
-  user?: {
-    username: string;
-    email?: string;
-  };
 }
 
 export interface LoginCredentials {
@@ -16,25 +12,17 @@ export interface LoginCredentials {
 }
 
 class AuthService {
-  private static readonly USER_KEY = 'user_data';
   private static accessToken: string | null = null;
-  private static refreshTimeoutId: NodeJS.Timeout | null = null;
+  private static refreshTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private static readonly DELTA = 5000; // 5 seconds
 
   // Store authentication data
   // Access token is stored in memory (cleared on page refresh)
   // Refresh token is stored in HttpOnly cookie (set by backend)
-  // User data is stored in localStorage for persistence
+  // User data is no longer stored - fetch from profile endpoint when needed
   static setAuthData(data: AuthResponse): void {
     // Store access token in memory
     this.accessToken = data.accessToken;
-    
-    // Store user data in localStorage
-    if (typeof window !== 'undefined') {
-      if (data.user) {
-        localStorage.setItem(this.USER_KEY, JSON.stringify(data.user));
-      }
-    }
 
     const delayMilliseconds = data.expiresIn * 1000 - this.DELTA; 
     // Schedule automatic refresh after 5 minutes (300,000 ms)
@@ -51,19 +39,11 @@ class AuthService {
     return this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {};
   }
 
-  // Get stored user data
-  static getUser(): { id: string; username: string; email?: string } | null {
-    if (typeof window !== 'undefined') {
-      const userData = localStorage.getItem(this.USER_KEY);
-      return userData ? JSON.parse(userData) : null;
-    }
-    return null;
-  }
 
   // Check if user is authenticated
-  // Since tokens are in HttpOnly cookies, we check if user data exists
+  // The access token is required for making authenticated API requests
   static isAuthenticated(): boolean {
-    return this.getUser() !== null;
+    return this.accessToken !== null;
   }
 
   // Clear authentication data
@@ -75,11 +55,6 @@ class AuthService {
     if (this.refreshTimeoutId) {
       clearTimeout(this.refreshTimeoutId);
       this.refreshTimeoutId = null;
-    }
-    
-    // Clear user data from localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(this.USER_KEY);
     }
     // Note: HttpOnly refresh token cookie will be cleared by the backend on logout
   }
@@ -103,13 +78,10 @@ class AuthService {
 
   // Refresh token using HttpOnly cookie
   // The refresh token cookie is automatically sent by the browser
-  // Attempts refresh even if localStorage is empty (for session recovery)
   static async refreshTokenIfNeeded(attemptRecovery: boolean = false): Promise<boolean> {
-    const hadLocalStorage = this.isAuthenticated();
+    const isAuthenticated = this.isAuthenticated();
     
-    // If not attempting recovery and localStorage is empty, skip the refresh attempt
-    // (This maintains original behavior when localStorage is intentionally empty)
-    if (!attemptRecovery && !hadLocalStorage) {
+    if (!attemptRecovery && !isAuthenticated) {
       return false;
     }
 
@@ -133,33 +105,32 @@ class AuthService {
         // 401 is expected when refresh token is missing or expired
         // This is normal during session recovery attempts, so we handle it silently
         // Only call logout if we had localStorage data (to clean it up)
-        if (hadLocalStorage) {
-          this.logout();
-        }
+        
+        this.logout();
+        
         return false;
       } else {
         // Other error statuses (500, 503, etc.) are unexpected
         console.error(`Token refresh failed with status ${response.status}`);
-        if (hadLocalStorage) {
-          this.logout();
-        }
+        
+        this.logout();
+        
         return false;
       }
     } catch (error) {
       // Network errors or other exceptions are unexpected
       // Only log if we had localStorage (meaning we expected a valid session)
-      if (hadLocalStorage) {
+      if (isAuthenticated) {
         console.error('Token refresh failed:', error);
       }
       // Only call logout if we had localStorage data
-      if (hadLocalStorage) {
-        this.logout();
-      }
+      
+      this.logout();
+      
       return false;
     }
   }
 
-  // Attempt to recover session from cookie even if localStorage is empty
   static async attemptSessionRecovery(): Promise<boolean> {
     return this.refreshTokenIfNeeded(true);
   }

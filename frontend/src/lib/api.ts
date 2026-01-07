@@ -1,4 +1,4 @@
-import AuthService from './auth';
+import AuthService, { AuthResponse } from './auth';
 import { API_CONFIG } from '@/config/api';
 import { buildApiUrl, isRelativeUrl } from './url-utils';
 
@@ -33,7 +33,7 @@ class ApiClient {
       const refreshed = await AuthService.refreshTokenIfNeeded(true);
       if (!refreshed) {
         AuthService.logout();
-        window.location.href = '/login';
+        window.location.href = '/';
         throw new Error('Authentication expired');
       }
       
@@ -55,7 +55,7 @@ class ApiClient {
   }
 
   // Login method
-  async login(credentials: { username: string; password: string }): Promise<{ token: string; user: { id: string; username: string; email?: string } }> {
+  async login(credentials: { username: string; password: string }): Promise<AuthResponse> {
     const url = isRelativeUrl(API_CONFIG.LOGIN_URL) ? buildApiUrl(API_CONFIG.LOGIN_URL) : API_CONFIG.LOGIN_URL;
     const response = await fetch(url, {
       method: 'POST',
@@ -78,7 +78,7 @@ class ApiClient {
   }
 
   // Federated login method (without credentials)
-  async federatedLogin(): Promise<{ token: string; user: { id: string; username: string; email?: string } }> {
+  async federatedLogin(): Promise<AuthResponse> {
     const url = isRelativeUrl(API_CONFIG.FEDERATED_LOGIN_URL) ? buildApiUrl(API_CONFIG.FEDERATED_LOGIN_URL) : API_CONFIG.FEDERATED_LOGIN_URL;
     const response = await fetch(url, {
       method: 'POST',
@@ -119,7 +119,7 @@ class ApiClient {
   }
 
   // Get user profile
-  async getProfile(): Promise<{ userName: string; roles: string; givenName: string; familyName: string }> {
+  async getProfile(): Promise<{ name: string; idp: string }> {
     const response = await this.request(API_CONFIG.PROFILE_URL);
     if (!response.ok) {
       throw new Error('Failed to fetch profile');

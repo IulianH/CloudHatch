@@ -1,5 +1,4 @@
 ﻿using Auth.App.Interface.RefreshToken;
-using Auth.App.Interface.Users;
 using Auth.Infra.RefreshToken.InMemory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,7 +12,6 @@ namespace Auth.Infra
         public static void RegisterInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddSingleton<IRefreshTokenRepository, InMemoryRefreshTokenRepository>();
-            services.AddTransient<IUserService, UserService>();
             services.AddSingleton<IUserRepo, InMemUserRepo>();
         }
     }

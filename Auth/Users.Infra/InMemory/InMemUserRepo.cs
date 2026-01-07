@@ -7,7 +7,7 @@ namespace Users.Infra.InMemory
     public class InMemUserRepo : IUserRepo
     {
         private readonly List<User> _users = [];
-        public Task AddAsync(User user)
+        public Task InsertAsync(User user)
         {
             _users.Add(user);
 
@@ -22,14 +22,7 @@ namespace Users.Infra.InMemory
 
         public Task<User?> FindByUserNameAsync(string userName)
         {
-            var user = _users.FirstOrDefault(x => x.NormalizedUsername.Equals(userName, StringComparison.InvariantCultureIgnoreCase));
-            return Task.FromResult(user);
-        }
-
-        public Task<User?> FindByEmailAsync(string email)
-        {
-            // Match by email if username is in email format, or by normalized username
-            var user = _users.FirstOrDefault(x => x.Email.Equals(email, StringComparison.InvariantCultureIgnoreCase));
+            var user = _users.FirstOrDefault(x => string.Equals(x.Username, userName, StringComparison.InvariantCultureIgnoreCase));
             return Task.FromResult(user);
         }
 
@@ -40,12 +33,11 @@ namespace Users.Infra.InMemory
                 CreatedAt = DateTime.UtcNow,
                 Username = "admin",
                 Email = "admin@admin.com",
-                NormalizedUsername = "ADMIN",
-                GivenName = "John",
-                FamilyName = "Doe",
+                Name = "John Doe",
                 Roles = "customer,admin",
                 Password = PasswordHasher.Hash("admin1!"),
-                Id = Guid.NewGuid()
+                Id = Guid.NewGuid(),
+                Issuer = "local"
             };
             _users.Add(user);
 
@@ -54,12 +46,11 @@ namespace Users.Infra.InMemory
                 CreatedAt = DateTime.UtcNow,
                 Username = "customer",
                 Email = "customer@customer.com",
-                NormalizedUsername = "CUSTOMER",
-                GivenName = "Jane",
-                FamilyName = "Doe",
+                Name = "Jane Doe",
                 Roles = "customer",
                 Password = PasswordHasher.Hash("customer1!"),
-                Id = Guid.NewGuid()
+                Id = Guid.NewGuid(),
+                Issuer = "local"
             };
 
             _users.Add(user);
@@ -69,9 +60,10 @@ namespace Users.Infra.InMemory
                 CreatedAt = DateTime.UtcNow,
                 Username = "iulian.holonca",
                 Email = "iulian.holonca@gmail.com",
-                NormalizedUsername = "IULIAN.HOLONCA",
+                Name = "Iulian Holonca",
                 Roles = "customer",
-                Id = Guid.NewGuid()
+                Id = Guid.NewGuid(),
+                Issuer = "local"
             };
 
             _users.Add(user);
@@ -80,6 +72,12 @@ namespace Users.Infra.InMemory
         public Task UpdateAsync(User user)
         {
             return Task.CompletedTask;
+        }
+
+        public Task<User?> FindByExternalIdAsync(string externalId)
+        {
+            var user = _users.FirstOrDefault(x => x.ExternalId == externalId);
+            return Task.FromResult(user);
         }
     }
 }

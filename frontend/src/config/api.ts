@@ -5,5 +5,6 @@ export const API_CONFIG = {
   REFRESH_URL: process.env.NEXT_PUBLIC_REFRESH_URL || '/api/auth/web-refresh',
   LOGOUT_URL: process.env.NEXT_PUBLIC_LOGOUT_URL || '/api/auth/web-logout',
   PROFILE_URL: process.env.NEXT_PUBLIC_PROFILE_URL || '/api/backapi/profile',
-  GOOGLE_OAUTH_URL: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_URL || '/api/auth/web-google-challenge'
+  GOOGLE_OAUTH_URL: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_URL || '/api/auth/web-google-challenge',
+  MICROSOFT_OAUTH_URL: process.env.NEXT_PUBLIC_MICROSOFT_OAUTH_URL || '/api/auth/web-microsoft-challenge'
 };
