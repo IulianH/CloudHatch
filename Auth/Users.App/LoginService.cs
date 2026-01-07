@@ -52,6 +52,11 @@ namespace Users.App
                 return false;
             }
 
+            if(user.Password == null)
+            {
+                return false;
+            }
+
             var matched = PasswordHasher.Verify(user.Password, request.OldPassword);
 
             if (!matched)
