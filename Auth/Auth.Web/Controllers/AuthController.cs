@@ -197,6 +197,12 @@ namespace Auth.Web.Controllers
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public IActionResult WebMicrosoftLogin([FromQuery] string? returnUrl = null)
         {
+            if (!IsAllowedOrigin(Request))
+            {
+                logger.LogWarning(originValidator.Error);
+                return Forbid();  // simple CSRF guard 
+            }
+
             var props = new AuthenticationProperties
             {
                 RedirectUri = $"{_originConfig.FederationSuccessAbsoluteUrl}" +
