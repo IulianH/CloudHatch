@@ -15,40 +15,36 @@ using Users.Domain;
 
 namespace Auth.App
 {
-    public class JwtTokenService(IOptions<JwtConfig> jwtConfig, IConfiguration config, IRefreshTokenRepository rtRepo, LoginService loginService, IUserRepo users,
-        ILogger<JwtTokenService> logger)
+    public class JwtTokenService(IOptions<JwtConfig> jwtConfig, RefreshTokenService rtService, 
+        LoginService loginService, IUserRepo users, ILogger<JwtTokenService> logger)
     {
         private readonly JwtConfig _jwtConfig = jwtConfig.Value;
 
         public async Task<TokenPair?> RefreshTokensAsync(string refreshToken)
         {
             // 1) Lookup the record
-            var record = await rtRepo.GetByTokenAsync(refreshToken);
-            if (record == null || record.ExpiresAt < DateTime.UtcNow)
+            var record = await rtService.RefreshAsync(refreshToken);
+            
+            if(record == null)
             {
                 return null;
             }
 
-            // 2) (Optional) rotate: delete old, issue new
-            await rtRepo.DeleteAsync(record.Token);
-
             // 3) Issue new JWT + RT
             var user = await users.FindByIdAsync(record.UserId);
+            
             if (user == null)
             {
+                logger.LogWarning("RefreshTokensAsync: Could not find {UserId} via refresh token", record.UserId);
                 return null;
             }
 
             return await IssueTokens(user);
         }
 
-        public async Task RevokeRefreshTokenAsync(string refreshToken)
+        public async Task RevokeRefreshTokenAsync(string refreshToken, bool revokeAll)
         {
-            if (!ValidateRefreshToken(refreshToken))
-            {
-                return;
-            }
-            await rtRepo.DeleteAsync(refreshToken);
+           await rtService.RevokeAsync(refreshToken, revokeAll);
         }
 
         public async Task<TokenPair?> IssueTokenAsync(string username, string password)
@@ -62,57 +58,27 @@ namespace Auth.App
             return await IssueTokens(user);
         }
 
-        public async Task<TokenPair?> IssueTokenForFederatedUser(ClaimsPrincipal? userIdentity)
+        public async Task<TokenPair?> IssueTokensForFederatedUser(string externalId)
         {
-            if(userIdentity?.Identity == null || userIdentity?.Identity.IsAuthenticated == false)
-            {
-                logger.LogError("IssueTokenForFederatedUser: Received null user identity or not authenticated");
-                return null;            
-            }
-
-            var externalId = userIdentity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (externalId == null)
-            {
-                logger.LogError("IssueTokenForFederatedUser: The NameIdentifier claim was not found");
-                return null;
-            }
-
-            var user = await users.FindByExternalIdAsync(externalId);
+            var user = await loginService.LoginFederatedAsync(externalId, true);
             if(user == null)
             {
-                logger.LogError($"IssueTokenForFederatedUser: User with external id '{externalId}' not found");
                 return null;
             }
 
             return await IssueTokens(user);
         }
 
-        public async Task<TokenPair> IssueTokenForUserAsync(User user)
+        public async Task<TokenPair> IssueTokensForUserAsync(User user)
         {
             return await IssueTokens(user);
         }
-        
-        private static bool ValidateRefreshToken(string refreshToken)
-        {
-            if(string.IsNullOrWhiteSpace(refreshToken))
-            {
-                return false;
-            }
-            return true;
-        }
+       
 
         private async Task<TokenPair> IssueTokens(User user)
         {
             var jwt = GenerateJwtToken(user);
-            var rToken = GenerateRefreshToken();
-
-            await rtRepo.SaveAsync(new RefreshTokenRecord
-            {
-                Token = rToken,
-                UserId = user.Id,
-                ExpiresAt = DateTime.UtcNow.AddHours(config.GetValue<int>("Rt:ExpiresInHours"))
-            });
-
+            var rToken = await rtService.GenerateAsync(user.Id);
             return new TokenPair(jwt, rToken, _jwtConfig.ExpiresInSeconds, user);
         }
 
@@ -153,15 +119,6 @@ namespace Auth.App
             var tokenStr = new JwtSecurityTokenHandler().WriteToken(token);
 
             return tokenStr;
-        }
-
-        private static string GenerateRefreshToken()
-        {
-            // cryptographically secure random
-            var bytes = new byte[32];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(bytes);
-            return Convert.ToBase64String(bytes);
         }
     }
 }

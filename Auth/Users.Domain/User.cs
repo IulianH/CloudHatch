@@ -15,11 +15,11 @@ namespace Users.Domain
 
         public string? Password { get; set; }
 
-        public required DateTime CreatedAt { get; set; }
+        public required DateTimeOffset CreatedAt { get; set; }
 
-        public DateTime? LockedUntil { get; set; }
+        public DateTimeOffset? LockedUntil { get; set; }
 
-        public DateTime? LastLogin { get; set; }
+        public DateTimeOffset? LastLogin { get; set; }
 
         public bool IsLocked { get; set; }
 

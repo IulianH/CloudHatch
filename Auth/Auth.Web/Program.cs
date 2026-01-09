@@ -4,6 +4,7 @@ using Auth.App.Interface.RefreshToken;
 using Auth.Infra;
 using Auth.Web;
 using Auth.Web.Configuration;
+using Auth.Web.Context;
 using Auth.Web.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -95,8 +96,9 @@ if (hasFederatedAuthentication)
             {
                 OnTokenValidated = async ctx =>
                 {
-                    var login = ctx.HttpContext.RequestServices.GetRequiredService<LoginService>();
-                    await login.LoginFederatedAsync(ctx.Principal!);
+                    var regs = ctx.HttpContext.RequestServices.GetRequiredService<RegistrationService>();
+                    FederatedIdentity identity = new(ctx.Principal!);
+                    await regs.RegisterFederatedAsync(identity.GetUser()!);
                 },
                 OnRedirectToIdentityProvider = ctx =>
                 {
@@ -161,8 +163,9 @@ if (hasFederatedAuthentication)
             {
                 OnTokenValidated = async ctx =>
                 {
-                    var login = ctx.HttpContext.RequestServices.GetRequiredService<LoginService>();
-                    await login.LoginFederatedAsync(ctx.Principal!);
+                    var regs = ctx.HttpContext.RequestServices.GetRequiredService<RegistrationService>();
+                    FederatedIdentity identity = new(ctx.Principal!);
+                    await regs.RegisterFederatedAsync(identity.GetUser()!);
                 },
                 OnRedirectToIdentityProvider = ctx =>
                 {

@@ -1,4 +1,5 @@
 ﻿using Auth.App.Env;
+using Auth.App.Interface.RefreshToken;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -16,7 +17,14 @@ public static class ApplicationRegistration
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
+        services.AddOptions<RtConfig>()
+            .Bind(configuration.GetSection("Rt"))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
         services.AddTransient<JwtTokenService>();
+        services.AddTransient<RefreshTokenService>();
         services.AddTransient<LoginService>();
+        services.AddTransient<RegistrationService>();
     }
 }
