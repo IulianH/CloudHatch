@@ -1,11 +1,14 @@
-﻿using System.Security.Claims;
+﻿using Microsoft.Extensions.Options;
+using System.Security.Claims;
 using Users.App.Interface;
+using Users.App.Settings;
 using Users.Domain;
 
 namespace Users.App
 {
-    public class LoginService(IUserRepo repo)
+    public class LoginService(IUserRepo repo, IOptions<LoginSettings> loginSettings)
     {
+        private readonly LoginSettings _loginSettings = loginSettings.Value;
         public async Task<User?> LoginAsync(LoginRequest request)
         {
             var user = await repo.FindByUserNameAsync(request.Username);
@@ -33,15 +36,15 @@ namespace Users.App
             if (!matched)
             {
                 user.FailedLoginCount += 1;
-                if (user.FailedLoginCount >= 6)
+                if (user.FailedLoginCount >= _loginSettings.MaxFailedPasswordLoginAttempts)
                 {
                     user.IsLocked = true;
                 }
                 else
                 {
-                    if(user.FailedLoginCount == 4)
+                    if(user.FailedLoginCount == _loginSettings.LockoutStartsAfterAttempts)
                     {
-                        user.LockedUntil = DateTime.UtcNow.AddMinutes(2);
+                        user.LockedUntil = DateTime.UtcNow.AddMinutes(_loginSettings.AccountLockDurationInMinutes);
                     }
                 }
 

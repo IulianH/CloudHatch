@@ -30,5 +30,7 @@ namespace Users.Domain
         public required string Issuer { get; set; }
 
         public int FailedLoginCount { get; set; }
+
+        public bool EmailConfirmed { get; set; }
     }
 }
