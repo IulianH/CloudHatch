@@ -30,14 +30,28 @@ namespace Users.App
 
             var matched = PasswordHasher.Verify(user.Password, request.Password);
 
-
             if (!matched)
             {
+                user.FailedLoginCount += 1;
+                if (user.FailedLoginCount >= 6)
+                {
+                    user.IsLocked = true;
+                }
+                else
+                {
+                    if(user.FailedLoginCount == 4)
+                    {
+                        user.LockedUntil = DateTime.UtcNow.AddMinutes(2);
+                    }
+                }
+
+                await repo.UpdateAsync(user);
                 return null;
             }
 
             user.LockedUntil = null;
             user.LastLogin = DateTime.UtcNow;
+            user.FailedLoginCount = 0;
             await repo.UpdateAsync(user);
             return user;
 
@@ -50,8 +64,12 @@ namespace Users.App
             {
                 return false;
             }
+            if (user == null || (request.LockEnabled && user.IsLocked))
+            {
+                return false;
+            }
 
-            if(user.Password == null)
+            if (user.Password == null)
             {
                 return false;
             }
@@ -64,8 +82,6 @@ namespace Users.App
             }
 
             user.Password = PasswordHasher.Hash(request.NewPassword);
-            user.LockedUntil = null;
-            user.IsLocked = false;
             await repo.UpdateAsync(user);
             return true;
         }
@@ -90,6 +106,7 @@ namespace Users.App
 
             user.LastLogin = now;
             user.LockedUntil = null;
+            user.FailedLoginCount = 0;
             await repo.UpdateAsync(user);
             return user;
         }
