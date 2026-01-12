@@ -12,14 +12,16 @@ using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using Users.App;
 
 
 namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route(GlobalConstants.BasePath)]
-    public class AuthController(JwtTokenService auth, IDataProtectionProvider dp, OriginValidator originValidator, 
-        IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, ILogger<AuthController> logger) : ControllerBase
+    public class AuthController(JwtTokenService auth, LoginService login, IDataProtectionProvider dp, OriginValidator originValidator, 
+        IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, 
+        ILogger<AuthController> logger) : ControllerBase
     {
         private readonly AuthCookieOptions _cookieOptions = cookieOptions.Value;
         private readonly OriginConfig _originConfig = originConfig.Value;
@@ -28,8 +30,18 @@ namespace Auth.Web.Controllers
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto req)
         {
-            var token = await auth.IssueTokenAsync(req.Username, req.Password);
-            if (token == null) return Unauthorized();
+            var user = await login.LoginAsync(new LoginRequest(req.Username, req.Password, true));
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            if (user.EmailConfirmed == false)
+            {
+                return Unauthorized(new { error = "EmailNotConfirmed", error_description = "Email address is not confirmed." });
+            }
+
+            var token = await auth.IssueTokenAsync(user);
 
             return Ok(new LoginResponseDto(
                 token.AccessToken,
@@ -48,8 +60,18 @@ namespace Auth.Web.Controllers
                 return Forbid();  // simple CSRF guard 
             }
 
-            var token = await auth.IssueTokenAsync(req.Username, req.Password);
-            if (token == null) return Unauthorized();
+            var user = await login.LoginAsync(new LoginRequest(req.Username, req.Password, true));
+            if(user == null)
+            {
+                return Unauthorized();
+            }
+
+            if(user.EmailConfirmed == false)
+            {
+                return Unauthorized(new { error = "EmailNotConfirmed", error_description = "Email address is not confirmed." });
+            }
+
+            var token = await auth.IssueTokenAsync(user);
 
             var protector = CreateProtector();
             IssueCookie(token.RefreshToken, protector);
@@ -85,12 +107,15 @@ namespace Auth.Web.Controllers
             }
 
             await SignOutFederated();
-            var token = await auth.IssueTokensForFederatedUser(externalId);
-           
-            if (token == null)
+
+            var user = await login.LoginFederatedAsync(externalId, true);
+            if(user == null)
             {
                 return Unauthorized();
             }
+
+            var token = await auth.IssueTokenAsync(user);
+
             var protector = CreateProtector();
             IssueCookie(token.RefreshToken, protector);
             return Ok(new WebLoginResponseDto(

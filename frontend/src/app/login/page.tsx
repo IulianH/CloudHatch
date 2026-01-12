@@ -42,10 +42,16 @@ export default function LoginPage() {
       router.push('/');
     } catch (err) {
       // Check if it's a 4xx client error
-      const status = (err as Error & { status?: number })?.status;
+      const errorWithData = err as Error & { status?: number; errorData?: any };
+      const status = errorWithData?.status;
       if (status && status >= 400 && status < 500) {
-        // Show generic error message for 4xx errors to prevent user enumeration
-        setError('Email does not exist or password is incorrect');
+        // Check for special case: EmailNotConfirmed
+        if (errorWithData.errorData?.error === 'EmailNotConfirmed') {
+          setError('Email must be confirmed before logging in');
+        } else {
+          // Show error message enumerating all possible 4xx reasons
+          setError('Email does not exist, password is incorrect, or account is locked from too many failed password attempts');
+        }
       } else {
         // For other errors (network errors, 5xx server errors, etc.), show a different message
         setError('An error occurred. Please try again.');
