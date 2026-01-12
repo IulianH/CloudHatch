@@ -5,20 +5,14 @@ namespace Auth.App.Interface.RefreshToken
     public class RefreshTokenRecord
     {
         [Key] 
-        public string Token { get; init; } = null!;
+        public required string Token { get; init; }
 
-        public Guid UserId { get; init; } = Guid.Empty!;
+        public required Guid UserId { get; init; } 
 
-        public string SessionId { get; set; } = Guid.NewGuid().ToString("N"); // one per device/login
+        public required DateTimeOffset SessionCreatedAt { get; set; } 
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public required DateTimeOffset ExpiresAt { get; init; }
 
-        public DateTime ExpiresAt { get; init; }
-
-        public DateTime? RevokedAt { get; set; }   
-        // set on rotation or logout
-        public string? ReplacedByHash { get; set; }            // points to the next RT in the chain
-
-        public bool Compromised { get; set; }            // set if reuse detected
+        public int Index { get; set; }
     }
 }

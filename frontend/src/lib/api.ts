@@ -69,7 +69,9 @@ class ApiClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || 'Login failed');
+      const errorWithStatus = new Error(error.message || 'Login failed') as Error & { status?: number };
+      errorWithStatus.status = response.status;
+      throw errorWithStatus;
     }
 
     const data = await response.json();

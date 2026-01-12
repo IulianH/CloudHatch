@@ -10,8 +10,10 @@ namespace Users.App
     {
         public Guid UserId { get; set; }
 
-        public string NewPassword { get; set; }
+        public required string NewPassword { get; set; }
 
-        public string OldPassword { get; set; }
+        public required string OldPassword { get; set; }
+
+        public bool LockEnabled { get; set; }
     }
 }

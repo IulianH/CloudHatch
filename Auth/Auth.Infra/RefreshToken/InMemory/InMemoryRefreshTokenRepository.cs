@@ -6,7 +6,7 @@ namespace Auth.Infra.RefreshToken.InMemory
     {
         private readonly Dictionary<string, RefreshTokenRecord> _refreshTokens = new();
 
-        public Task SaveAsync(RefreshTokenRecord record)
+        public Task UpdateAsync(RefreshTokenRecord record)
         {
             _refreshTokens[record.Token] = record;
             return Task.CompletedTask;
@@ -27,6 +27,28 @@ namespace Auth.Infra.RefreshToken.InMemory
         public void Migrate()
         {
             
+        }
+
+        public Task<RefreshTokenRecord?> GetAsync(string token)
+        {
+            _refreshTokens.TryGetValue(token, out var record);
+            return Task.FromResult(record);
+        }
+
+        public Task CreateAsync(RefreshTokenRecord record)
+        {
+            _refreshTokens[record.Token] = record;
+            return Task.CompletedTask;
+        }
+
+        public Task DeleteAsync(Guid userId)
+        {
+            var record = _refreshTokens.FirstOrDefault(kvp => kvp.Value.UserId == userId);
+            if (record.Key != null)
+            {
+                _refreshTokens.Remove(record.Key);
+            }
+            return Task.CompletedTask;
         }
     }
 }

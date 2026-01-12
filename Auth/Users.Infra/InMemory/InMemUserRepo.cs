@@ -31,7 +31,7 @@ namespace Users.Infra.InMemory
             var user = new User
             {
                 CreatedAt = DateTime.UtcNow,
-                Username = "admin",
+                Username = "admin@admin.com",
                 Email = "admin@admin.com",
                 Name = "John Doe",
                 Roles = "customer,admin",
@@ -44,24 +44,11 @@ namespace Users.Infra.InMemory
             user = new User
             {
                 CreatedAt = DateTime.UtcNow,
-                Username = "customer",
+                Username = "customer@customer.com",
                 Email = "customer@customer.com",
                 Name = "Jane Doe",
                 Roles = "customer",
                 Password = PasswordHasher.Hash("customer1!"),
-                Id = Guid.NewGuid(),
-                Issuer = "local"
-            };
-
-            _users.Add(user);
-
-            user = new User
-            {
-                CreatedAt = DateTime.UtcNow,
-                Username = "iulian.holonca",
-                Email = "iulian.holonca@gmail.com",
-                Name = "Iulian Holonca",
-                Roles = "customer",
                 Id = Guid.NewGuid(),
                 Issuer = "local"
             };

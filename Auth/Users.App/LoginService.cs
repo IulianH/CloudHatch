@@ -1,11 +1,14 @@
-﻿using System.Security.Claims;
+﻿using Microsoft.Extensions.Options;
+using System.Security.Claims;
 using Users.App.Interface;
+using Users.App.Settings;
 using Users.Domain;
 
 namespace Users.App
 {
-    public class LoginService(IUserRepo repo)
+    public class LoginService(IUserRepo repo, IOptions<LoginSettings> loginSettings)
     {
+        private readonly LoginSettings _loginSettings = loginSettings.Value;
         public async Task<User?> LoginAsync(LoginRequest request)
         {
             var user = await repo.FindByUserNameAsync(request.Username);
@@ -30,15 +33,28 @@ namespace Users.App
 
             var matched = PasswordHasher.Verify(user.Password, request.Password);
 
-
             if (!matched)
             {
+                user.FailedLoginCount += 1;
+                if (user.FailedLoginCount >= _loginSettings.MaxFailedPasswordLoginAttempts)
+                {
+                    user.IsLocked = true;
+                }
+                else
+                {
+                    if(user.FailedLoginCount == _loginSettings.LockoutStartsAfterAttempts)
+                    {
+                        user.LockedUntil = DateTime.UtcNow.AddMinutes(_loginSettings.AccountLockDurationInMinutes);
+                    }
+                }
+
+                await repo.UpdateAsync(user);
                 return null;
             }
 
             user.LockedUntil = null;
-            user.IsLocked = false;
             user.LastLogin = DateTime.UtcNow;
+            user.FailedLoginCount = 0;
             await repo.UpdateAsync(user);
             return user;
 
@@ -51,8 +67,12 @@ namespace Users.App
             {
                 return false;
             }
+            if (user == null || (request.LockEnabled && user.IsLocked))
+            {
+                return false;
+            }
 
-            if(user.Password == null)
+            if (user.Password == null)
             {
                 return false;
             }
@@ -65,43 +85,31 @@ namespace Users.App
             }
 
             user.Password = PasswordHasher.Hash(request.NewPassword);
-            user.LockedUntil = null;
-            user.IsLocked = false;
             await repo.UpdateAsync(user);
             return true;
         }
 
-        public async Task<User> LoginFederatedAsync(ClaimsPrincipal ctx)
+        public async Task<User?> LoginFederatedAsync(string externalId, bool lockedEnabled)
         {
-            var externalId = ctx.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new ArgumentException("Null NameIdentifier received in federated login");
-            var issuer = ctx.FindFirst("iss")?.Value ?? throw new ArgumentException("Null issuer received in federated login");
-            var email = ctx.FindFirst(ClaimTypes.Email)?.Value?.ToLower();
-            var name = ctx.FindFirst("name")?.Value;
-            var username = ctx.FindFirst("preferred_username")?.Value;
-
             var user = await repo.FindByExternalIdAsync(externalId);
-            if(user == null)
+
+            if (user == null || (lockedEnabled && user.IsLocked))
             {
-                user = new User
-                {
-                    Id = Guid.NewGuid(),
-                    ExternalId = externalId,
-                    Issuer = issuer,
-                    Email = email,
-                    Username = username ?? email,
-                    Name = name,
-                    LastLogin = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
-                    Roles = "customer"
-                };
-                await repo.InsertAsync(user);
-                return user;
+                return null;
             }
-            user.Issuer = issuer;
-            user.Email = email;
-            user.Username = username ?? email;
-            user.Name = name;
-            user.LastLogin = DateTime.UtcNow;
+
+            var now = DateTimeOffset.UtcNow;
+            if (lockedEnabled && user.LockedUntil.HasValue)
+            {
+                if (now <= user.LockedUntil.Value)
+                {
+                    return null;
+                }
+            }
+
+            user.LastLogin = now;
+            user.LockedUntil = null;
+            user.FailedLoginCount = 0;
             await repo.UpdateAsync(user);
             return user;
         }

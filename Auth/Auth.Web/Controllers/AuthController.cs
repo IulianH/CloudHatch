@@ -1,6 +1,7 @@
 ﻿using Auth.App;
 using Auth.App.Env;
 using Auth.Web.Configuration;
+using Auth.Web.Context;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
@@ -52,6 +53,7 @@ namespace Auth.Web.Controllers
 
             var protector = CreateProtector();
             IssueCookie(token.RefreshToken, protector);
+            await SignOutFederated();
             return Ok(new WebLoginResponseDto(
                 token.AccessToken,
                 token.ExpiresIn)
@@ -68,9 +70,23 @@ namespace Auth.Web.Controllers
                 return Forbid();  // simple CSRF guard 
             }
 
-            var token = await auth.IssueTokenForFederatedUser(User);
-            await SignOutFederated();
+            var federatedIdentity = new FederatedIdentity(User);
 
+            if (!federatedIdentity.IsAuthenticated())
+            {
+                logger.LogError("WebLoginFederated: Received null user identity or not authenticated");
+                return Unauthorized();
+            }
+            var externalId = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if(externalId == null)
+            {
+                logger.LogError("WebLoginFederated: Received null external ID from federated identity");
+                return Unauthorized();
+            }
+
+            await SignOutFederated();
+            var token = await auth.IssueTokensForFederatedUser(externalId);
+           
             if (token == null)
             {
                 return Unauthorized();
@@ -106,7 +122,6 @@ namespace Auth.Web.Controllers
                 logger.LogWarning(originValidator.Error);
                 return Forbid();  // simple CSRF guard 
             }
-            await SignOutFederated();
 
             var protector = CreateProtector();
             var refreshToken = ReadRefreshTokenFromCookie(protector);
@@ -129,19 +144,10 @@ namespace Auth.Web.Controllers
            ));
         }
 
-        private bool HasFederatedIdentity()
-        {
-            if (User is null || User.Identity is null || User.Identity.IsAuthenticated == false)
-            {
-                return false;
-            }
-            return true;
-        }
-
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] LogoutRequestDto req)
         {
-            await auth.RevokeRefreshTokenAsync(req.RefreshToken);
+            await auth.RevokeRefreshTokenAsync(req.RefreshToken, req.LogoutAll);
             return NoContent();
         }
 
@@ -161,7 +167,7 @@ namespace Auth.Web.Controllers
                 return NoContent();
             }
 
-            await auth.RevokeRefreshTokenAsync(refreshToken);
+            await auth.RevokeRefreshTokenAsync(refreshToken, req.LogoutAll);
             DeleteCookie();
 
             return NoContent();
@@ -169,7 +175,8 @@ namespace Auth.Web.Controllers
 
         private async Task SignOutFederated()
         {
-            if (HasFederatedIdentity())
+            var federatedIdentity = new FederatedIdentity(User);
+            if (federatedIdentity.IsAuthenticated())
             {
                 await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             }
@@ -261,8 +268,6 @@ namespace Auth.Web.Controllers
             });
         }
     }
-
-
 
     public static class ValidationConstants
     {

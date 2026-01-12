@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
 import { buildApiUrl, isRelativeUrl } from '@/lib/url-utils';
@@ -11,7 +12,9 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
+  const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
+  const [email, setEmail] = useState('');
 
   // Close modal when user becomes authenticated
   useEffect(() => {
@@ -38,6 +41,18 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     
     // Redirect to Microsoft OAuth endpoint
     window.location.href = microsoftOAuthUrl;
+  };
+
+  const handleContinue = () => {
+    // Close the modal
+    onClose();
+    // Redirect to login page with email as query parameter
+    const params = new URLSearchParams();
+    if (email.trim()) {
+      params.set('email', email.trim());
+    }
+    const queryString = params.toString();
+    router.push(`/login${queryString ? `?${queryString}` : ''}`);
   };
 
   if (!isOpen) {
@@ -110,6 +125,33 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               />
             </svg>
             Continue with Microsoft
+          </button>
+          
+          {/* OR Separator */}
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 border-t border-gray-300"></div>
+            <span className="text-sm font-medium uppercase text-black">OR</span>
+            <div className="flex-1 border-t border-gray-300"></div>
+          </div>
+          
+          {/* Email Input */}
+          <div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email address"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent placeholder-gray-400"
+            />
+          </div>
+          
+          {/* Continue Button */}
+          <button
+            type="button"
+            onClick={handleContinue}
+            className="w-full bg-black text-white px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors font-medium"
+          >
+            Continue
           </button>
         </div>
       </div>
