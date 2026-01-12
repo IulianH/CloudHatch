@@ -19,7 +19,7 @@ namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route(GlobalConstants.BasePath)]
-    public class AuthController(JwtTokenService auth, LoginService login, IDataProtectionProvider dp, OriginValidator originValidator, 
+    public class AuthController(JwtTokenService auth, LoginService login, RegistrationService registration, IDataProtectionProvider dp, OriginValidator originValidator, 
         IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, 
         ILogger<AuthController> logger) : ControllerBase
     {
@@ -167,6 +167,46 @@ namespace Auth.Web.Controllers
                pair.AccessToken,
                pair.ExpiresIn
            ));
+        }
+
+        [HttpPost("register")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<ActionResult> Register([FromBody] RegisterRequestDto req)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await registration.RegisterAsync(req.Email, req.Password);
+            if (!result.Success)
+            {
+                if (result.Error == "MaxConfirmationEmailsPerDay")
+                {
+                    return BadRequest(new { error = result.Error, error_description = result.ErrorDescription });
+                }
+                return BadRequest(new { error = result.Error, error_description = result.ErrorDescription });
+            }
+
+            return Ok(new { message = "Registration successful. Please check your email to confirm your account." });
+        }
+
+        [HttpGet("confirm-email")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<ActionResult> ConfirmEmail([FromQuery] string token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return BadRequest(new { error = "TokenRequired", error_description = "Token is required." });
+            }
+
+            var result = await registration.ConfirmEmailAsync(token);
+            if (!result.Success)
+            {
+                return BadRequest(new { error = result.Error, error_description = result.ErrorDescription });
+            }
+
+            return Ok(new { message = "Email confirmed successfully." });
         }
 
         [HttpPost("logout")]
@@ -366,5 +406,14 @@ namespace Auth.Web.Controllers
         string? Idp,
         string? Name,
         string? Email
+    );
+
+    public record RegisterRequestDto(
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Invalid email format.")]
+        string Email,
+        [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.PasswordRequired)]
+        //[RegularExpression(ValidationConstants.PasswordPattern, ErrorMessage = ValidationConstants.PasswordFormatError)]
+        string Password
     );
 }

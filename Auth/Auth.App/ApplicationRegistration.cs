@@ -26,6 +26,9 @@ public static class ApplicationRegistration
         services.AddOptions<LoginSettings>()
        .Bind(configuration.GetSection("Login"));
 
+        services.AddOptions<RegisterSettings>()
+            .Bind(configuration.GetSection("Register"));
+
         services.AddTransient<JwtTokenService>();
         services.AddTransient<RefreshTokenService>();
         services.AddTransient<LoginService>();

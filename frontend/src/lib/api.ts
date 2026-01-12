@@ -121,6 +121,53 @@ class ApiClient {
     }
   }
 
+  // Register method
+  async register(credentials: { email: string; password: string }): Promise<{ message: string }> {
+    const url = isRelativeUrl(API_CONFIG.REGISTER_URL) ? buildApiUrl(API_CONFIG.REGISTER_URL) : API_CONFIG.REGISTER_URL;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        "Cache-Control": "no-store"
+      },
+      body: JSON.stringify(credentials),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      const errorWithStatus = new Error(error.error_description || error.message || 'Registration failed') as Error & { status?: number; errorData?: any };
+      errorWithStatus.status = response.status;
+      errorWithStatus.errorData = error;
+      throw errorWithStatus;
+    }
+
+    return response.json();
+  }
+
+  // Confirm email method
+  async confirmEmail(token: string): Promise<{ message: string }> {
+    const url = isRelativeUrl(API_CONFIG.CONFIRM_EMAIL_URL) ? buildApiUrl(API_CONFIG.CONFIRM_EMAIL_URL) : API_CONFIG.CONFIRM_EMAIL_URL;
+    const response = await fetch(`${url}?token=${encodeURIComponent(token)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        "Cache-Control": "no-store"
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      const errorWithStatus = new Error(error.error_description || error.message || 'Email confirmation failed') as Error & { status?: number; errorData?: any };
+      errorWithStatus.status = response.status;
+      errorWithStatus.errorData = error;
+      throw errorWithStatus;
+    }
+
+    return response.json();
+  }
+
   // Get user profile
   async getProfile(): Promise<{ name: string; idp: string }> {
     const response = await this.request(API_CONFIG.PROFILE_URL);

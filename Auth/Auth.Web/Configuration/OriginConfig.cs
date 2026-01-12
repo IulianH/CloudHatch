@@ -24,5 +24,7 @@ namespace Auth.Web.Configuration
         public string HostWithScheme => $"https://{Host}";
 
         public string FederationSuccessAbsoluteUrl => $"{HostWithScheme}{FederationSuccessPath}";
+
+        public string HostWithSchemeWithBasePath => $"{HostWithScheme}{GlobalConstants.BasePath}";
     }
 }

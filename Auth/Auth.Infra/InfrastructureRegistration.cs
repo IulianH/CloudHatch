@@ -13,6 +13,7 @@ namespace Auth.Infra
         {
             services.AddSingleton<IRefreshTokenRepository, InMemoryRefreshTokenRepository>();
             services.AddSingleton<IUserRepo, InMemUserRepo>();
+            services.AddSingleton<IEmailService, InMemEmailService>();
         }
     }
 }
