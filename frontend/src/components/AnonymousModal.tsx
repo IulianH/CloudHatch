@@ -6,12 +6,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
 import { buildApiUrl, isRelativeUrl } from '@/lib/url-utils';
 
-interface LoginModalProps {
+interface AnonymousModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
+export default function AnonymousModal({ isOpen, onClose }: AnonymousModalProps) {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
   const [email, setEmail] = useState('');
@@ -158,4 +158,3 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     </div>
   );
 }
-
