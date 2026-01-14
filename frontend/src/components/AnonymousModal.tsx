@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
 import { buildApiUrl, isRelativeUrl } from '@/lib/url-utils';
+import LoginModal from './LoginModal';
 
 interface AnonymousModalProps {
   isOpen: boolean;
@@ -15,11 +16,13 @@ export default function AnonymousModal({ isOpen, onClose }: AnonymousModalProps)
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
   const [email, setEmail] = useState('');
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Close modal when user becomes authenticated
   useEffect(() => {
     if (!loading && isAuthenticated && isOpen) {
       onClose();
+      setShowLoginModal(false);
     }
   }, [isAuthenticated, loading, isOpen, onClose]);
 
@@ -44,19 +47,28 @@ export default function AnonymousModal({ isOpen, onClose }: AnonymousModalProps)
   };
 
   const handleContinue = () => {
-    // Close the modal
-    onClose();
-    // Redirect to login page with email as query parameter
-    const params = new URLSearchParams();
-    if (email.trim()) {
-      params.set('email', email.trim());
-    }
-    const queryString = params.toString();
-    router.push(`/login${queryString ? `?${queryString}` : ''}`);
+    // Show the LoginModal instead of navigating
+    setShowLoginModal(true);
+  };
+
+  const handleLoginModalClose = () => {
+    // When LoginModal is closed, show AnonymousModal again
+    setShowLoginModal(false);
   };
 
   if (!isOpen) {
     return null;
+  }
+
+  // If LoginModal should be shown, render it instead
+  if (showLoginModal) {
+    return (
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={handleLoginModalClose}
+        initialEmail={email.trim()}
+      />
+    );
   }
 
   return (
