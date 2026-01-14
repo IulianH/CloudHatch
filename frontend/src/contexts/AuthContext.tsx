@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           // Attempt session recovery from cookie on all pages except /federatedLogin
           // Skip recovery for /federatedLogin since that's where OAuth callback happens
-          if (pathname !== '/federatedLogin' && pathname !== '/login') {
+          if (pathname !== '/federatedLogin') {
             // localStorage is empty - attempt to recover session from cookie
             // This will silently fail with 401 if no refresh token cookie exists
             // which is expected behavior for users who haven't logged in

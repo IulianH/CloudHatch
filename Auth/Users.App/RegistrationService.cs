@@ -1,5 +1,6 @@
-﻿using System.Security.Cryptography;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
+using System.Data;
+using System.Security.Cryptography;
 using Users.App.Interface;
 using Users.App.Settings;
 using Users.Domain;
@@ -41,14 +42,21 @@ namespace Users.App
         {
             // Check if user already exists
             var existingUser = await repo.FindByEmailAsync(email);
-            if (existingUser != null)
+            if (existingUser != null && existingUser.EmailConfirmed)
             {
+                return new RegistrationResult { Success = true };
+            }
+            var hashedPassword = PasswordHasher.Hash(password);
+            if (existingUser != null && existingUser.EmailConfirmed == false)
+            {
+                existingUser.Password = hashedPassword;
+                await repo.UpdateAsync(existingUser);
                 return new RegistrationResult { Success = true };
             }
 
             // Create new user
-            var hashedPassword = PasswordHasher.Hash(password);
             var confirmationToken = GenerateConfirmationToken();
+            
             var expiresAt = DateTimeOffset.UtcNow.AddHours(_registerSettings.EmailConfirmationTokenExpiresInHours);
 
             var newUser = new User
@@ -69,7 +77,7 @@ namespace Users.App
             await repo.InsertAsync(newUser);
 
             var url = $"{_registerSettings.EmailConfirmUrl}?token={Uri.EscapeDataString(confirmationToken)}";
-            await emailService.SendConfirmationEmailAsync(email, url);
+            await emailService.SendConfirmationEmailAsync(newUser, email, url);
 
             return new RegistrationResult { Success = true };
         }
