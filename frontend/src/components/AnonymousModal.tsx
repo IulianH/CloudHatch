@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { API_CONFIG } from '@/config/api';
 import { buildApiUrl, isRelativeUrl } from '@/lib/url-utils';
 import LoginModal from './LoginModal';
+import RegisterModal from './RegisterModal';
 
 interface AnonymousModalProps {
   isOpen: boolean;
@@ -17,12 +18,14 @@ export default function AnonymousModal({ isOpen, onClose }: AnonymousModalProps)
   const { isAuthenticated, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   // Close modal when user becomes authenticated
   useEffect(() => {
     if (!loading && isAuthenticated && isOpen) {
       onClose();
       setShowLoginModal(false);
+      setShowRegisterModal(false);
     }
   }, [isAuthenticated, loading, isOpen, onClose]);
 
@@ -56,8 +59,25 @@ export default function AnonymousModal({ isOpen, onClose }: AnonymousModalProps)
     setShowLoginModal(false);
   };
 
+  const handleRegisterModalClose = () => {
+    // When RegisterModal is closed, show AnonymousModal again
+    setShowRegisterModal(false);
+  };
+
   if (!isOpen) {
     return null;
+  }
+
+  // If RegisterModal should be shown, render it instead
+  if (showRegisterModal) {
+    return (
+      <RegisterModal
+        isOpen={showRegisterModal}
+        onClose={handleRegisterModalClose}
+        initialEmail={email.trim()}
+        onShowLogin={() => setShowLoginModal(true)}
+      />
+    );
   }
 
   // If LoginModal should be shown, render it instead
@@ -67,6 +87,7 @@ export default function AnonymousModal({ isOpen, onClose }: AnonymousModalProps)
         isOpen={showLoginModal}
         onClose={handleLoginModalClose}
         initialEmail={email.trim()}
+        onShowRegister={() => setShowRegisterModal(true)}
       />
     );
   }
@@ -165,6 +186,18 @@ export default function AnonymousModal({ isOpen, onClose }: AnonymousModalProps)
           >
             Continue
           </button>
+          
+          {/* Sign up link */}
+          <div className="text-center text-sm mt-4">
+            <span>Don't have an account? </span>
+            <button
+              type="button"
+              onClick={() => setShowRegisterModal(true)}
+              className="text-blue-600 hover:underline"
+            >
+              Sign up
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -8,9 +8,10 @@ interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialEmail?: string;
+  onShowRegister?: () => void;
 }
 
-export default function LoginModal({ isOpen, onClose, initialEmail = '' }: LoginModalProps) {
+export default function LoginModal({ isOpen, onClose, initialEmail = '', onShowRegister }: LoginModalProps) {
   const router = useRouter();
   const { isAuthenticated, loading, login } = useAuth();
   const [email, setEmail] = useState(initialEmail);
@@ -139,6 +140,21 @@ export default function LoginModal({ isOpen, onClose, initialEmail = '' }: Login
           >
             {isSubmitting ? 'Signing in...' : 'Sign in'}
           </button>
+          {onShowRegister && (
+            <div className="text-center text-sm">
+              <span>Don't have an account? </span>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onShowRegister();
+                }}
+                className="text-blue-600 hover:underline"
+              >
+                Sign up
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>
