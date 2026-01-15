@@ -4,6 +4,6 @@ namespace Users.App.Interface
 {
     public interface IEmailService
     {
-        Task SendConfirmationEmailAsync(User user, string email, string confirmationUrl);
+        Task<bool> SendRegistrationEmailAsync(User user, string email, string confirmationUrl);
     }
 }

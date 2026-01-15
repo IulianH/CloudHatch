@@ -1,4 +1,4 @@
-﻿using Auth.App;
+using Auth.App;
 using Auth.App.Env;
 using Auth.Web.Configuration;
 using Auth.Web.Context;
@@ -209,6 +209,14 @@ namespace Auth.Web.Controllers
             return Ok(new { message = "Email confirmed successfully." });
         }
 
+        [HttpPost("send-registration-email")]
+        public async Task<IActionResult> SendRegistrationEmail([FromBody] RegistrationEmailRequestDto req)
+        {
+            await registration.ResendRegistrationEmail(req.Email);
+            return Ok();
+        }
+
+
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] LogoutRequestDto req)
         {
@@ -336,6 +344,7 @@ namespace Auth.Web.Controllers
 
     public static class ValidationConstants
     {
+        public const string EmailRequired = "Email is required.";
         public const string UsernameRequired = "Username is required.";
         public const string PasswordRequired = "Password is required.";
         public const string RefreshTokenRequired = "Refresh token is required.";
@@ -346,9 +355,11 @@ namespace Auth.Web.Controllers
         //Cannot start or end with.or -
         //Cannot have consecutive..or --
         public const string UsernamePattern = @"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9._-]{1,18}[a-zA-Z0-9])?|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$";
+        public const string EmailPattern = @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
         public const string PasswordPattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$";
 
         // Error messages for regex validation
+        public const string EmailFormatError = "Invalid email format.";
         public const string UsernameFormatError = "3–20 characters, letters, digits, underscores(_), dots(.), hyphens(-), cannot start or end with.or -, cannot have consecutive..or --";
         public const string PasswordFormatError = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
     }
@@ -415,5 +426,11 @@ namespace Auth.Web.Controllers
         [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.PasswordRequired)]
         //[RegularExpression(ValidationConstants.PasswordPattern, ErrorMessage = ValidationConstants.PasswordFormatError)]
         string Password
+    );
+
+    public record RegistrationEmailRequestDto(
+        [Required(ErrorMessage = ValidationConstants.EmailRequired)]
+        [RegularExpression(ValidationConstants.EmailPattern, ErrorMessage = ValidationConstants.EmailFormatError)]
+        string Email
     );
 }

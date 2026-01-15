@@ -70,16 +70,40 @@ namespace Users.App
                 EmailConfirmationTokenExpiresAt = expiresAt,
                 Issuer = "local",
                 CreatedAt = DateTimeOffset.UtcNow,
-                Roles = "customer",
-                ConfirmationEmailSentTimestamps = new List<DateTimeOffset> { DateTimeOffset.UtcNow }
+                Roles = "customer"
             };
 
             await repo.InsertAsync(newUser);
 
             var url = $"{_registerSettings.EmailConfirmUrl}?token={Uri.EscapeDataString(confirmationToken)}";
-            await emailService.SendConfirmationEmailAsync(newUser, email, url);
+            await emailService.SendRegistrationEmailAsync(newUser, email, url);
 
             return new RegistrationResult { Success = true };
+        }
+
+        public async Task<bool> ResendRegistrationEmail(string email)
+        {
+            var existingUser = await repo.FindByEmailAsync(email);
+            if(existingUser == null || existingUser.EmailConfirmed)
+            {
+                return false;
+            }
+            var confirmationToken = GenerateConfirmationToken();
+
+            bool sent = await emailService.SendRegistrationEmailAsync(
+                existingUser,
+                email,
+                $"{_registerSettings.EmailConfirmUrl}?token={Uri.EscapeDataString(confirmationToken)}");
+            if (!sent)
+            {
+                return false;
+            }
+
+            var expiresAt = DateTimeOffset.UtcNow.AddHours(_registerSettings.EmailConfirmationTokenExpiresInHours);
+            existingUser.EmailConfirmationToken = confirmationToken;
+            existingUser.EmailConfirmationTokenExpiresAt = expiresAt;
+            await repo.UpdateAsync(existingUser);
+            return true;
         }
 
         public async Task<EmailConfirmationResult> ConfirmEmailAsync(string token)

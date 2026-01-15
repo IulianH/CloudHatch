@@ -12,8 +12,12 @@ namespace Users.App
     {
         private readonly RegistrationEmailSettings _registrationEmailSettings = registrationEmailSettings.Value;
 
-        public async Task SendConfirmationEmailAsync(User user, string email, string confirmationUrl)
+        public async Task<bool> SendRegistrationEmailAsync(User user, string email, string confirmationUrl)
         {
+            if (!await CanSendRegistrationEmail(user))
+            {
+                return false;
+            }
             var body = $"Please confirm your email by clicking this link: {confirmationUrl}";
             await emailSender.SendEmailAsync(
                 email,
@@ -30,6 +34,29 @@ namespace Users.App
             };
 
             await sentEmailsRepo.InsertAsync(sentEmail);
+            return true;
+        }
+
+        private async Task<bool> CanSendRegistrationEmail(User user)
+        {
+            var sentEmails = await sentEmailsRepo.GetSentEmailsForDateAsync(
+                user.Id,
+                SentEmailType.Registration,
+                DateTimeOffset.UtcNow.Date);
+            if (sentEmails.Count >= _registrationEmailSettings.MaxRegsitrationEmailsPerDay)
+            {
+                return false;
+            }
+            if (sentEmails.Any())
+            {
+                var lastSentEmail = sentEmails.OrderByDescending(e => e.SentAt).First();
+                var cooldownPeriod = TimeSpan.FromSeconds(_registrationEmailSettings.ResendConfirmationEmailCooldownInSeconds);
+                if (DateTimeOffset.UtcNow - lastSentEmail.SentAt < cooldownPeriod)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

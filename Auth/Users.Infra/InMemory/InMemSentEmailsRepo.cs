@@ -7,17 +7,19 @@ namespace Users.Infra.InMemory
     {
         private readonly List<SentEmail> _sentEmails = [];
 
-        public IList<SentEmail> GetSentEmailsForDateAsync(Guid userId, SentEmailType emailType, DateTimeOffset date)
+        public Task<IList<SentEmail>> GetSentEmailsForDateAsync(Guid userId, SentEmailType emailType, DateTimeOffset date)
         {
             var dateOnly = date.Date;
             var emailTypeValue = (int)emailType;
 
-            return _sentEmails
+            var result = _sentEmails
                 .Where(email =>
                     email.UserId == userId &&
                     email.EmailType == emailTypeValue &&
                     email.SentAt.Date == dateOnly)
                 .ToList();
+
+            return Task.FromResult((IList<SentEmail>)result);
         }
 
         public Task InsertAsync(SentEmail sentEmail)

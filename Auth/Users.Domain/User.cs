@@ -36,7 +36,5 @@ namespace Users.Domain
         public string? EmailConfirmationToken { get; set; }
 
         public DateTimeOffset? EmailConfirmationTokenExpiresAt { get; set; }
-
-        public List<DateTimeOffset> ConfirmationEmailSentTimestamps { get; set; } = new();
     }
 }
