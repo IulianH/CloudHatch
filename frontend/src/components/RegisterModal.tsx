@@ -90,7 +90,6 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={onClose}
       />
       
       {/* Modal */}

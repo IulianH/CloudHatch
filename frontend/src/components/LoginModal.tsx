@@ -76,7 +76,6 @@ export default function LoginModal({ isOpen, onClose, initialEmail = '', onShowR
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={onClose}
       />
       
       {/* Modal */}
