@@ -17,6 +17,7 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
   const { isAuthenticated, loading } = useAuth();
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -49,6 +50,11 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
     // Client-side email validation
     if (!validateEmail(email)) {
       setError('Please enter a valid email address');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
@@ -150,6 +156,20 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
               <p className="text-xs text-gray-600 mt-1">
                 Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.
               </p>
+            </div>
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
+                Repeat password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="w-full border border-black px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+                placeholder="Repeat your password"
+              />
             </div>
             {error && (
               <div className="text-red-600 text-sm">

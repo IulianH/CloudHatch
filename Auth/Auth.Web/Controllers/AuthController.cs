@@ -354,13 +354,11 @@ namespace Auth.Web.Controllers
         //Letters, digits, underscores(_), dots(.), hyphens(-)
         //Cannot start or end with.or -
         //Cannot have consecutive..or --
-        public const string UsernamePattern = @"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9._-]{1,18}[a-zA-Z0-9])?|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$";
         public const string EmailPattern = @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
-        public const string PasswordPattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$";
+        public const string PasswordPattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$";
 
         // Error messages for regex validation
         public const string EmailFormatError = "Invalid email format.";
-        public const string UsernameFormatError = "3–20 characters, letters, digits, underscores(_), dots(.), hyphens(-), cannot start or end with.or -, cannot have consecutive..or --";
         public const string PasswordFormatError = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
     }
 
@@ -368,7 +366,7 @@ namespace Auth.Web.Controllers
 
     public record LoginRequestDto(
         [Required(ErrorMessage = ValidationConstants.UsernameRequired)]
-        [RegularExpression(ValidationConstants.UsernamePattern, ErrorMessage = ValidationConstants.UsernameFormatError)]
+        [RegularExpression(ValidationConstants.EmailPattern, ErrorMessage = ValidationConstants.EmailFormatError)]
         string Username,
         [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.PasswordRequired)]
         string Password
