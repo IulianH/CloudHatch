@@ -186,18 +186,6 @@ export default function AnonymousModal({ isOpen, onClose }: AnonymousModalProps)
           >
             Continue
           </button>
-          
-          {/* Sign up link */}
-          <div className="text-center text-sm mt-4">
-            <span>Don't have an account? </span>
-            <button
-              type="button"
-              onClick={() => setShowRegisterModal(true)}
-              className="text-blue-600 hover:underline"
-            >
-              Sign up
-            </button>
-          </div>
         </div>
       </div>
     </div>
