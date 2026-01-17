@@ -4,6 +4,7 @@ import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import apiClient from '@/lib/api';
+import RegisterCompletedModal from '@/components/RegisterCompletedModal';
 
 interface RegisterModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [completedEmail, setCompletedEmail] = useState<string | null>(null);
 
   // Update email when initialEmail prop changes
   useEffect(() => {
@@ -66,11 +68,7 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
         password: password,
       });
       setSuccess(true);
-      // Close modal and redirect to login after 2 seconds
-      setTimeout(() => {
-        onClose();
-        router.push('/login');
-      }, 2000);
+      setCompletedEmail(email.trim());
     } catch (err) {
       const errorWithData = err as Error & { status?: number; errorData?: any };
       const status = errorWithData?.status;
@@ -118,13 +116,7 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
           </h2>
         </div>
         
-        {success ? (
-          <div className="space-y-4">
-            <div className="text-green-600 text-sm text-center">
-              Registration successful! Please check your email to confirm your account. Redirecting to login...
-            </div>
-          </div>
-        ) : (
+        {!success && (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-2">
@@ -201,6 +193,11 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
           </form>
         )}
       </div>
+      <RegisterCompletedModal
+        isOpen={success}
+        email={completedEmail ?? email}
+        onClose={onClose}
+      />
     </div>
   );
 }

@@ -168,6 +168,32 @@ class ApiClient {
     return response.json();
   }
 
+  // Send registration email method
+  async sendRegistrationEmail(payload: { email: string }): Promise<{ message?: string }> {
+    const url = isRelativeUrl(API_CONFIG.SEND_REGISTRATION_EMAIL_URL)
+      ? buildApiUrl(API_CONFIG.SEND_REGISTRATION_EMAIL_URL)
+      : API_CONFIG.SEND_REGISTRATION_EMAIL_URL;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        "Cache-Control": "no-store"
+      },
+      body: JSON.stringify(payload),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      const errorWithStatus = new Error(error.error_description || error.message || 'Failed to send registration email') as Error & { status?: number; errorData?: any };
+      errorWithStatus.status = response.status;
+      errorWithStatus.errorData = error;
+      throw errorWithStatus;
+    }
+
+    return response.json().catch(() => ({}));
+  }
+
   // Get user profile
   async getProfile(): Promise<{ name: string; idp: string }> {
     const response = await this.request(API_CONFIG.PROFILE_URL);
