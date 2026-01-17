@@ -71,12 +71,6 @@ export default function ConfirmEmailPage() {
               ✓ Email Confirmed
             </div>
             <p className="text-gray-700">{message}</p>
-            <Link
-              href="/login"
-              className="inline-block border border-black px-6 py-2 hover:bg-black hover:text-white transition-colors"
-            >
-              Go to login page
-            </Link>
           </div>
         )}
         
@@ -86,12 +80,6 @@ export default function ConfirmEmailPage() {
               ✗ Confirmation Failed
             </div>
             <p className="text-gray-700">{message}</p>
-            <Link
-              href="/login"
-              className="inline-block border border-black px-6 py-2 hover:bg-black hover:text-white transition-colors"
-            >
-              Go to login page
-            </Link>
           </div>
         )}
       </div>

@@ -50,15 +50,17 @@ namespace Users.App
             if (existingUser != null && existingUser.EmailConfirmed == false)
             {
                 existingUser.Password = hashedPassword;
+                var token = GenerateConfirmationToken();
+                existingUser.EmailConfirmationToken = token;
                 await repo.UpdateAsync(existingUser);
+                var confUrl = $"{_registerSettings.EmailConfirmUrl}?token={Uri.EscapeDataString(token)}";
+                await emailService.SendRegistrationEmailAsync(existingUser, email, confUrl);
+
                 return new RegistrationResult { Success = true };
             }
-
-            // Create new user
-            var confirmationToken = GenerateConfirmationToken();
             
             var expiresAt = DateTimeOffset.UtcNow.AddHours(_registerSettings.EmailConfirmationTokenExpiresInHours);
-
+            var confirmationToken = GenerateConfirmationToken();
             var newUser = new User
             {
                 Id = Guid.NewGuid(),
