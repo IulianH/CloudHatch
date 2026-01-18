@@ -52,7 +52,11 @@ export default function ResendRegistrationEmailModal({
     }
     setRemainingSeconds(getRemainingSeconds(email.trim()));
     const intervalId = window.setInterval(() => {
-      setRemainingSeconds(getRemainingSeconds(email.trim()));
+      const nextRemaining = getRemainingSeconds(email.trim());
+      setRemainingSeconds(nextRemaining);
+      if (nextRemaining <= 0) {
+        setError(null);
+      }
     }, 1000);
 
     return () => {

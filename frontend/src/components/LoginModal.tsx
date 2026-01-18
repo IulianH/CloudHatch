@@ -3,6 +3,7 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import ResendRegistrationEmailModal from '@/components/ResendRegistrationEmailModal';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export default function LoginModal({ isOpen, onClose, initialEmail = '', onShowR
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showResendModal, setShowResendModal] = useState(false);
 
   // Update email when initialEmail prop changes
   useEffect(() => {
@@ -154,8 +156,23 @@ export default function LoginModal({ isOpen, onClose, initialEmail = '', onShowR
               </button>
             </div>
           )}
+          <div className="text-center text-sm">
+            <span>Already registered? </span>
+            <button
+              type="button"
+              onClick={() => setShowResendModal(true)}
+              className="text-blue-600 hover:underline"
+            >
+              Resend link
+            </button>
+          </div>
         </form>
       </div>
+      <ResendRegistrationEmailModal
+        isOpen={showResendModal}
+        initialEmail={email}
+        onClose={() => setShowResendModal(false)}
+      />
     </div>
   );
 }

@@ -113,7 +113,7 @@ function getCooldownKey(email: string) {
               onClick={handleResend}
               className="w-full border border-black px-4 py-2 hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isResending ? 'Resending...' : 'Resend'}
+              {isResending ? 'Resending...' : 'Resend link'}
             </button>
             <div className="text-sm text-gray-600">
               {isResendDisabled ? `Resend available in ${remainingSeconds}s` : 'You can resend now.'}
