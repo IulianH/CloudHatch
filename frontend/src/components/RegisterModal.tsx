@@ -23,6 +23,7 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [completedEmail, setCompletedEmail] = useState<string | null>(null);
+  const [showCompletedModal, setShowCompletedModal] = useState(false);
 
   // Update email when initialEmail prop changes
   useEffect(() => {
@@ -69,6 +70,7 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
       });
       setSuccess(true);
       setCompletedEmail(email.trim());
+      setShowCompletedModal(true);
     } catch (err) {
       const errorWithData = err as Error & { status?: number; errorData?: any };
       const status = errorWithData?.status;
@@ -88,6 +90,14 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
   if (!isOpen) {
     return null;
   }
+
+  const handleCompletedClose = () => {
+    if (success) {
+      onClose();
+      return;
+    }
+    setShowCompletedModal(false);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -175,28 +185,23 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
             >
               {isSubmitting ? 'Creating account...' : 'Create account'}
             </button>
-            {onShowLogin && (
-              <div className="text-center text-sm">
-                <span>Already have an account? </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onShowLogin();
-                  }}
-                  className="text-blue-600 hover:underline"
-                >
-                  Sign in
-                </button>
-              </div>
-            )}
+            <div className="text-center text-sm">
+              <span>Already registered? </span>
+              <button
+                type="button"
+                onClick={() => setShowCompletedModal(true)}
+                className="text-blue-600 hover:underline"
+              >
+                Resend link
+              </button>
+            </div>
           </form>
         )}
       </div>
       <RegisterCompletedModal
-        isOpen={success}
+        isOpen={success || showCompletedModal}
         email={completedEmail ?? email}
-        onClose={onClose}
+        onClose={handleCompletedClose}
       />
     </div>
   );
