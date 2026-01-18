@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import apiClient from '@/lib/api';
 import RegisterCompletedModal from '@/components/RegisterCompletedModal';
+import ResendRegistrationEmailModal from '@/components/ResendRegistrationEmailModal';
 
 interface RegisterModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
   const [success, setSuccess] = useState(false);
   const [completedEmail, setCompletedEmail] = useState<string | null>(null);
   const [showCompletedModal, setShowCompletedModal] = useState(false);
+  const [showResendModal, setShowResendModal] = useState(false);
 
   // Update email when initialEmail prop changes
   useEffect(() => {
@@ -189,7 +191,7 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
               <span>Already registered? </span>
               <button
                 type="button"
-                onClick={() => setShowCompletedModal(true)}
+                onClick={() => setShowResendModal(true)}
                 className="text-blue-600 hover:underline"
               >
                 Resend link
@@ -202,6 +204,11 @@ export default function RegisterModal({ isOpen, onClose, initialEmail = '', onSh
         isOpen={success || showCompletedModal}
         email={completedEmail ?? email}
         onClose={handleCompletedClose}
+      />
+      <ResendRegistrationEmailModal
+        isOpen={showResendModal}
+        initialEmail={email}
+        onClose={() => setShowResendModal(false)}
       />
     </div>
   );

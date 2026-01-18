@@ -15,36 +15,12 @@ function getCooldownKey(email: string) {
   return `register-resend-next-${email.toLowerCase()}`;
 }
 
-function getRemainingSeconds(email: string) {
-  if (!email) {
-    return 0;
-  }
-  const raw = window.localStorage.getItem(getCooldownKey(email));
-  const nextAllowedMs = raw ? Number(raw) : 0;
-  const diffMs = nextAllowedMs - Date.now();
-  return diffMs > 0 ? Math.ceil(diffMs / 1000) : 0;
-}
-
-function ensureNextAllowedMs(email: string) {
-  if (!email) {
-    return 0;
-  }
-  const raw = window.localStorage.getItem(getCooldownKey(email));
-  const parsed = raw ? Number(raw) : 0;
-  if (Number.isNaN(parsed) || parsed <= 0) {
-    const nextAllowed = Date.now() + RESEND_COOLDOWN_SECONDS * 1000;
-    window.localStorage.setItem(getCooldownKey(email), String(nextAllowed));
-    return nextAllowed;
-  }
-  return parsed;
-}
-
  export default function RegisterCompletedModal({
    isOpen,
    email,
    onClose,
  }: RegisterCompletedModalProps) {
-  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [remainingSeconds, setRemainingSeconds] = useState(20);
   const [timerKey, setTimerKey] = useState(0);
   const [isResending, setIsResending] = useState(false);
   const [resendError, setResendError] = useState<string | null>(null);
@@ -54,14 +30,17 @@ function ensureNextAllowedMs(email: string) {
        return;
      }
  
+    setRemainingSeconds(20);
     setResendError(null);
-    const nextAllowed = ensureNextAllowedMs(email);
-    const initialRemaining =
-      nextAllowed > 0 ? Math.max(0, Math.ceil((nextAllowed - Date.now()) / 1000)) : 0;
-    setRemainingSeconds(initialRemaining);
 
     const intervalId = window.setInterval(() => {
-      setRemainingSeconds(getRemainingSeconds(email));
+      setRemainingSeconds((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(intervalId);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
  
      return () => {
