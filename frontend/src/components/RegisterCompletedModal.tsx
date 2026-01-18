@@ -1,5 +1,5 @@
- 'use client';
- 
+'use client';
+
 import { useEffect, useState } from 'react';
 import apiClient from '@/lib/api';
  
@@ -9,12 +9,42 @@ import apiClient from '@/lib/api';
    onClose: () => void;
  }
  
+const RESEND_COOLDOWN_SECONDS = 20;
+
+function getCooldownKey(email: string) {
+  return `register-resend-next-${email.toLowerCase()}`;
+}
+
+function getRemainingSeconds(email: string) {
+  if (!email) {
+    return 0;
+  }
+  const raw = window.localStorage.getItem(getCooldownKey(email));
+  const nextAllowedMs = raw ? Number(raw) : 0;
+  const diffMs = nextAllowedMs - Date.now();
+  return diffMs > 0 ? Math.ceil(diffMs / 1000) : 0;
+}
+
+function ensureNextAllowedMs(email: string) {
+  if (!email) {
+    return 0;
+  }
+  const raw = window.localStorage.getItem(getCooldownKey(email));
+  const parsed = raw ? Number(raw) : 0;
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    const nextAllowed = Date.now() + RESEND_COOLDOWN_SECONDS * 1000;
+    window.localStorage.setItem(getCooldownKey(email), String(nextAllowed));
+    return nextAllowed;
+  }
+  return parsed;
+}
+
  export default function RegisterCompletedModal({
    isOpen,
    email,
    onClose,
  }: RegisterCompletedModalProps) {
-   const [remainingSeconds, setRemainingSeconds] = useState(20);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [timerKey, setTimerKey] = useState(0);
   const [isResending, setIsResending] = useState(false);
   const [resendError, setResendError] = useState<string | null>(null);
@@ -24,18 +54,15 @@ import apiClient from '@/lib/api';
        return;
      }
  
-     setRemainingSeconds(20);
     setResendError(null);
- 
-     const intervalId = window.setInterval(() => {
-       setRemainingSeconds((prev) => {
-         if (prev <= 1) {
-           window.clearInterval(intervalId);
-           return 0;
-         }
-         return prev - 1;
-       });
-     }, 1000);
+    const nextAllowed = ensureNextAllowedMs(email);
+    const initialRemaining =
+      nextAllowed > 0 ? Math.max(0, Math.ceil((nextAllowed - Date.now()) / 1000)) : 0;
+    setRemainingSeconds(initialRemaining);
+
+    const intervalId = window.setInterval(() => {
+      setRemainingSeconds(getRemainingSeconds(email));
+    }, 1000);
  
      return () => {
        window.clearInterval(intervalId);
@@ -58,6 +85,8 @@ import apiClient from '@/lib/api';
 
     try {
       await apiClient.sendRegistrationEmail({ email });
+      const nextAllowed = Date.now() + RESEND_COOLDOWN_SECONDS * 1000;
+      window.localStorage.setItem(getCooldownKey(email), String(nextAllowed));
       setTimerKey((prev) => prev + 1);
     } catch (err) {
       const errorWithData = err as Error & { status?: number; errorData?: any };
@@ -99,17 +128,17 @@ import apiClient from '@/lib/api';
              Follow the link that was sent to {email} to complete the registration.
            </p>
            <div className="space-y-2">
-             <button
-               type="button"
-               disabled={isResendDisabled}
+            <button
+              type="button"
+              disabled={isResendDisabled}
               onClick={handleResend}
-               className="w-full border border-black px-4 py-2 hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-             >
+              className="w-full border border-black px-4 py-2 hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {isResending ? 'Resending...' : 'Resend'}
-             </button>
-             <div className="text-sm text-gray-600">
-               {isResendDisabled ? `Resend available in ${remainingSeconds}s` : 'You can resend now.'}
-             </div>
+            </button>
+            <div className="text-sm text-gray-600">
+              {isResendDisabled ? `Resend available in ${remainingSeconds}s` : 'You can resend now.'}
+            </div>
             {resendError && (
               <div className="text-sm text-red-600">
                 {resendError}
