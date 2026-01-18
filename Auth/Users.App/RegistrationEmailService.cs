@@ -5,7 +5,7 @@ using Users.Domain;
 
 namespace Users.App
 {
-    public class EmailService(
+    public class RegistrationEmailService(
         IEmailSender emailSender,
         IOptions<RegistrationEmailSettings> registrationEmailSettings,
         ISentEmailsRepo sentEmailsRepo) : IEmailService
