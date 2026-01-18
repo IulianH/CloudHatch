@@ -34,6 +34,7 @@ export default function ResendRegistrationEmailModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
 
   useEffect(() => {
     if (!isOpen) {
@@ -42,7 +43,22 @@ export default function ResendRegistrationEmailModal({
     setEmail(initialEmail);
     setError(null);
     setSuccess(false);
+    setRemainingSeconds(getRemainingSeconds(initialEmail));
   }, [isOpen, initialEmail]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    setRemainingSeconds(getRemainingSeconds(email.trim()));
+    const intervalId = window.setInterval(() => {
+      setRemainingSeconds(getRemainingSeconds(email.trim()));
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isOpen, email]);
 
   if (!isOpen) {
     return null;
@@ -63,9 +79,10 @@ export default function ResendRegistrationEmailModal({
       return;
     }
 
-    const remainingSeconds = getRemainingSeconds(trimmedEmail);
-    if (remainingSeconds > 0) {
-      setError(`Please wait ${remainingSeconds}s before resending the email.`);
+    const remaining = getRemainingSeconds(trimmedEmail);
+    if (remaining > 0) {
+      setRemainingSeconds(remaining);
+      setError(`Please wait ${remaining}s before resending the email.`);
       return;
     }
 
@@ -74,6 +91,7 @@ export default function ResendRegistrationEmailModal({
       await apiClient.sendRegistrationEmail({ email: trimmedEmail });
       const nextAllowed = Date.now() + RESEND_COOLDOWN_SECONDS * 1000;
       window.localStorage.setItem(getCooldownKey(trimmedEmail), String(nextAllowed));
+      setRemainingSeconds(RESEND_COOLDOWN_SECONDS);
       setSuccess(true);
     } catch (err) {
       const errorWithData = err as Error & { status?: number; errorData?: any };
@@ -146,9 +164,14 @@ export default function ResendRegistrationEmailModal({
                   {error}
                 </div>
               )}
+              {remainingSeconds > 0 && (
+                <div className="text-sm text-gray-600 text-left">
+                  You can resend in {remainingSeconds}s.
+                </div>
+              )}
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || remainingSeconds > 0}
                 className="w-full border border-black px-4 py-2 hover:bg-black hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Sending...' : 'Send email'}
