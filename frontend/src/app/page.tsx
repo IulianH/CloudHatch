@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from "next/link";
-import LoginModal from '@/components/LoginModal';
+import AnonymousModal from '@/components/AnonymousModal';
 
 export default function Home() {
   const { isAuthenticated, loading } = useAuth();
@@ -85,7 +85,7 @@ export default function Home() {
         </div>
       </div>
       
-      <LoginModal 
+      <AnonymousModal 
         isOpen={showLoginModal} 
         onClose={() => setShowLoginModal(false)} 
       />

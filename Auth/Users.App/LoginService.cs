@@ -51,6 +51,10 @@ namespace Users.App
                 await repo.UpdateAsync(user);
                 return null;
             }
+            if(user.EmailConfirmed == false)
+            {
+                return user;
+            }
 
             user.LockedUntil = null;
             user.LastLogin = DateTime.UtcNow;

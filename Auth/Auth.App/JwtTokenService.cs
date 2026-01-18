@@ -16,7 +16,7 @@ using Users.Domain;
 namespace Auth.App
 {
     public class JwtTokenService(IOptions<JwtConfig> jwtConfig, RefreshTokenService rtService, 
-        LoginService loginService, IUserRepo users, ILogger<JwtTokenService> logger)
+       IUserRepo users, ILogger<JwtTokenService> logger)
     {
         private readonly JwtConfig _jwtConfig = jwtConfig.Value;
 
@@ -47,33 +47,10 @@ namespace Auth.App
            await rtService.RevokeAsync(refreshToken, revokeAll);
         }
 
-        public async Task<TokenPair?> IssueTokenAsync(string username, string password)
-        {
-            var user = await loginService.LoginAsync(new LoginRequest(username, password, true, _jwtConfig.Issuer));
-            if (user == null)
-            {
-                return null;
-            }
-
-            return await IssueTokens(user);
-        }
-
-        public async Task<TokenPair?> IssueTokensForFederatedUser(string externalId)
-        {
-            var user = await loginService.LoginFederatedAsync(externalId, true);
-            if(user == null)
-            {
-                return null;
-            }
-
-            return await IssueTokens(user);
-        }
-
-        public async Task<TokenPair> IssueTokensForUserAsync(User user)
+        public async Task<TokenPair> IssueTokenAsync(User user)
         {
             return await IssueTokens(user);
         }
-       
 
         private async Task<TokenPair> IssueTokens(User user)
         {

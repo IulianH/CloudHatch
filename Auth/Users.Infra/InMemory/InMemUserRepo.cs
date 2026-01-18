@@ -37,7 +37,8 @@ namespace Users.Infra.InMemory
                 Roles = "customer,admin",
                 Password = PasswordHasher.Hash("admin1!"),
                 Id = Guid.NewGuid(),
-                Issuer = "local"
+                Issuer = "local",
+                EmailConfirmed = false
             };
             _users.Add(user);
 
@@ -50,7 +51,8 @@ namespace Users.Infra.InMemory
                 Roles = "customer",
                 Password = PasswordHasher.Hash("customer1!"),
                 Id = Guid.NewGuid(),
-                Issuer = "local"
+                Issuer = "local",
+                EmailConfirmed = false
             };
 
             _users.Add(user);
@@ -64,6 +66,18 @@ namespace Users.Infra.InMemory
         public Task<User?> FindByExternalIdAsync(string externalId)
         {
             var user = _users.FirstOrDefault(x => x.ExternalId == externalId);
+            return Task.FromResult(user);
+        }
+
+        public Task<User?> FindByEmailAsync(string email)
+        {
+            var user = _users.FirstOrDefault(x => string.Equals(x.Email, email, StringComparison.InvariantCultureIgnoreCase));
+            return Task.FromResult(user);
+        }
+
+        public Task<User?> FindByConfirmationTokenAsync(string token)
+        {
+            var user = _users.FirstOrDefault(x => x.EmailConfirmationToken == token);
             return Task.FromResult(user);
         }
     }

@@ -15,5 +15,9 @@ namespace Users.App.Interface
         void Migrate();
 
         Task<User?> FindByExternalIdAsync(string nameIdentifier);
+
+        Task<User?> FindByEmailAsync(string email);
+
+        Task<User?> FindByConfirmationTokenAsync(string token);
     }
 }

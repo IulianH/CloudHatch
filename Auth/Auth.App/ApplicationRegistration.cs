@@ -1,4 +1,4 @@
-﻿using Auth.App.Env;
+using Auth.App.Env;
 using Auth.App.Interface.RefreshToken;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,7 +24,13 @@ public static class ApplicationRegistration
             .ValidateOnStart();
 
         services.AddOptions<LoginSettings>()
-       .Bind(configuration.GetSection("Login"));
+            .Bind(configuration.GetSection("Login"));
+
+        services.AddOptions<RegistrationEmailSettings>()
+            .Bind(configuration.GetSection("RegistrationEmail"));
+
+        services.AddOptions<RegisterSettings>()
+            .Bind(configuration.GetSection("Register"));
 
         services.AddTransient<JwtTokenService>();
         services.AddTransient<RefreshTokenService>();

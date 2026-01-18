@@ -1,4 +1,4 @@
-﻿using Auth.App;
+using Auth.App;
 using Auth.App.Env;
 using Auth.Web.Configuration;
 using Auth.Web.Context;
@@ -12,14 +12,16 @@ using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using Users.App;
 
 
 namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route(GlobalConstants.BasePath)]
-    public class AuthController(JwtTokenService auth, IDataProtectionProvider dp, OriginValidator originValidator, 
-        IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, ILogger<AuthController> logger) : ControllerBase
+    public class AuthController(JwtTokenService auth, LoginService login, RegistrationService registration, IDataProtectionProvider dp, OriginValidator originValidator, 
+        IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, 
+        ILogger<AuthController> logger) : ControllerBase
     {
         private readonly AuthCookieOptions _cookieOptions = cookieOptions.Value;
         private readonly OriginConfig _originConfig = originConfig.Value;
@@ -28,8 +30,18 @@ namespace Auth.Web.Controllers
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto req)
         {
-            var token = await auth.IssueTokenAsync(req.Username, req.Password);
-            if (token == null) return Unauthorized();
+            var user = await login.LoginAsync(new LoginRequest(req.Username, req.Password, true));
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            if (user.EmailConfirmed == false)
+            {
+                return Unauthorized(new { error = "EmailNotConfirmed", error_description = "Email address is not confirmed." });
+            }
+
+            var token = await auth.IssueTokenAsync(user);
 
             return Ok(new LoginResponseDto(
                 token.AccessToken,
@@ -48,8 +60,18 @@ namespace Auth.Web.Controllers
                 return Forbid();  // simple CSRF guard 
             }
 
-            var token = await auth.IssueTokenAsync(req.Username, req.Password);
-            if (token == null) return Unauthorized();
+            var user = await login.LoginAsync(new LoginRequest(req.Username, req.Password, true));
+            if(user == null)
+            {
+                return Unauthorized();
+            }
+
+            if(user.EmailConfirmed == false)
+            {
+                return Unauthorized(new { error = "EmailNotConfirmed", error_description = "Email address is not confirmed." });
+            }
+
+            var token = await auth.IssueTokenAsync(user);
 
             var protector = CreateProtector();
             IssueCookie(token.RefreshToken, protector);
@@ -85,12 +107,15 @@ namespace Auth.Web.Controllers
             }
 
             await SignOutFederated();
-            var token = await auth.IssueTokensForFederatedUser(externalId);
-           
-            if (token == null)
+
+            var user = await login.LoginFederatedAsync(externalId, true);
+            if(user == null)
             {
                 return Unauthorized();
             }
+
+            var token = await auth.IssueTokenAsync(user);
+
             var protector = CreateProtector();
             IssueCookie(token.RefreshToken, protector);
             return Ok(new WebLoginResponseDto(
@@ -143,6 +168,54 @@ namespace Auth.Web.Controllers
                pair.ExpiresIn
            ));
         }
+
+        [HttpPost("register")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<ActionResult> Register([FromBody] RegisterRequestDto req)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await registration.RegisterAsync(req.Email, req.Password);
+            if (!result.Success)
+            {
+                if (result.Error == "MaxConfirmationEmailsPerDay")
+                {
+                    return BadRequest(new { error = result.Error, error_description = result.ErrorDescription });
+                }
+                return BadRequest(new { error = result.Error, error_description = result.ErrorDescription });
+            }
+
+            return Ok(new { message = "Registration successful. Please check your email to confirm your account." });
+        }
+
+        [HttpGet("confirm-email")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<ActionResult> ConfirmEmail([FromQuery] string token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return BadRequest(new { error = "TokenRequired", error_description = "Token is required." });
+            }
+
+            var result = await registration.ConfirmEmailAsync(token);
+            if (!result.Success)
+            {
+                return BadRequest(new { error = result.Error, error_description = result.ErrorDescription });
+            }
+
+            return Ok(new { message = "Email confirmed successfully." });
+        }
+
+        [HttpPost("send-registration-email")]
+        public async Task<IActionResult> SendRegistrationEmail([FromBody] RegistrationEmailRequestDto req)
+        {
+            await registration.ResendRegistrationEmail(req.Email);
+            return Ok();
+        }
+
 
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] LogoutRequestDto req)
@@ -271,6 +344,7 @@ namespace Auth.Web.Controllers
 
     public static class ValidationConstants
     {
+        public const string EmailRequired = "Email is required.";
         public const string UsernameRequired = "Username is required.";
         public const string PasswordRequired = "Password is required.";
         public const string RefreshTokenRequired = "Refresh token is required.";
@@ -280,11 +354,11 @@ namespace Auth.Web.Controllers
         //Letters, digits, underscores(_), dots(.), hyphens(-)
         //Cannot start or end with.or -
         //Cannot have consecutive..or --
-        public const string UsernamePattern = @"^(?:[a-zA-Z0-9](?:[a-zA-Z0-9._-]{1,18}[a-zA-Z0-9])?|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$";
-        public const string PasswordPattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$";
+        public const string EmailPattern = @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
+        public const string PasswordPattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$";
 
         // Error messages for regex validation
-        public const string UsernameFormatError = "3–20 characters, letters, digits, underscores(_), dots(.), hyphens(-), cannot start or end with.or -, cannot have consecutive..or --";
+        public const string EmailFormatError = "Invalid email format.";
         public const string PasswordFormatError = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
     }
 
@@ -292,7 +366,7 @@ namespace Auth.Web.Controllers
 
     public record LoginRequestDto(
         [Required(ErrorMessage = ValidationConstants.UsernameRequired)]
-        [RegularExpression(ValidationConstants.UsernamePattern, ErrorMessage = ValidationConstants.UsernameFormatError)]
+        [RegularExpression(ValidationConstants.EmailPattern, ErrorMessage = ValidationConstants.EmailFormatError)]
         string Username,
         [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.PasswordRequired)]
         string Password
@@ -341,5 +415,20 @@ namespace Auth.Web.Controllers
         string? Idp,
         string? Name,
         string? Email
+    );
+
+    public record RegisterRequestDto(
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Invalid email format.")]
+        string Email,
+        [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.PasswordRequired)]
+        //[RegularExpression(ValidationConstants.PasswordPattern, ErrorMessage = ValidationConstants.PasswordFormatError)]
+        string Password
+    );
+
+    public record RegistrationEmailRequestDto(
+        [Required(ErrorMessage = ValidationConstants.EmailRequired)]
+        [RegularExpression(ValidationConstants.EmailPattern, ErrorMessage = ValidationConstants.EmailFormatError)]
+        string Email
     );
 }
