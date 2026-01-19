@@ -36,5 +36,9 @@ namespace Users.Domain
         public string? EmailConfirmationToken { get; set; }
 
         public DateTimeOffset? EmailConfirmationTokenExpiresAt { get; set; }
+
+        public string? ResetPasswordToken { get; set; }
+
+        public DateTimeOffset? ResetPasswordTokenExpiresAt { get; set; }
     }
 }

@@ -19,7 +19,8 @@ namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route(GlobalConstants.BasePath)]
-    public class AuthController(JwtTokenService auth, LoginService login, RegistrationService registration, IDataProtectionProvider dp, OriginValidator originValidator, 
+    public class AuthController(JwtTokenService auth, LoginService login, RegistrationService registration, 
+        IDataProtectionProvider dp, OriginValidator originValidator, 
         IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, 
         ILogger<AuthController> logger) : ControllerBase
     {

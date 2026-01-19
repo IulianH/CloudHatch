@@ -8,7 +8,7 @@ namespace Users.App
     public class RegistrationEmailService(
         IEmailSender emailSender,
         IOptions<RegistrationEmailSettings> registrationEmailSettings,
-        ISentEmailsRepo sentEmailsRepo) : IEmailService
+        ISentEmailsRepo sentEmailsRepo) : IRegistrationEmailService
     {
         private readonly RegistrationEmailSettings _registrationEmailSettings = registrationEmailSettings.Value;
 

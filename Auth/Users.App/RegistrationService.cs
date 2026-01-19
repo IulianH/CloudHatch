@@ -7,7 +7,7 @@ using Users.Domain;
 
 namespace Users.App
 {
-    public class RegistrationService(IUserRepo repo, IEmailService emailService, IOptions<RegisterSettings> registerSettings)
+    public class RegistrationService(IUserRepo repo, IRegistrationEmailService emailService, IOptions<RegisterSettings> registerSettings)
     {
         private readonly RegisterSettings _registerSettings = registerSettings.Value;
 
