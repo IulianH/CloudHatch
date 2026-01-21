@@ -19,7 +19,7 @@ namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route(GlobalConstants.BasePath)]
-    public class AuthController(JwtTokenService auth, LoginService login, RegistrationService registration, 
+    public class AuthController(JwtTokenService auth, LoginService login, RegistrationService registration, ResetPasswordService resetPassword,
         IDataProtectionProvider dp, OriginValidator originValidator, 
         IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, 
         ILogger<AuthController> logger) : ControllerBase
@@ -214,6 +214,13 @@ namespace Auth.Web.Controllers
         public async Task<IActionResult> SendRegistrationEmail([FromBody] RegistrationEmailRequestDto req)
         {
             await registration.ResendRegistrationEmail(req.Email);
+            return Ok();
+        }
+
+        [HttpPost("send-reset-password-email")]
+        public async Task<IActionResult> SendResetPasswordEmail([FromBody] ResetPasswordEmailRequestDto req)
+        {
+            await resetPassword.SendResetPasswordEmail(req.Email);
             return Ok();
         }
 
@@ -428,6 +435,12 @@ namespace Auth.Web.Controllers
     );
 
     public record RegistrationEmailRequestDto(
+        [Required(ErrorMessage = ValidationConstants.EmailRequired)]
+        [RegularExpression(ValidationConstants.EmailPattern, ErrorMessage = ValidationConstants.EmailFormatError)]
+        string Email
+    );
+
+    public record ResetPasswordEmailRequestDto(
         [Required(ErrorMessage = ValidationConstants.EmailRequired)]
         [RegularExpression(ValidationConstants.EmailPattern, ErrorMessage = ValidationConstants.EmailFormatError)]
         string Email

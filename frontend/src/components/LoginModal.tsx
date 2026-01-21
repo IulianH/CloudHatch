@@ -4,6 +4,7 @@ import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import ResendRegistrationEmailModal from '@/components/ResendRegistrationEmailModal';
+import SendResetPasswordEmailModal from '@/components/SendResetPasswordEmailModal';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export default function LoginModal({ isOpen, onClose, initialEmail = '', onShowR
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showResendModal, setShowResendModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
 
   // Update email when initialEmail prop changes
   useEffect(() => {
@@ -141,6 +143,15 @@ export default function LoginModal({ isOpen, onClose, initialEmail = '', onShowR
           >
             {isSubmitting ? 'Signing in...' : 'Sign in'}
           </button>
+          <div className="text-center text-sm">
+            <button
+              type="button"
+              onClick={() => setShowResetPasswordModal(true)}
+              className="text-blue-600 hover:underline"
+            >
+              Forgot password?
+            </button>
+          </div>
           {onShowRegister && (
             <div className="text-center text-sm">
               <span>Don't have an account? </span>
@@ -172,6 +183,11 @@ export default function LoginModal({ isOpen, onClose, initialEmail = '', onShowR
         isOpen={showResendModal}
         initialEmail={email}
         onClose={() => setShowResendModal(false)}
+      />
+      <SendResetPasswordEmailModal
+        isOpen={showResetPasswordModal}
+        initialEmail={email}
+        onClose={() => setShowResetPasswordModal(false)}
       />
     </div>
   );

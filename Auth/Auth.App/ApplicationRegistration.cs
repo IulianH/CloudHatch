@@ -32,9 +32,16 @@ public static class ApplicationRegistration
         services.AddOptions<RegisterSettings>()
             .Bind(configuration.GetSection("Register"));
 
+        services.AddOptions<ResetPasswordEmailSettings>()
+            .Bind(configuration.GetSection("ResetPasswordEmail"));
+
+        services.AddOptions<ResetPasswordSettings>()
+            .Bind(configuration.GetSection("ResetPassword"));
+
         services.AddTransient<JwtTokenService>();
         services.AddTransient<RefreshTokenService>();
         services.AddTransient<LoginService>();
         services.AddTransient<RegistrationService>();
+        services.AddTransient<ResetPasswordService>();
     }
 }
