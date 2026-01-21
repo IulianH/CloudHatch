@@ -15,7 +15,7 @@ namespace Users.App
         public async Task<bool> SendResetPasswordEmail(string email)
         {
             var existingUser = await repo.FindByEmailAsync(email);
-            if (existingUser == null || existingUser.EmailConfirmed == false)
+            if (existingUser == null || existingUser.EmailConfirmed == false || Constants.IsLocalAccount(existingUser.Issuer) == false)
             {
                 return false;
             }
