@@ -1,4 +1,4 @@
-﻿using Users.Domain;
+using Users.Domain;
 
 namespace Users.App.Interface
 {
@@ -19,5 +19,7 @@ namespace Users.App.Interface
         Task<User?> FindByEmailAsync(string email);
 
         Task<User?> FindByConfirmationTokenAsync(string token);
+
+        Task<User?> FindByResetPasswordTokenAsync(string token);
     }
 }

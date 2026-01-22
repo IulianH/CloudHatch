@@ -36,6 +36,48 @@ namespace Users.App
             return true;
         }
 
+        public async Task<ResetPasswordResult> ResetPasswordAsync(string token, string newPassword)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return new ResetPasswordResult
+                {
+                    Success = false,
+                    Error = "InvalidToken",
+                    ErrorDescription = "Token is required."
+                };
+            }
+
+            var user = await repo.FindByResetPasswordTokenAsync(token);
+            if (user == null || Constants.IsLocalAccount(user.Issuer) == false)
+            {
+                return new ResetPasswordResult
+                {
+                    Success = false,
+                    Error = "InvalidToken",
+                    ErrorDescription = "Invalid reset token."
+                };
+            }
+
+            if (user.ResetPasswordTokenExpiresAt == null ||
+                DateTimeOffset.UtcNow > user.ResetPasswordTokenExpiresAt.Value)
+            {
+                return new ResetPasswordResult
+                {
+                    Success = false,
+                    Error = "TokenExpired",
+                    ErrorDescription = "Reset token has expired."
+                };
+            }
+
+            user.Password = PasswordHasher.Hash(newPassword);
+            user.ResetPasswordToken = null;
+            user.ResetPasswordTokenExpiresAt = null;
+            await repo.UpdateAsync(user);
+
+            return new ResetPasswordResult { Success = true };
+        }
+
         private static string GenerateResetPasswordToken()
         {
             var bytes = new byte[32];
@@ -43,5 +85,12 @@ namespace Users.App
             rng.GetBytes(bytes);
             return Convert.ToBase64String(bytes);
         }
+    }
+
+    public class ResetPasswordResult
+    {
+        public bool Success { get; set; }
+        public string? Error { get; set; }
+        public string? ErrorDescription { get; set; }
     }
 }

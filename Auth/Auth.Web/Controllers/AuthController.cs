@@ -224,6 +224,24 @@ namespace Auth.Web.Controllers
             return Ok();
         }
 
+        [HttpPost("reset-password")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequestDto req)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await resetPassword.ResetPasswordAsync(req.Token, req.NewPassword);
+            if (!result.Success)
+            {
+                return BadRequest(new { error = result.Error, error_description = result.ErrorDescription });
+            }
+
+            return Ok(new { message = "Password reset successfully." });
+        }
+
 
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] LogoutRequestDto req)
@@ -355,6 +373,7 @@ namespace Auth.Web.Controllers
         public const string EmailRequired = "Email is required.";
         public const string UsernameRequired = "Username is required.";
         public const string PasswordRequired = "Password is required.";
+        public const string ResetPasswordTokenRequired = "Reset password token is required.";
         public const string RefreshTokenRequired = "Refresh token is required.";
 
         // Regex patterns
@@ -444,5 +463,12 @@ namespace Auth.Web.Controllers
         [Required(ErrorMessage = ValidationConstants.EmailRequired)]
         [RegularExpression(ValidationConstants.EmailPattern, ErrorMessage = ValidationConstants.EmailFormatError)]
         string Email
+    );
+
+    public record ResetPasswordRequestDto(
+        [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.ResetPasswordTokenRequired)]
+        string Token,
+        [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.PasswordRequired)]
+        string NewPassword
     );
 }
