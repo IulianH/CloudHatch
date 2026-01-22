@@ -220,6 +220,32 @@ class ApiClient {
     return response.json().catch(() => ({}));
   }
 
+  // Reset password method
+  async resetPassword(payload: { token: string; newPassword: string }): Promise<{ message: string }> {
+    const url = isRelativeUrl(API_CONFIG.RESET_PASSWORD_URL)
+      ? buildApiUrl(API_CONFIG.RESET_PASSWORD_URL)
+      : API_CONFIG.RESET_PASSWORD_URL;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        "Cache-Control": "no-store"
+      },
+      body: JSON.stringify(payload),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      const errorWithStatus = new Error(error.error_description || error.message || 'Reset password failed') as Error & { status?: number; errorData?: any };
+      errorWithStatus.status = response.status;
+      errorWithStatus.errorData = error;
+      throw errorWithStatus;
+    }
+
+    return response.json().catch(() => ({ message: 'Password reset successfully.' }));
+  }
+
   // Get user profile
   async getProfile(): Promise<{ name: string; idp: string }> {
     const response = await this.request(API_CONFIG.PROFILE_URL);

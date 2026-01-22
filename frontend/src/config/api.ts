@@ -10,5 +10,6 @@ export const API_CONFIG = {
   REGISTER_URL: process.env.NEXT_PUBLIC_REGISTER_URL || '/api/auth/register',
   CONFIRM_EMAIL_URL: process.env.NEXT_PUBLIC_CONFIRM_EMAIL_URL || '/api/auth/confirm-email',
   SEND_REGISTRATION_EMAIL_URL: process.env.NEXT_PUBLIC_SEND_REGISTRATION_EMAIL_URL || '/api/auth/send-registration-email',
-  SEND_RESET_PASSWORD_EMAIL_URL: process.env.NEXT_PUBLIC_SEND_RESET_PASSWORD_EMAIL_URL || '/api/auth/send-reset-password-email'
+  SEND_RESET_PASSWORD_EMAIL_URL: process.env.NEXT_PUBLIC_SEND_RESET_PASSWORD_EMAIL_URL || '/api/auth/send-reset-password-email',
+  RESET_PASSWORD_URL: process.env.NEXT_PUBLIC_RESET_PASSWORD_URL || '/api/auth/reset-password'
 };
