@@ -14,7 +14,8 @@ namespace Auth.Infra
         {
             services.AddSingleton<IRefreshTokenRepository, InMemoryRefreshTokenRepository>();
             services.AddSingleton<IUserRepo, InMemUserRepo>();
-            services.AddSingleton<IEmailService, EmailService>();
+            services.AddSingleton<IRegistrationEmailService, RegistrationEmailService>();
+            services.AddSingleton<IResetPasswordEmailService, ResetPasswordEmailService>();
             services.AddSingleton<IEmailSender, InMemEmailSender>();
             services.AddSingleton<ISentEmailsRepo, InMemSentEmailsRepo>();
         }

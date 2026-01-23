@@ -16,6 +16,6 @@ namespace Users.Domain
     {
         None = 0,
         Registration,
-        PasswordReset
+        ResetPassword
     }
 }

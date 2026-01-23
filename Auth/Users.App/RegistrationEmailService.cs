@@ -5,10 +5,10 @@ using Users.Domain;
 
 namespace Users.App
 {
-    public class EmailService(
+    public class RegistrationEmailService(
         IEmailSender emailSender,
         IOptions<RegistrationEmailSettings> registrationEmailSettings,
-        ISentEmailsRepo sentEmailsRepo) : IEmailService
+        ISentEmailsRepo sentEmailsRepo) : IRegistrationEmailService
     {
         private readonly RegistrationEmailSettings _registrationEmailSettings = registrationEmailSettings.Value;
 

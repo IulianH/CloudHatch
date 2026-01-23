@@ -1,4 +1,4 @@
-﻿using Users.App;
+using Users.App;
 using Users.App.Interface;
 using Users.Domain;
 
@@ -78,6 +78,12 @@ namespace Users.Infra.InMemory
         public Task<User?> FindByConfirmationTokenAsync(string token)
         {
             var user = _users.FirstOrDefault(x => x.EmailConfirmationToken == token);
+            return Task.FromResult(user);
+        }
+
+        public Task<User?> FindByResetPasswordTokenAsync(string token)
+        {
+            var user = _users.FirstOrDefault(x => x.ResetPasswordToken == token);
             return Task.FromResult(user);
         }
     }
