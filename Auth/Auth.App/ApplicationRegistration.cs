@@ -43,5 +43,6 @@ public static class ApplicationRegistration
         services.AddTransient<LoginService>();
         services.AddTransient<RegistrationService>();
         services.AddTransient<ResetPasswordService>();
+        services.AddTransient<ChangePasswordService>();
     }
 }
