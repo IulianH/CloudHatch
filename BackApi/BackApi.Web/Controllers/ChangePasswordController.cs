@@ -1,12 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.ComponentModel.DataAnnotations;
 using Users.App;
 
-namespace Auth.Web.Controllers
+namespace BackApi.Web.Controllers
 {
     [Route("[controller]")]
     [ApiController]
+    [Authorize]
     public class ChangePasswordController(ChangePasswordService changePasswordService) : ControllerBase
     {
         [HttpPut]
@@ -42,13 +44,19 @@ namespace Auth.Web.Controllers
         }
     }
 
+    internal static class Validation
+    {
+        public const string PasswordPattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$";
+        public const string PasswordFormatError = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
+    }
+
     public record ChangePasswordRequestDto(
         [Required(ErrorMessage = "User ID is required.")]
         Guid UserId,
-        [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.PasswordRequired)]
+        [Required(AllowEmptyStrings = false, ErrorMessage = "Old password is required")]
         string OldPassword,
-        [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.PasswordRequired)]
-        [RegularExpression(ValidationConstants.PasswordPattern, ErrorMessage = ValidationConstants.PasswordFormatError)]
+        [Required(AllowEmptyStrings = false, ErrorMessage = "New password is required")]
+        [RegularExpression(Validation.PasswordPattern, ErrorMessage = Validation.PasswordFormatError)]
         string NewPassword
     );
 }

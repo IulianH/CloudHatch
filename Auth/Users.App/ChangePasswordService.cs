@@ -51,16 +51,6 @@ namespace Users.App
                 };
             }
 
-            if (!Regex.IsMatch(request.NewPassword, Validation.PasswordPattern))
-            {
-                return new ChangePasswordResult
-                {
-                    Success = false,
-                    Error = "InvalidPasswordFormat",
-                    ErrorDescription = Validation.PasswordFormatError
-                };
-            }
-
             user.Password = PasswordHasher.Hash(request.NewPassword);
             await repo.UpdateAsync(user);
 
@@ -73,11 +63,5 @@ namespace Users.App
         public bool Success { get; set; }
         public string? Error { get; set; }
         public string? ErrorDescription { get; set; }
-    }
-
-    internal static class Validation
-    {
-        public const string PasswordPattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$";
-        public const string PasswordFormatError = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
     }
 }

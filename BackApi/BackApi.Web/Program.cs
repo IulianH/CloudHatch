@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Users.App;
+using Users.App.Interface;
+using Users.Infra.InMemory;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
+
+builder.Services.AddSingleton<IUserRepo, InMemUserRepo>();
+builder.Services.AddTransient<ChangePasswordService>();
 
 // JWT bearer auth: validate tokens issued by the Auth service
 var issuer = builder.Configuration["Jwt:Issuer"];
