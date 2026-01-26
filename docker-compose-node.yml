@@ -13,9 +13,6 @@ services:
       - "8080"
     networks:
       - default
-      - private
-    depends_on:
-      - redis
 
   backapi.web:
     image: ${DOCKER_REGISTRY-}backapiweb
@@ -63,22 +60,6 @@ services:
       - auth.web
       - backapi.web
       - frontend
-
-  redis:
-    image: redis:7
-    command: [ "redis-server", "--appendonly", "yes", "--requirepass", "devredispassword" ]
-    volumes:
-      - redisdata:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "devredispassword", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - private
-  
-volumes:
-  redisdata: { }
 
 networks:
   private:
