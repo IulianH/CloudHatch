@@ -1,0 +1,86 @@
+services:
+  auth.web:
+    image: ${DOCKER_REGISTRY-}nodeauth
+    build:
+      context: ./NodeAuth
+      dockerfile: Dockerfile
+    env_file:
+      - ./NodeAuth/.env.development
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+    ports:
+      - "8080"
+    networks:
+      - default
+      - private
+    depends_on:
+      - redis
+
+  backapi.web:
+    image: ${DOCKER_REGISTRY-}backapiweb
+    build:
+      context: .
+      dockerfile: BackApi/BackApi.Web/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+    ports:
+      - "8080"
+    networks:
+      - private                      
+
+  # Next.js development service with hot reload and debugging
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"    # Next.js dev server
+      - "9229:9229"    # Node.js debugger port
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+      - NODE_OPTIONS=--inspect=0.0.0.0:9229
+    networks:
+      - default        # Allow direct access for debugging
+
+  reverse-proxy:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "443:443"
+    networks:
+      - default                  # egress to Internet (OCSP/ACME/etc.)    # reach the private app
+      - private
+    depends_on:
+      - auth.web
+      - backapi.web
+      - frontend
+
+  redis:
+    image: redis:7
+    command: [ "redis-server", "--appendonly", "yes", "--requirepass", "devredispassword" ]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "devredispassword", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - private
+  
+volumes:
+  redisdata: { }
+
+networks:
+  private:
+    internal: true
+

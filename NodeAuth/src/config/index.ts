@@ -8,6 +8,10 @@ import { RefreshTokenConfig } from "./refreshToken";
 import { RegisterSettings } from "./register";
 import { ResetPasswordSettings } from "./resetPassword";
 
+const environment = process.env.NODE_ENV?.toLowerCase();
+if (environment === "development") {
+  dotenv.config({ path: ".env.development" });
+}
 dotenv.config();
 
 export interface AuthCookieConfig {
