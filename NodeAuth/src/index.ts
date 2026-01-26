@@ -6,6 +6,7 @@ import { InMemoryRefreshTokenRepository } from "./repos/inMemory/InMemoryRefresh
 import { InMemoryUserRepo } from "./repos/inMemory/InMemoryUserRepo";
 import { JwtTokenService } from "./services/JwtTokenService";
 import { RefreshTokenService } from "./services/RefreshTokenService";
+import { LoginService } from "./services/LoginService";
 
 const app = express();
 app.use(express.json());
@@ -24,11 +25,13 @@ const jwtTokenService = new JwtTokenService(
   refreshTokenService,
   userRepo,
 );
+const loginService = new LoginService(userRepo, config.login);
 
 app.use(
   "/api/auth",
   buildAuthRouter({
     jwtTokenService,
+    loginService,
     config,
   }),
 );
