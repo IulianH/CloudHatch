@@ -1,7 +1,37 @@
 import express from "express";
 
+import { buildAuthRouter } from "./controllers/authController";
+import { config } from "./config";
+import { InMemoryRefreshTokenRepository } from "./repos/inMemory/InMemoryRefreshTokenRepository";
+import { InMemoryUserRepo } from "./repos/inMemory/InMemoryUserRepo";
+import { JwtTokenService } from "./services/JwtTokenService";
+import { RefreshTokenService } from "./services/RefreshTokenService";
+
 const app = express();
 app.use(express.json());
+
+const userRepo = new InMemoryUserRepo();
+userRepo.migrate();
+const refreshTokenRepo = new InMemoryRefreshTokenRepository();
+refreshTokenRepo.migrate();
+
+const refreshTokenService = new RefreshTokenService(
+  refreshTokenRepo,
+  config.refreshToken,
+);
+const jwtTokenService = new JwtTokenService(
+  config.jwt,
+  refreshTokenService,
+  userRepo,
+);
+
+app.use(
+  "/api/auth",
+  buildAuthRouter({
+    jwtTokenService,
+    config,
+  }),
+);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
