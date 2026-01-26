@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 
 import { User } from "../../models/User";
+import { PasswordHasher } from "../../utils/passwordHasher";
 import { IUserRepo } from "../interfaces/IUserRepo";
 
 export class InMemoryUserRepo implements IUserRepo {
@@ -36,7 +37,7 @@ export class InMemoryUserRepo implements IUserRepo {
       email: "admin@admin.com",
       name: "John Doe",
       roles: "customer,admin",
-      password: "admin1!",
+      password: PasswordHasher.hash("admin1!"),
       issuer: "local",
       emailConfirmed: false,
       isLocked: false,
@@ -50,7 +51,7 @@ export class InMemoryUserRepo implements IUserRepo {
       email: "customer@customer.com",
       name: "Jane Doe",
       roles: "customer",
-      password: "customer1!",
+      password: PasswordHasher.hash("customer1!"),
       issuer: "local",
       emailConfirmed: false,
       isLocked: false,

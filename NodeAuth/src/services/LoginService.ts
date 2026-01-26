@@ -2,6 +2,7 @@ import { LoginSettings } from "../config/login";
 import { LoginRequest } from "../models/LoginRequest";
 import { User } from "../models/User";
 import { IUserRepo } from "../repos/interfaces/IUserRepo";
+import { PasswordHasher } from "../utils/passwordHasher";
 
 export class LoginService {
   constructor(
@@ -25,7 +26,7 @@ export class LoginService {
       return null;
     }
 
-    if (user.password !== request.password) {
+    if (!PasswordHasher.verify(user.password, request.password)) {
       user.failedLoginCount += 1;
       if (user.failedLoginCount >= this.settings.maxFailedPasswordLoginAttempts) {
         user.isLocked = true;

@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { ResetPasswordSettings } from "../config/resetPassword";
 import { IUserRepo } from "../repos/interfaces/IUserRepo";
 import { isLocalAccount } from "../utils/constants";
+import { PasswordHasher } from "../utils/passwordHasher";
 import { IResetPasswordEmailService } from "./interfaces/IResetPasswordEmailService";
 
 export class ResetPasswordService {
@@ -77,7 +78,7 @@ export class ResetPasswordService {
       };
     }
 
-    user.password = newPassword;
+    user.password = PasswordHasher.hash(newPassword);
     user.resetPasswordToken = undefined;
     user.resetPasswordTokenExpiresAt = undefined;
     await this.repo.updateAsync(user);

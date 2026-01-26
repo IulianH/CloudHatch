@@ -4,6 +4,7 @@ import { RegisterSettings } from "../config/register";
 import { FederatedUser } from "../models/FederatedUser";
 import { User } from "../models/User";
 import { IUserRepo } from "../repos/interfaces/IUserRepo";
+import { PasswordHasher } from "../utils/passwordHasher";
 import { IRegistrationEmailService } from "./interfaces/IRegistrationEmailService";
 
 export class RegistrationService {
@@ -48,7 +49,7 @@ export class RegistrationService {
     }
 
     if (existingUser && !existingUser.emailConfirmed) {
-      existingUser.password = password;
+      existingUser.password = PasswordHasher.hash(password);
       const token = this.generateConfirmationToken();
       existingUser.emailConfirmationToken = token;
       existingUser.emailConfirmationTokenExpiresAt = this.addHours(
@@ -72,7 +73,7 @@ export class RegistrationService {
       id: randomUUID(),
       email,
       username: email,
-      password,
+      password: PasswordHasher.hash(password),
       emailConfirmed: false,
       emailConfirmationToken: confirmationToken,
       emailConfirmationTokenExpiresAt: this.addHours(
