@@ -142,17 +142,19 @@ export default function Navigation() {
                         className="absolute left-0 bottom-full mb-2 w-full border border-gray-200 bg-white shadow-md z-10"
                         role="menu"
                       >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsUserMenuOpen(false);
-                            setIsChangePasswordOpen(true);
-                          }}
-                          className="w-full px-4 py-2 text-left hover:bg-gray-100"
-                          role="menuitem"
-                        >
-                          Change password
-                        </button>
+                        {user?.idp === 'local' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsUserMenuOpen(false);
+                              setIsChangePasswordOpen(true);
+                            }}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100"
+                            role="menuitem"
+                          >
+                            Change password
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => {
