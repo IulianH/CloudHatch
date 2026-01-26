@@ -64,35 +64,6 @@ namespace Users.App
 
         }
 
-        public async Task<bool> ChangePassword(ChangePasswordRequest request)
-        {
-            var user = await repo.FindByIdAsync(request.UserId);
-            if (user == null)
-            {
-                return false;
-            }
-            if (user == null || (request.LockEnabled && user.IsLocked))
-            {
-                return false;
-            }
-
-            if (user.Password == null)
-            {
-                return false;
-            }
-
-            var matched = PasswordHasher.Verify(user.Password, request.OldPassword);
-
-            if (!matched)
-            {
-                return false;
-            }
-
-            user.Password = PasswordHasher.Hash(request.NewPassword);
-            await repo.UpdateAsync(user);
-            return true;
-        }
-
         public async Task<User?> LoginFederatedAsync(string externalId, bool lockedEnabled)
         {
             var user = await repo.FindByExternalIdAsync(externalId);

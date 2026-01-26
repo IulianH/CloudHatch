@@ -23,4 +23,9 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Auth\Users.App\Users.App.csproj" />
+    <ProjectReference Include="..\..\Auth\Users.Infra\Users.Infra.csproj" />
+  </ItemGroup>
+
 </Project>
