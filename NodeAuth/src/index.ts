@@ -125,6 +125,71 @@ if (config.googleOAuth.enabled) {
   );
 }
 
+if (config.microsoftOAuth.enabled) {
+  if (!config.microsoftOAuth.clientId || !config.microsoftOAuth.clientSecret) {
+    throw new Error("Microsoft OAuth credentials are missing.");
+  }
+
+  const callbackUrl = new URL(
+    config.microsoftOAuth.callbackPath,
+    config.origin.baseUrl,
+  ).toString();
+  const tenantSegment = config.microsoftOAuth.tenantId || "common";
+  const issuerTenantId =
+    tenantSegment === "consumers"
+      ? "9188040d-6c67-4c5b-b112-36a304b66dad"
+      : tenantSegment;
+
+  passport.use(
+    "microsoft",
+    new OpenIdConnectStrategy(
+      {
+        issuer: `https://login.microsoftonline.com/${issuerTenantId}/v2.0`,
+        authorizationURL: `https://login.microsoftonline.com/${tenantSegment}/oauth2/v2.0/authorize`,
+        tokenURL: `https://login.microsoftonline.com/${tenantSegment}/oauth2/v2.0/token`,
+        userInfoURL: "https://graph.microsoft.com/oidc/userinfo",
+        clientID: config.microsoftOAuth.clientId,
+        clientSecret: config.microsoftOAuth.clientSecret,
+        callbackURL: callbackUrl,
+        scope: ["openid", "email", "profile"],
+      },
+      async (
+        issuer: string,
+        profile: OpenIdConnectProfile,
+        done: VerifyCallback,
+      ) => {
+        try {
+          if (!profile?.id) {
+            return done(new Error("Missing external id from provider."));
+          }
+          const microsoftProfile = profile as OpenIdConnectProfile & {
+            _json?: { email?: string; preferred_username?: string };
+          };
+          const email =
+            profile.emails?.[0]?.value ??
+            microsoftProfile._json?.email ??
+            microsoftProfile._json?.preferred_username;
+          const user: FederatedUser = {
+            id: profile.id,
+            issuer,
+            name: profile.displayName ?? undefined,
+            email,
+            username:
+              profile.username ??
+              email ??
+              microsoftProfile._json?.preferred_username ??
+              undefined,
+          };
+          await registrationService.registerFederatedAsync(user);
+          return done(null, user);
+        } catch (error) {
+          return done(error as Error);
+        }
+      },
+    ),
+  );
+}
+
 app.use(passport.initialize());
 app.use(passport.session());
 

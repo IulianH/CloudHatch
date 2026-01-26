@@ -187,6 +187,14 @@ export const loadConfig = (): AppConfig => ({
     enabled: optionalBoolean("MICROSOFT_OAUTH_ENABLED", false),
     clientId: optionalEnv("MICROSOFT_OAUTH_CLIENT_ID", ""),
     clientSecret: optionalEnv("MICROSOFT_OAUTH_CLIENT_SECRET", ""),
+    callbackPath: optionalEnv(
+      "MICROSOFT_OAUTH_CALLBACK_PATH",
+      defaultMicrosoftOAuthConfig.callbackPath,
+    ),
+    tenantId: optionalEnv(
+      "MICROSOFT_OAUTH_TENANT_ID",
+      defaultMicrosoftOAuthConfig.tenantId,
+    ),
   },
 });
 

@@ -25,10 +25,17 @@ export const buildAuthRouter = ({
   config,
 }: AuthControllerDeps): Router => {
   const router = Router();
-  const federationSuccessUrl = new URL(
-    config.origin.federationSuccessPath,
-    config.origin.baseUrl,
-  ).toString();
+  const buildFederationSuccessUrl = (returnUrl?: string): string => {
+    const url = new URL(
+      config.origin.federationSuccessPath,
+      config.origin.baseUrl,
+    );
+    if (returnUrl) {
+      url.searchParams.set("returnUrl", returnUrl);
+    }
+    return url.toString();
+  };
+  const federationSuccessUrl = buildFederationSuccessUrl();
 
   const clearFederatedSession = async (req: Request): Promise<void> => {
     if (typeof req.logout === "function") {
@@ -150,6 +157,67 @@ export const buildAuthRouter = ({
           res.redirect(federationSuccessUrl);
         });
       })(req, res, next);
+    },
+  );
+
+  router.get(
+    "/web-microsoft-challenge",
+    (req: Request, res: Response, next: NextFunction): void => {
+      if (!config.microsoftOAuth.enabled) {
+        res.sendStatus(404);
+        return;
+      }
+
+      const originResult = validateOrigin(req, config.origin.host);
+      if (!originResult.allowed) {
+        console.warn(originResult.error);
+        res.sendStatus(403);
+        return;
+      }
+
+      const returnUrl =
+        typeof req.query.returnUrl === "string" ? req.query.returnUrl : undefined;
+      if (req.session) {
+        req.session.microsoftReturnUrl = returnUrl;
+      }
+
+      res.setHeader("Cache-Control", "no-store");
+      passport.authenticate("microsoft")(req, res, next);
+    },
+  );
+
+  router.get(
+    "/web-microsoft-callback",
+    (req: Request, res: Response, next: NextFunction): void => {
+      if (!config.microsoftOAuth.enabled) {
+        res.sendStatus(404);
+        return;
+      }
+
+      passport.authenticate(
+        "microsoft",
+        (error: unknown, user?: FederatedUser, info?: { message?: string }) => {
+          if (error || !user) {
+            console.error("WebMicrosoftCallback failed", error ?? info);
+            res.sendStatus(401);
+            return;
+          }
+
+          req.logIn(user, (loginError) => {
+            if (loginError) {
+              console.error("WebMicrosoftCallback sign-in failed", loginError);
+              res.sendStatus(500);
+              return;
+            }
+            const returnUrl = req.session?.microsoftReturnUrl;
+            if (req.session) {
+              delete req.session.microsoftReturnUrl;
+            }
+            res.setHeader("Cache-Control", "no-store");
+            res.redirect(buildFederationSuccessUrl(returnUrl));
+          });
+        },
+      )(req, res, next);
     },
   );
 
