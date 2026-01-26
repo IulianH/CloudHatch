@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
 using Users.App;
 
 namespace BackApi.Web.Controllers
@@ -18,9 +19,10 @@ namespace BackApi.Web.Controllers
                 return BadRequest(ModelState);
             }
 
+            var id = Guid.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
             var result = await changePasswordService.ChangePasswordAsync(new ChangePasswordRequest
             {
-                UserId = request.UserId,
+                UserId = id,
                 OldPassword = request.OldPassword,
                 NewPassword = request.NewPassword,
                 LockEnabled = true
@@ -50,8 +52,6 @@ namespace BackApi.Web.Controllers
     }
 
     public record ChangePasswordRequestDto(
-        [Required(ErrorMessage = "User ID is required.")]
-        Guid UserId,
         [Required(AllowEmptyStrings = false, ErrorMessage = "Old password is required")]
         string OldPassword,
         [Required(AllowEmptyStrings = false, ErrorMessage = "New password is required")]
