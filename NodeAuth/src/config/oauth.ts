@@ -2,6 +2,7 @@ export interface GoogleOAuthConfig {
   enabled: boolean;
   clientId: string;
   clientSecret: string;
+  callbackPath: string;
 }
 
 export interface MicrosoftOAuthConfig {
@@ -14,6 +15,7 @@ export const defaultGoogleOAuthConfig: GoogleOAuthConfig = {
   enabled: false,
   clientId: "",
   clientSecret: "",
+  callbackPath: "/api/auth/web-google-callback",
 };
 
 export const defaultMicrosoftOAuthConfig: MicrosoftOAuthConfig = {

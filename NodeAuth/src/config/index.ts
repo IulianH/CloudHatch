@@ -24,6 +24,7 @@ export interface CookieProtectionConfig {
 }
 
 export interface OriginConfig {
+  baseUrl: string;
   host: string;
   federationSuccessPath: string;
 }
@@ -113,6 +114,7 @@ export const loadConfig = (): AppConfig => ({
     secretKey: requireBase64Key("AUTH_COOKIE_SECRET_BASE64", 32),
   },
   origin: {
+    baseUrl: optionalEnv("ORIGIN_BASE_URL", "https://localhost"),
     host: optionalEnv("ORIGIN_HOST", "localhost"),
     federationSuccessPath: optionalEnv(
       "ORIGIN_FEDERATION_SUCCESS_PATH",
@@ -175,6 +177,10 @@ export const loadConfig = (): AppConfig => ({
     enabled: optionalBoolean("GOOGLE_OAUTH_ENABLED", false),
     clientId: optionalEnv("GOOGLE_OAUTH_CLIENT_ID", ""),
     clientSecret: optionalEnv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
+    callbackPath: optionalEnv(
+      "GOOGLE_OAUTH_CALLBACK_PATH",
+      defaultGoogleOAuthConfig.callbackPath,
+    ),
   },
   microsoftOAuth: {
     ...defaultMicrosoftOAuthConfig,
