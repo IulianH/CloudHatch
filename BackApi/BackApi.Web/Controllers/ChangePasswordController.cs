@@ -6,12 +6,11 @@ using Users.App;
 
 namespace BackApi.Web.Controllers
 {
-    [Route("[controller]")]
-    [ApiController]
-    [Authorize]
+    [Route("/")]
     public class ChangePasswordController(ChangePasswordService changePasswordService) : ControllerBase
     {
-        [HttpPut]
+        [Authorize]
+        [HttpPut("changepassword")]
         public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordRequestDto request)
         {
             if (!ModelState.IsValid)
