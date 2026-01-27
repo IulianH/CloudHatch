@@ -9,11 +9,17 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8080
+    command:
+      - node
+      - --inspect=0.0.0.0:9229
+      - -r
+      - ts-node/register
+      - src/index.ts
     ports:
       - "8080"
+      - "9229:9229"    # Node.js debugger port
     networks:
       - default
-      - private
 
   backapi.web:
     image: ${DOCKER_REGISTRY-}backapiweb
@@ -36,7 +42,6 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"    # Next.js dev server
-      - "9229:9229"    # Node.js debugger port
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -44,7 +49,6 @@ services:
     environment:
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
-      - NODE_OPTIONS=--inspect=0.0.0.0:9229
     networks:
       - default        # Allow direct access for debugging
 

@@ -1,0 +1,15 @@
+Local Environment Setup
+
+Prerequisites:
+- Docker Desktop installed and running
+- .NET SDK compatible with Docker.sln (see BackApi/BackApi.sln if needed)
+- Node.js (for local tooling when not using containers)
+
+Setup:
+1. Run the SSL setup steps in Docs/LocalSslCertificateSetup.txt
+2. Start the full stack: docker compose -f docker-compose-node.yml up
+3. Open in a browser (or https://localhost if using Docker.sln)
+
+Notes:
+- The nginx reverse proxy fronts the frontend and APIs in docker-compose-node.yml
+- Auth API is available under /api/auth/
