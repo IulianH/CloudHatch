@@ -44,6 +44,12 @@ namespace Auth.Web.Controllers
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<ActionResult> ConfirmEmail([FromBody] ConfirmEmailRequestDto req)
         {
+            if (!IsAllowedOrigin(Request))
+            {
+                logger.LogWarning(originValidator.Error);
+                return Forbid();  // simple CSRF guard 
+            }
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(new { error = "TokenRequired", error_description = ValidationConstants.ConfirmEmailTokenRequired });
@@ -61,6 +67,12 @@ namespace Auth.Web.Controllers
         [HttpPost("send-registration-email")]
         public async Task<IActionResult> SendRegistrationEmail([FromBody] RegistrationEmailRequestDto req)
         {
+            if (!IsAllowedOrigin(Request))
+            {
+                logger.LogWarning(originValidator.Error);
+                return Forbid();  // simple CSRF guard 
+            }
+
             await registration.ResendRegistrationEmail(req.Email);
             return Ok();
         }

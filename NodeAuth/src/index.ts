@@ -9,6 +9,7 @@ import {
 
 import { buildAuthRouter } from "./controllers/authController";
 import { buildRegisterRouter } from "./controllers/registerController";
+import { buildResetPasswordRouter } from "./controllers/resetPasswordController";
 import { config } from "./config";
 import { FederatedUser } from "./models/FederatedUser";
 import { InMemoryRefreshTokenRepository } from "./repos/inMemory/InMemoryRefreshTokenRepository";
@@ -20,6 +21,8 @@ import { LoginService } from "./services/LoginService";
 import { RegistrationService } from "./services/RegistrationService";
 import { InMemoryEmailSender } from "./services/inMemory/InMemoryEmailSender";
 import { InMemoryRegistrationEmailService } from "./services/inMemory/InMemoryRegistrationEmailService";
+import { InMemoryResetPasswordEmailService } from "./services/inMemory/InMemoryResetPasswordEmailService";
+import { ResetPasswordService } from "./services/ResetPasswordService";
 
 const app = express();
 app.use(express.json());
@@ -41,15 +44,26 @@ const jwtTokenService = new JwtTokenService(
   userRepo,
 );
 const loginService = new LoginService(userRepo, config.login);
+const emailSender = new InMemoryEmailSender();
 const registrationEmailService = new InMemoryRegistrationEmailService(
   sentEmailsRepo,
-  new InMemoryEmailSender(),
+  emailSender,
   config.registrationEmail,
 );
 const registrationService = new RegistrationService(
   userRepo,
   registrationEmailService,
   config.register,
+);
+const resetPasswordEmailService = new InMemoryResetPasswordEmailService(
+  sentEmailsRepo,
+  emailSender,
+  config.resetPasswordEmail,
+);
+const resetPasswordService = new ResetPasswordService(
+  userRepo,
+  resetPasswordEmailService,
+  config.resetPassword,
 );
 
 const sessionSecret = config.cookieProtection.secretKey.toString("base64");
@@ -207,6 +221,14 @@ app.use(
   "/api/auth",
   buildRegisterRouter({
     registrationService,
+    config,
+  }),
+);
+
+app.use(
+  "/api/auth",
+  buildResetPasswordRouter({
+    resetPasswordService,
     config,
   }),
 );
