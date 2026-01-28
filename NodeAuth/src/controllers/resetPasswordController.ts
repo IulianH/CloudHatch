@@ -5,7 +5,7 @@ import type { ResetPasswordRequest } from "../models/ResetPasswordRequest";
 import type { SendResetPasswordEmailRequest } from "../models/SendResetPasswordEmailRequest";
 import { ResetPasswordService } from "../services/ResetPasswordService";
 import { validateOrigin } from "../utils/originValidator";
-import { emailPattern } from "../utils/validation";
+import { emailPattern, passwordFormatError, passwordPattern } from "../utils/validation";
 
 type ResetPasswordControllerDeps = {
   resetPasswordService: ResetPasswordService;
@@ -72,6 +72,14 @@ export const buildResetPasswordRouter = ({
         res.status(400).json({
           error: "PasswordRequired",
           error_description: "Password is required.",
+        });
+        return;
+      }
+
+      if (!passwordPattern.test(body.newPassword)) {
+        res.status(400).json({
+          error: "PasswordFormatError",
+          error_description: passwordFormatError
         });
         return;
       }

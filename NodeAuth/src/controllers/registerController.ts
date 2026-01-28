@@ -35,18 +35,18 @@ export const buildRegisterRouter = ({
         return;
       }
 
-      if (!passwordPattern.test(body.password)) {
-        res.status(400).json({
-          error: "PasswordFormatError",
-          error_description: passwordFormatError
-        });
-        return;
-      }
-
       if (!emailPattern.test(body.email)) {
         res.status(400).json({
           error: "EmailFormatError",
           error_description: emailFormatError,
+        });
+        return;
+      }
+
+      if (!passwordPattern.test(body.password)) {
+        res.status(400).json({
+          error: "PasswordFormatError",
+          error_description: passwordFormatError
         });
         return;
       }
