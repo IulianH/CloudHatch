@@ -19,7 +19,7 @@ namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route(GlobalConstants.BasePath)]
-    public class AuthController(JwtTokenService auth, LoginService login, ResetPasswordService resetPassword,
+    public class AuthController(JwtTokenService auth, LoginService login,
         IDataProtectionProvider dp, OriginValidator originValidator, 
         IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, 
         ILogger<AuthController> logger) : ControllerBase
@@ -169,32 +169,6 @@ namespace Auth.Web.Controllers
                pair.ExpiresIn
            ));
         }
-
-        [HttpPost("send-reset-password-email")]
-        public async Task<IActionResult> SendResetPasswordEmail([FromBody] ResetPasswordEmailRequestDto req)
-        {
-            await resetPassword.SendResetPasswordEmail(req.Email);
-            return Ok();
-        }
-
-        [HttpPost("reset-password")]
-        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-        public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequestDto req)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var result = await resetPassword.ResetPasswordAsync(req.Token, req.NewPassword);
-            if (!result.Success)
-            {
-                return BadRequest(new { error = result.Error, error_description = result.ErrorDescription });
-            }
-
-            return Ok(new { message = "Password reset successfully." });
-        }
-
 
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] LogoutRequestDto req)
@@ -376,16 +350,4 @@ namespace Auth.Web.Controllers
         string? Email
     );
 
-    public record ResetPasswordEmailRequestDto(
-        [Required(ErrorMessage = ValidationConstants.EmailRequired)]
-        [RegularExpression(ValidationConstants.EmailPattern, ErrorMessage = ValidationConstants.EmailFormatError)]
-        string Email
-    );
-
-    public record ResetPasswordRequestDto(
-        [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.ResetPasswordTokenRequired)]
-        string Token,
-        [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.PasswordRequired)]
-        string NewPassword
-    );
 }
