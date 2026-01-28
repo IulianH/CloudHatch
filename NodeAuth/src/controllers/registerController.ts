@@ -6,6 +6,7 @@ import type { RegisterRequest } from "../models/RegisterRequest";
 import type { RegistrationEmailRequest } from "../models/RegistrationEmailRequest";
 import { RegistrationService } from "../services/RegistrationService";
 import { validateOrigin } from "../utils/originValidator";
+import { emailPattern, passwordPattern, emailFormatError, passwordFormatError } from "../utils/validation";
 
 type RegisterControllerDeps = {
   registrationService: RegistrationService;
@@ -31,6 +32,22 @@ export const buildRegisterRouter = ({
       const body = req.body as RegisterRequest;
       if (!body.email || !body.password) {
         res.sendStatus(400);
+        return;
+      }
+
+      if (!passwordPattern.test(body.password)) {
+        res.status(400).json({
+          error: "PasswordFormatError",
+          error_description: passwordFormatError
+        });
+        return;
+      }
+
+      if (!emailPattern.test(body.email)) {
+        res.status(400).json({
+          error: "EmailFormatError",
+          error_description: emailFormatError,
+        });
         return;
       }
 
@@ -101,7 +118,15 @@ export const buildRegisterRouter = ({
       if (!body?.email) {
         res.status(400).json({
           error: "EmailRequired",
-          error_description: "Email is required.",
+          error_description: "Email is required."
+        });
+        return;
+      }
+
+      if (!emailPattern.test(body.email)) {
+        res.status(400).json({
+          error: "EmailFormatError",
+          error_description: emailFormatError
         });
         return;
       }
