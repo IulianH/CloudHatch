@@ -8,6 +8,7 @@ import {
 } from "passport-openidconnect";
 
 import { buildAuthRouter } from "./controllers/authController";
+import { buildRegisterRouter } from "./controllers/registerController";
 import { config } from "./config";
 import { FederatedUser } from "./models/FederatedUser";
 import { InMemoryRefreshTokenRepository } from "./repos/inMemory/InMemoryRefreshTokenRepository";
@@ -198,6 +199,14 @@ app.use(
   buildAuthRouter({
     jwtTokenService,
     loginService,
+    config,
+  }),
+);
+
+app.use(
+  "/api/auth",
+  buildRegisterRouter({
+    registrationService,
     config,
   }),
 );

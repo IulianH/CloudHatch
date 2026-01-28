@@ -19,7 +19,7 @@ namespace Auth.Web.Controllers
 {
     [ApiController]
     [Route(GlobalConstants.BasePath)]
-    public class AuthController(JwtTokenService auth, LoginService login, RegistrationService registration, ResetPasswordService resetPassword,
+    public class AuthController(JwtTokenService auth, LoginService login, ResetPasswordService resetPassword,
         IDataProtectionProvider dp, OriginValidator originValidator, 
         IOptions<AuthCookieOptions> cookieOptions, IOptions<OriginConfig> originConfig, 
         ILogger<AuthController> logger) : ControllerBase
@@ -168,53 +168,6 @@ namespace Auth.Web.Controllers
                pair.AccessToken,
                pair.ExpiresIn
            ));
-        }
-
-        [HttpPost("register")]
-        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-        public async Task<ActionResult> Register([FromBody] RegisterRequestDto req)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var result = await registration.RegisterAsync(req.Email, req.Password);
-            if (!result.Success)
-            {
-                if (result.Error == "MaxConfirmationEmailsPerDay")
-                {
-                    return BadRequest(new { error = result.Error, error_description = result.ErrorDescription });
-                }
-                return BadRequest(new { error = result.Error, error_description = result.ErrorDescription });
-            }
-
-            return Ok(new { message = "Registration successful. Please check your email to confirm your account." });
-        }
-
-        [HttpGet("confirm-email")]
-        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-        public async Task<ActionResult> ConfirmEmail([FromQuery] string token)
-        {
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                return BadRequest(new { error = "TokenRequired", error_description = "Token is required." });
-            }
-
-            var result = await registration.ConfirmEmailAsync(token);
-            if (!result.Success)
-            {
-                return BadRequest(new { error = result.Error, error_description = result.ErrorDescription });
-            }
-
-            return Ok(new { message = "Email confirmed successfully." });
-        }
-
-        [HttpPost("send-registration-email")]
-        public async Task<IActionResult> SendRegistrationEmail([FromBody] RegistrationEmailRequestDto req)
-        {
-            await registration.ResendRegistrationEmail(req.Email);
-            return Ok();
         }
 
         [HttpPost("send-reset-password-email")]
@@ -368,27 +321,6 @@ namespace Auth.Web.Controllers
         }
     }
 
-    public static class ValidationConstants
-    {
-        public const string EmailRequired = "Email is required.";
-        public const string UsernameRequired = "Username is required.";
-        public const string PasswordRequired = "Password is required.";
-        public const string ResetPasswordTokenRequired = "Reset password token is required.";
-        public const string RefreshTokenRequired = "Refresh token is required.";
-
-        // Regex patterns
-        //3–20 characters
-        //Letters, digits, underscores(_), dots(.), hyphens(-)
-        //Cannot start or end with.or -
-        //Cannot have consecutive..or --
-        public const string EmailPattern = @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
-        public const string PasswordPattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$";
-
-        // Error messages for regex validation
-        public const string EmailFormatError = "Invalid email format.";
-        public const string PasswordFormatError = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one digit, and one special character.";
-    }
-
     record RefreshDto(string rt, int v);
 
     public record LoginRequestDto(
@@ -442,21 +374,6 @@ namespace Auth.Web.Controllers
         string? Idp,
         string? Name,
         string? Email
-    );
-
-    public record RegisterRequestDto(
-        [Required(ErrorMessage = "Email is required.")]
-        [EmailAddress(ErrorMessage = "Invalid email format.")]
-        string Email,
-        [Required(AllowEmptyStrings = false, ErrorMessage = ValidationConstants.PasswordRequired)]
-        //[RegularExpression(ValidationConstants.PasswordPattern, ErrorMessage = ValidationConstants.PasswordFormatError)]
-        string Password
-    );
-
-    public record RegistrationEmailRequestDto(
-        [Required(ErrorMessage = ValidationConstants.EmailRequired)]
-        [RegularExpression(ValidationConstants.EmailPattern, ErrorMessage = ValidationConstants.EmailFormatError)]
-        string Email
     );
 
     public record ResetPasswordEmailRequestDto(

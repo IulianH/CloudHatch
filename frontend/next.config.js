@@ -3,8 +3,8 @@ const nextConfig = {
   // Only use standalone output in production
   ...(process.env.NODE_ENV === 'production' && { output: 'standalone' }),
   
-  // Disable development indicators (e.g., the "N" button in bottom left corner)
-  devIndicators: false,
+  // Disable/Enable development indicators (e.g., the "N" button in bottom left corner)
+  devIndicators: true,
   
   // Disable source maps in development to avoid "Unable to add filesystem: <illegal path>" error
   // This error occurs on Windows when Chrome DevTools tries to access absolute Windows paths

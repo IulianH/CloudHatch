@@ -148,12 +148,13 @@ class ApiClient {
   // Confirm email method
   async confirmEmail(token: string): Promise<{ message: string }> {
     const url = isRelativeUrl(API_CONFIG.CONFIRM_EMAIL_URL) ? buildApiUrl(API_CONFIG.CONFIRM_EMAIL_URL) : API_CONFIG.CONFIRM_EMAIL_URL;
-    const response = await fetch(`${url}?token=${encodeURIComponent(token)}`, {
-      method: 'GET',
+    const response = await fetch(url, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         "Cache-Control": "no-store"
       },
+      body: JSON.stringify({ token }),
       credentials: 'include',
     });
 
