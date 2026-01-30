@@ -24,15 +24,28 @@ export const requireJwt = (
     return;
   }
 
+  const rawKey = config.jwt.key?.trim();
+  if (!rawKey) {
+    res.sendStatus(500);
+    return;
+  }
+  const key = Buffer.from(rawKey, "base64");
+  const normalizedKey = rawKey.replace(/=+$/g, "");
+  const normalizedBase64 = key.toString("base64").replace(/=+$/g, "");
+  if (key.length === 0 || normalizedBase64 !== normalizedKey) {
+    res.sendStatus(500);
+    return;
+  }
+
   try {
-    const payload = jwt.verify(token, config.jwt.key, {
+    const payload = jwt.verify(token, key, {
       issuer: config.jwt.issuer,
       audience: config.jwt.audience,
     });
     req.auth =
       typeof payload === "string" ? ({ sub: payload } as JwtPayload) : payload;
     next();
-  } catch {
+  } catch(ex) {
     res.sendStatus(401);
   }
 };

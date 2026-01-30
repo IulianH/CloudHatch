@@ -22,17 +22,26 @@ services:
       - default
 
   backapi.web:
-    image: ${DOCKER_REGISTRY-}backapiweb
+    image: ${DOCKER_REGISTRY-}nodebackapi
     build:
-      context: .
-      dockerfile: BackApi/BackApi.Web/Dockerfile
+      context: ./NodeBackApi
+      dockerfile: Dockerfile
+    env_file:
+      - ./NodeBackApi/.env.development
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8080
+      - NODE_ENV=development
+      - PORT=8080
+    command:
+      - node
+      - --inspect=0.0.0.0:9230
+      - -r
+      - ts-node/register
+      - src/index.ts
     ports:
       - "8080"
+      - "9230:9230"    # Node.js debugger port
     networks:
-      - private                      
+      - default                      
 
   # Next.js development service with hot reload and debugging
   frontend:
