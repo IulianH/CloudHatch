@@ -1,0 +1,30 @@
+NodeAuth Debug (Docker + Cursor)
+
+Prerequisites:
+- Complete "LocalSslCertificateSetup.txt"
+- Docker Desktop running
+- Cursor launch config "Attach to NodeAuth (Docker)" in .vscode/launch.json
+
+Start the stack:
+1. Run: docker compose -f docker-compose-node.yml up
+2. Wait for auth.web to report it is listening on port 8080
+
+Attach the debugger:
+1. In Cursor, open the Debug panel
+2. Select "Attach to NodeAuth (Docker)"
+3. Click Start Debugging
+4. Set breakpoints in NodeAuth/src and hit an /api/auth endpoint
+
+Troubleshooting:
+- Inspector already in use: auth.web is launched via node directly in
+  docker-compose-node.yml to avoid npm spawning a second inspector.
+- Breakpoints not hit: confirm the container logs show
+  "Debugger listening on ws://0.0.0.0:9229".
+- Attach fails: verify docker-compose-node.yml maps "9229:9229"
+  and NODE_OPTIONS includes --inspect=0.0.0.0:9229.
+- Source paths wrong: localRoot should be ${workspaceFolder}/NodeAuth
+  and remoteRoot should be /app in .vscode/launch.json.
+- Requests not reaching auth.web: ensure nginx routes
+  /api/auth/ to http://auth.web:8080 in nginx/config/routes.conf.
+- No log changes after edits: this setup does not use hot reload; restart
+  the container after code changes.

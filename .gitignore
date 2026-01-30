@@ -421,3 +421,4 @@ FodyWeavers.xsd
 .idea/
 /nginx/ssl
 /Auth/Auth.Web/appsettings.Development.json
+/NodeAuth/.env.development
