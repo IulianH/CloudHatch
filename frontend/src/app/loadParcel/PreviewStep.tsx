@@ -1,25 +1,29 @@
 "use client";
 
-import { useState, type MouseEvent } from "react";
+import { type MouseEvent } from "react";
 
 type PreviewStepProps = {
   filename: string | null;
   previewUrl: string;
+  coords: { x: number; y: number } | null;
+  onCoordsChange: (coords: { x: number; y: number }) => void;
   onBack: () => void;
+  onNext: () => void;
 };
 
 export const PreviewStep = ({
   filename,
   previewUrl,
+  coords,
+  onCoordsChange,
   onBack,
+  onNext,
 }: PreviewStepProps) => {
-  const [coords, setCoords] = useState<{ x: number; y: number } | null>(null);
-
   const handleImageClick = (event: MouseEvent<HTMLImageElement>): void => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = Math.round(event.clientX - rect.left);
     const y = Math.round(event.clientY - rect.top);
-    setCoords({ x, y });
+    onCoordsChange({ x, y });
   };
 
   return (
@@ -27,7 +31,9 @@ export const PreviewStep = ({
       {filename ? (
         <>
           <p className="text-sm text-gray-600">
-            {coords ? `Coordinates: (${coords.x}, ${coords.y})` : "Click the image to get coordinates."}
+            {coords
+              ? `Coordinates: (${coords.x}, ${coords.y})`
+              : "Click the image to get coordinates."}
           </p>
           <div className="overflow-auto p-0">
             <img
@@ -49,6 +55,14 @@ export const PreviewStep = ({
         onClick={onBack}
       >
         Back
+      </button>
+      <button
+        type="button"
+        className="ml-3 mt-4 rounded bg-blue-600 px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={!coords}
+        onClick={onNext}
+      >
+        Next - Confirm
       </button>
     </>
   );

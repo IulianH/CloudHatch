@@ -69,5 +69,19 @@ export const buildLoadParcelRouter = (): Router => {
     }
   );
 
+  router.post(
+    "/loadParcel/confirm",
+    (req: Request, res: Response): void => {
+      const { filename, x, y } = req.body ?? {};
+
+      if (typeof filename !== "string" || !Number.isFinite(x) || !Number.isFinite(y)) {
+        res.status(400).json({ error: "Invalid payload." });
+        return;
+      }
+
+      res.status(204).send();
+    }
+  );
+
   return router;
 };

@@ -2,16 +2,18 @@
 
 import { useState, type FormEvent } from "react";
 
+import { ConfirmStep } from "./ConfirmStep";
 import { PreviewStep } from "./PreviewStep";
 import { UploadStep, type UploadStatus } from "./UploadStep";
 
-type Step = "upload" | "preview";
+type Step = "upload" | "preview" | "confirm";
 
 export default function LoadParcelPage() {
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [message, setMessage] = useState<string>("");
   const [step, setStep] = useState<Step>("upload");
   const [filename, setFilename] = useState<string | null>(null);
+  const [coords, setCoords] = useState<{ x: number; y: number } | null>(null);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -29,6 +31,7 @@ export default function LoadParcelPage() {
 
     setStatus("uploading");
     setFilename(null);
+    setCoords(null);
 
     try {
       const response = await fetch("/api/backapi/loadParcel/upload", {
@@ -64,6 +67,26 @@ export default function LoadParcelPage() {
     ? `/api/backapi/loadParcel/uploads/${encodeURIComponent(filename)}`
     : "";
 
+  const handleConfirm = async () => {
+    if (!filename || !coords) {
+      return;
+    }
+
+    try {
+      await fetch("/api/backapi/loadParcel/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename,
+          x: coords.x,
+          y: coords.y,
+        }),
+      });
+    } catch (error) {
+      console.error("Confirm submission failed", error);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full space-y-6 text-center">
@@ -84,7 +107,18 @@ export default function LoadParcelPage() {
           <PreviewStep
             filename={filename}
             previewUrl={previewUrl}
+            coords={coords}
+            onCoordsChange={setCoords}
             onBack={() => setStep("upload")}
+            onNext={() => setStep("confirm")}
+          />
+        )}
+        {step === "confirm" && (
+          <ConfirmStep
+            filename={filename}
+            coords={coords}
+            onBack={() => setStep("preview")}
+            onConfirm={handleConfirm}
           />
         )}
       </div>
