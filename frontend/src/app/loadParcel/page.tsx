@@ -64,7 +64,7 @@ export default function LoadParcelPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="max-w-2xl w-full space-y-6 text-center">
+      <div className="w-full space-y-6 text-center">
         <h1 className="text-3xl font-semibold">Load Parcel</h1>
         <p className="text-gray-600">
           Start a new parcel workflow here.
@@ -111,13 +111,15 @@ export default function LoadParcelPage() {
           </>
         )}
         {step === "preview" && (
-          <div className="space-y-4">
+          <>
             {filename ? (
-              <img
-                src={previewUrl}
-                alt="Uploaded parcel"
-                className="mx-auto max-h-[500px] w-auto rounded border border-gray-200"
-              />
+              <div className="overflow-auto p-0">
+                <img
+                  src={previewUrl}
+                  alt="Uploaded parcel"
+                  className="block max-w-none h-auto rounded border border-gray-200"
+                />
+              </div>
             ) : (
               <p className="text-sm text-red-600">
                 Missing upload filename. Please go back and upload again.
@@ -125,12 +127,12 @@ export default function LoadParcelPage() {
             )}
             <button
               type="button"
-              className="rounded border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700"
+              className="mt-4 rounded border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700"
               onClick={() => setStep("upload")}
             >
               Back
             </button>
-          </div>
+          </>
         )}
       </div>
     </div>
