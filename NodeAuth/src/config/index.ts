@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import path from "path";
 
 import { RegistrationEmailSettings, ResetPasswordEmailSettings } from "./email";
 import { JwtConfig } from "./jwt";
@@ -9,10 +10,11 @@ import { RegisterSettings } from "./register";
 import { ResetPasswordSettings } from "./resetPassword";
 
 const environment = process.env.NODE_ENV?.toLowerCase();
+const projectRoot = path.resolve(__dirname, "..", "..");
 if (environment === "development") {
-  dotenv.config({ path: ".env.development" });
+  dotenv.config({ path: path.join(projectRoot, ".env.development") });
 }
-dotenv.config();
+dotenv.config({ path: path.join(projectRoot, ".env") });
 
 export interface AuthCookieConfig {
   name: string;

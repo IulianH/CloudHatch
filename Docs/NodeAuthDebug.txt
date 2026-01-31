@@ -28,3 +28,9 @@ Troubleshooting:
   /api/auth/ to http://auth.web:8080 in nginx/config/routes.conf.
 - No log changes after edits: this setup does not use hot reload; restart
   the container after code changes.
+
+Generate a value for AUTH_COOKIE_SECRET_BASE64
+Run: python -c "import base64,os; print(base64.b64encode(os.urandom(32)).decode())"
+Or Use JwtKeyGenerator
+LaMvVsTWczWro35HH9rr9QThtOYeQxTA/F4YDGH5KNo=
+3S66lVqedKHKYPn4IoXZ8mLW5B1OpAQZDv7S/D8JWVA=
