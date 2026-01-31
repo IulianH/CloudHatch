@@ -5,6 +5,7 @@ services:
       context: ./NodeAuth
       dockerfile: Dockerfile
     env_file:
+      - ./NodeAuth/.env
       - ./NodeAuth/.env.development
     environment:
       - NODE_ENV=development
