@@ -41,6 +41,8 @@ services:
     ports:
       - "8080"
       - "9230:9230"    # Node.js debugger port
+    volumes:
+      - shared-uploads:/shared/uploads
     networks:
       - default                      
 
@@ -56,6 +58,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
+      - shared-uploads:/shared/uploads
     environment:
       - NODE_ENV=development
       - WATCHPACK_POLLING=true
@@ -79,4 +82,7 @@ services:
 networks:
   private:
     internal: true
+
+volumes:
+  shared-uploads:
 

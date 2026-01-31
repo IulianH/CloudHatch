@@ -1,6 +1,7 @@
 import express from "express";
 
 import { buildChangePasswordRouter } from "./controllers/changePasswordController";
+import { buildLoadParcelRouter } from "./controllers/loadParcelController";
 import { buildProfileRouter } from "./controllers/profileController";
 import { InMemoryUserRepo } from "./repos/inMemory/InMemoryUserRepo";
 import { ChangePasswordService } from "./services/ChangePasswordService";
@@ -14,6 +15,7 @@ userRepo.migrate();
 const changePasswordService = new ChangePasswordService(userRepo);
 
 app.use("/", buildChangePasswordRouter({ changePasswordService }));
+app.use("/", buildLoadParcelRouter());
 app.use("/", buildProfileRouter());
 
 app.get("/health", (_req, res) => {

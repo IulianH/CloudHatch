@@ -1,0 +1,50 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+
+import { Router, type Request, type Response } from "express";
+import multer from "multer";
+
+const uploadsDir = "/shared/uploads";
+const upload = multer({ storage: multer.memoryStorage() });
+
+const sanitizeFilename = (name: string): string => {
+  const baseName = path.basename(name);
+  return baseName.replace(/[^a-zA-Z0-9._-]/g, "_");
+};
+
+export const buildLoadParcelRouter = (): Router => {
+  const router = Router();
+
+  router.post("/loadParcel/upload", (req: Request, res: Response): void => {
+    upload.single("file")(req, res, async (err) => {
+      if (err) {
+        console.error("Upload handler failed", err);
+        res.status(400).json({ error: "Unable to process the upload." });
+        return;
+      }
+
+      const file = req.file;
+      if (!file || file.size === 0) {
+        res.status(400).json({ error: "A file is required." });
+        return;
+      }
+
+      try {
+        await fs.mkdir(uploadsDir, { recursive: true });
+
+        const safeName = sanitizeFilename(file.originalname || "upload.bin");
+        const filename = `${Date.now()}-${safeName}`;
+        const filePath = path.join(uploadsDir, filename);
+
+        await fs.writeFile(filePath, file.buffer);
+
+        res.status(200).json({ ok: true, filename });
+      } catch (error) {
+        console.error("Upload handler failed", error);
+        res.status(500).json({ error: "Unable to save the upload." });
+      }
+    });
+  });
+
+  return router;
+};
