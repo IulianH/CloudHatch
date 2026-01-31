@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
-type UploadStatus = "idle" | "uploading" | "success" | "error";
+import { PreviewStep } from "./PreviewStep";
+import { UploadStep, type UploadStatus } from "./UploadStep";
+
 type Step = "upload" | "preview";
 
 export default function LoadParcelPage() {
@@ -11,7 +13,7 @@ export default function LoadParcelPage() {
   const [step, setStep] = useState<Step>("upload");
   const [filename, setFilename] = useState<string | null>(null);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage("");
 
@@ -70,69 +72,20 @@ export default function LoadParcelPage() {
           Start a new parcel workflow here.
         </p>
         {step === "upload" && (
-          <>
-            <form
-              className="flex flex-col items-center gap-4"
-              onSubmit={handleSubmit}
-            >
-              <input
-                name="file"
-                type="file"
-                className="block w-full max-w-md rounded border border-gray-200 px-3 py-2 text-sm"
-                disabled={status === "uploading"}
-              />
-              <button
-                type="submit"
-                className="rounded bg-blue-600 px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={status === "uploading"}
-              >
-                {status === "uploading" ? "Uploading..." : "Upload Parcel File"}
-              </button>
-            </form>
-            {message && (
-              <p
-                className={
-                  status === "error"
-                    ? "text-sm text-red-600"
-                    : "text-sm text-green-700"
-                }
-              >
-                {message}
-              </p>
-            )}
-            <button
-              type="button"
-              className="rounded border border-blue-600 px-5 py-2 text-sm font-semibold text-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={!canProceed}
-              onClick={() => setStep("preview")}
-            >
-              Next - Select parcel
-            </button>
-          </>
+          <UploadStep
+            status={status}
+            message={message}
+            canProceed={canProceed}
+            onSubmit={handleSubmit}
+            onNext={() => setStep("preview")}
+          />
         )}
         {step === "preview" && (
-          <>
-            {filename ? (
-              <div className="overflow-auto p-0">
-                <img
-                  src={previewUrl}
-                  alt="Uploaded parcel"
-                  className="block max-w-none h-auto rounded border border-gray-200"
-                />
-              </div>
-            ) : (
-              <p className="text-sm text-red-600">
-                Missing upload filename. Please go back and upload again.
-              </p>
-            )}
-            <button
-              type="button"
-              className="mt-4 rounded border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700"
-              onClick={() => setStep("upload")}
-            >
-              Back
-            </button>
-          </>
+          <PreviewStep
+            filename={filename}
+            previewUrl={previewUrl}
+            onBack={() => setStep("upload")}
+          />
         )}
       </div>
     </div>
