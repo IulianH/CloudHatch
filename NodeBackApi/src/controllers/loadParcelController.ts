@@ -46,5 +46,28 @@ export const buildLoadParcelRouter = (): Router => {
     });
   });
 
+  router.get(
+    "/loadParcel/uploads/:filename",
+    async (req: Request, res: Response): Promise<void> => {
+      const rawName = Array.isArray(req.params.filename)
+        ? req.params.filename[0] ?? ""
+        : req.params.filename ?? "";
+      const safeName = sanitizeFilename(rawName);
+
+      if (!safeName || safeName !== rawName) {
+        res.status(400).json({ error: "Invalid filename." });
+        return;
+      }
+
+      try {
+        const filePath = path.join(uploadsDir, safeName);
+        await fs.stat(filePath);
+        res.sendFile(safeName, { root: uploadsDir });
+      } catch (error) {
+        res.status(404).json({ error: "File not found." });
+      }
+    }
+  );
+
   return router;
 };
