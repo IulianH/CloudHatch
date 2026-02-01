@@ -4,6 +4,7 @@ import path from "node:path";
 import { Router, type Request, type Response } from "express";
 import multer from "multer";
 
+import { FindParcelService } from "../services/FindParcelService";
 const uploadsDir = "/shared/uploads";
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -71,7 +72,7 @@ export const buildLoadParcelRouter = (): Router => {
 
   router.post(
     "/loadParcel/confirm",
-    (req: Request, res: Response): void => {
+    async (req: Request, res: Response): Promise<void> => {
       const { filename, x, y } = req.body ?? {};
 
       if (typeof filename !== "string" || !Number.isFinite(x) || !Number.isFinite(y)) {
@@ -79,7 +80,22 @@ export const buildLoadParcelRouter = (): Router => {
         return;
       }
 
-      res.status(204).send();
+      const safeName = sanitizeFilename(filename);
+      if (!safeName || safeName !== filename) {
+        res.status(400).json({ error: "Invalid filename." });
+        return;
+      }
+
+      try {
+        const result = await FindParcelService.highlightParcel(safeName, x, y);
+        const outputUrl = `/api/backapi/loadParcel/uploads/${encodeURIComponent(
+          result.outputFilename
+        )}`;
+        res.status(200).json({ ...result, outputUrl });
+      } catch (error) {
+        console.error("Confirm handler failed", error);
+        res.status(500).json({ error: "Unable to run parcel highlight." });
+      }
     }
   );
 
