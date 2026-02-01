@@ -19,6 +19,7 @@ export default function LoadParcelPage() {
   const [step, setStep] = useState<Step>("upload");
   const [filename, setFilename] = useState<string | null>(null);
   const [coords, setCoords] = useState<{ x: number; y: number } | null>(null);
+  const [points, setPoints] = useState<Array<{ x: number; y: number }>>([]);
   const [processResult, setProcessResult] = useState<ProcessResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processError, setProcessError] = useState<string>("");
@@ -40,6 +41,7 @@ export default function LoadParcelPage() {
     setStatus("uploading");
     setFilename(null);
     setCoords(null);
+    setPoints([]);
     setProcessResult(null);
     setProcessError("");
     setIsProcessing(false);
@@ -80,6 +82,11 @@ export default function LoadParcelPage() {
 
   const handleCoordsChange = (nextCoords: { x: number; y: number }) => {
     setCoords(nextCoords);
+    setProcessError("");
+  };
+
+  const handlePointsChange = (nextPoints: Array<{ x: number; y: number }>) => {
+    setPoints(nextPoints);
     setProcessError("");
   };
 
@@ -138,7 +145,9 @@ export default function LoadParcelPage() {
             filename={filename}
             previewUrl={previewUrl}
             coords={coords}
+            points={points}
             onCoordsChange={handleCoordsChange}
+            onPointsChange={handlePointsChange}
             onBack={() => setStep("upload")}
             onNext={handleProcess}
             isProcessing={isProcessing}
