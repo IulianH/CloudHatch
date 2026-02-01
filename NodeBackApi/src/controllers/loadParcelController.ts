@@ -71,7 +71,7 @@ export const buildLoadParcelRouter = (): Router => {
   );
 
   router.post(
-    "/loadParcel/confirm",
+    "/loadParcel/process",
     async (req: Request, res: Response): Promise<void> => {
       const { filename, x, y } = req.body ?? {};
 

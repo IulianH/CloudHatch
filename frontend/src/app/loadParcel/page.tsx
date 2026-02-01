@@ -3,10 +3,15 @@
 import { useState, type FormEvent } from "react";
 
 import { ConfirmStep } from "./ConfirmStep";
-import { PreviewStep } from "./PreviewStep";
+import { SelectStep } from "./SelectStep";
 import { UploadStep, type UploadStatus } from "./UploadStep";
 
 type Step = "upload" | "preview" | "confirm";
+type ProcessResult = {
+  outputFilename?: string;
+  outputUrl?: string;
+  error?: string;
+};
 
 export default function LoadParcelPage() {
   const [status, setStatus] = useState<UploadStatus>("idle");
@@ -14,6 +19,9 @@ export default function LoadParcelPage() {
   const [step, setStep] = useState<Step>("upload");
   const [filename, setFilename] = useState<string | null>(null);
   const [coords, setCoords] = useState<{ x: number; y: number } | null>(null);
+  const [processResult, setProcessResult] = useState<ProcessResult | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processError, setProcessError] = useState<string>("");
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -32,6 +40,9 @@ export default function LoadParcelPage() {
     setStatus("uploading");
     setFilename(null);
     setCoords(null);
+    setProcessResult(null);
+    setProcessError("");
+    setIsProcessing(false);
 
     try {
       const response = await fetch("/api/backapi/loadParcel/upload", {
@@ -67,13 +78,20 @@ export default function LoadParcelPage() {
     ? `/api/backapi/loadParcel/uploads/${encodeURIComponent(filename)}`
     : "";
 
-  const handleConfirm = async () => {
+  const handleCoordsChange = (nextCoords: { x: number; y: number }) => {
+    setCoords(nextCoords);
+    setProcessError("");
+  };
+
+  const handleProcess = async () => {
     if (!filename || !coords) {
       return;
     }
 
     try {
-      await fetch("/api/backapi/loadParcel/confirm", {
+      setIsProcessing(true);
+      setProcessError("");
+      const response = await fetch("/api/backapi/loadParcel/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -82,8 +100,20 @@ export default function LoadParcelPage() {
           y: coords.y,
         }),
       });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        setProcessError(payload?.error ?? "Unable to process the parcel.");
+        return;
+      }
+
+      setProcessResult(payload ?? null);
+      setStep("confirm");
     } catch (error) {
       console.error("Confirm submission failed", error);
+      setProcessError("Unable to process the parcel.");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -104,21 +134,21 @@ export default function LoadParcelPage() {
           />
         )}
         {step === "preview" && (
-          <PreviewStep
+          <SelectStep
             filename={filename}
             previewUrl={previewUrl}
             coords={coords}
-            onCoordsChange={setCoords}
+            onCoordsChange={handleCoordsChange}
             onBack={() => setStep("upload")}
-            onNext={() => setStep("confirm")}
+            onNext={handleProcess}
+            isProcessing={isProcessing}
+            processError={processError}
           />
         )}
         {step === "confirm" && (
           <ConfirmStep
-            filename={filename}
-            coords={coords}
+            processResult={processResult}
             onBack={() => setStep("preview")}
-            onConfirm={handleConfirm}
           />
         )}
       </div>

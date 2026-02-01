@@ -2,23 +2,27 @@
 
 import { type MouseEvent } from "react";
 
-type PreviewStepProps = {
+type SelectStepProps = {
   filename: string | null;
   previewUrl: string;
   coords: { x: number; y: number } | null;
   onCoordsChange: (coords: { x: number; y: number }) => void;
   onBack: () => void;
   onNext: () => void;
+  isProcessing: boolean;
+  processError: string;
 };
 
-export const PreviewStep = ({
+export const SelectStep = ({
   filename,
   previewUrl,
   coords,
   onCoordsChange,
   onBack,
   onNext,
-}: PreviewStepProps) => {
+  isProcessing,
+  processError,
+}: SelectStepProps) => {
   const handleImageClick = (event: MouseEvent<HTMLImageElement>): void => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = Math.round(event.clientX - rect.left);
@@ -49,21 +53,30 @@ export const PreviewStep = ({
           Missing upload filename. Please go back and upload again.
         </p>
       )}
-      <button
-        type="button"
-        className="mt-4 rounded border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700"
-        onClick={onBack}
-      >
-        Back
-      </button>
-      <button
-        type="button"
-        className="ml-3 mt-4 rounded bg-blue-600 px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={!coords}
-        onClick={onNext}
-      >
-        Next - Confirm
-      </button>
+      <div className="mt-4 flex items-center justify-center gap-3">
+        <button
+          type="button"
+          className="rounded border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700"
+          onClick={onBack}
+          disabled={isProcessing}
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          className="rounded bg-blue-600 px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={!coords || isProcessing}
+          onClick={onNext}
+        >
+          Next - Confirm
+        </button>
+        {isProcessing ? (
+          <span className="text-sm text-gray-500">Loading…</span>
+        ) : null}
+      </div>
+      {processError ? (
+        <p className="mt-3 text-sm text-red-600">{processError}</p>
+      ) : null}
     </>
   );
 };

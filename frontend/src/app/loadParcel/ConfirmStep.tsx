@@ -1,51 +1,44 @@
 type ConfirmStepProps = {
-  filename: string | null;
-  coords: { x: number; y: number } | null;
+  processResult: {
+    outputFilename?: string;
+  } | null;
   onBack: () => void;
-  onConfirm: () => void;
 };
 
 export const ConfirmStep = ({
-  filename,
-  coords,
+  processResult,
   onBack,
-  onConfirm,
-}: ConfirmStepProps) => (
-  <>
-    {filename && coords ? (
-      <div className="space-y-2 text-sm text-gray-700">
-        <p>Ready to submit the parcel selection?</p>
-        <p className="font-medium">
-          File: <span className="font-normal">{filename}</span>
-        </p>
-        <p className="font-medium">
-          Coordinates:{" "}
-          <span className="font-normal">
-            ({coords.x}, {coords.y})
-          </span>
-        </p>
+}: ConfirmStepProps) => {
+  const outputFilename = processResult?.outputFilename;
+  const outputUrl = outputFilename
+    ? `/api/backapi/loadParcel/uploads/${encodeURIComponent(outputFilename)}`
+    : "";
+
+  return (
+    <>
+      {outputFilename ? (
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">
+            Parcel highlight result:
+          </p>
+          <img
+            src={outputUrl}
+            alt="Highlighted parcel result"
+            className="block max-w-full h-auto rounded border border-gray-200"
+          />
+        </div>
+      ) : (
+        <p className="text-sm text-red-600">Parcel could not be found.</p>
+      )}
+      <div className="mt-4 flex items-center justify-center">
+        <button
+          type="button"
+          className="rounded border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700"
+          onClick={onBack}
+        >
+          Back
+        </button>
       </div>
-    ) : (
-      <p className="text-sm text-red-600">
-        Missing parcel selection. Please go back and select a location.
-      </p>
-    )}
-    <div className="mt-4 flex items-center justify-center gap-3">
-      <button
-        type="button"
-        className="rounded border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700"
-        onClick={onBack}
-      >
-        Back
-      </button>
-      <button
-        type="button"
-        className="rounded bg-green-600 px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={!filename || !coords}
-        onClick={onConfirm}
-      >
-        Confirm
-      </button>
-    </div>
-  </>
-);
+    </>
+  );
+};
