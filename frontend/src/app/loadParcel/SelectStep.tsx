@@ -40,6 +40,7 @@ export const SelectStep = ({
   const [isPanning, setIsPanning] = useState(false);
   const [zoomScale, setZoomScale] = useState(1);
   const [isCloseToFirstPoint, setIsCloseToFirstPoint] = useState(false);
+  const [validationError, setValidationError] = useState("");
 
   const minZoom = 0.5;
   const maxZoom = 3;
@@ -113,6 +114,9 @@ export const SelectStep = ({
 
     onCoordsChange(nextPoint);
     onPointsChange([...points, nextPoint]);
+    if (validationError) {
+      setValidationError("");
+    }
   };
 
   const handleImageMove = (event: MouseEvent<HTMLImageElement>): void => {
@@ -147,6 +151,103 @@ export const SelectStep = ({
     const nextPoints = points.slice(0, -1);
     onPointsChange(nextPoints);
     onCoordsChange(nextPoints.length > 0 ? nextPoints[nextPoints.length - 1] : null);
+    if (validationError) {
+      setValidationError("");
+    }
+  };
+
+  const hasNonZeroArea = (polygonPoints: Array<{ x: number; y: number }>) => {
+    let sum = 0;
+    for (let i = 0; i < polygonPoints.length; i += 1) {
+      const nextIndex = (i + 1) % polygonPoints.length;
+      const current = polygonPoints[i];
+      const next = polygonPoints[nextIndex];
+      sum += current.x * next.y - next.x * current.y;
+    }
+    return Math.abs(sum) > 0;
+  };
+
+  const segmentsIntersect = (
+    a1: { x: number; y: number },
+    a2: { x: number; y: number },
+    b1: { x: number; y: number },
+    b2: { x: number; y: number }
+  ) => {
+    const cross = (p: { x: number; y: number }, q: { x: number; y: number }, r: { x: number; y: number }) =>
+      (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+
+    const onSegment = (p: { x: number; y: number }, q: { x: number; y: number }, r: { x: number; y: number }) =>
+      Math.min(p.x, r.x) <= q.x &&
+      q.x <= Math.max(p.x, r.x) &&
+      Math.min(p.y, r.y) <= q.y &&
+      q.y <= Math.max(p.y, r.y);
+
+    const d1 = cross(a1, a2, b1);
+    const d2 = cross(a1, a2, b2);
+    const d3 = cross(b1, b2, a1);
+    const d4 = cross(b1, b2, a2);
+
+    if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
+      return true;
+    }
+
+    if (d1 === 0 && onSegment(a1, b1, a2)) return true;
+    if (d2 === 0 && onSegment(a1, b2, a2)) return true;
+    if (d3 === 0 && onSegment(b1, a1, b2)) return true;
+    if (d4 === 0 && onSegment(b1, a2, b2)) return true;
+
+    return false;
+  };
+
+  const isSimplePolygon = (polygonPoints: Array<{ x: number; y: number }>) => {
+    const total = polygonPoints.length;
+    for (let i = 0; i < total; i += 1) {
+      const a1 = polygonPoints[i];
+      const a2 = polygonPoints[(i + 1) % total];
+      for (let j = i + 1; j < total; j += 1) {
+        const b1 = polygonPoints[j];
+        const b2 = polygonPoints[(j + 1) % total];
+        if (i === j) continue;
+        if ((i + 1) % total === j) continue;
+        if (i === (j + 1) % total) continue;
+        if (segmentsIntersect(a1, a2, b1, b2)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
+  const isValidPolygon = () => {
+    if (points.length < 4) {
+      return false;
+    }
+    const firstPoint = points[0];
+    const lastPoint = points[points.length - 1];
+    if (!firstPoint || !lastPoint) {
+      return false;
+    }
+    if (firstPoint.x !== lastPoint.x || firstPoint.y !== lastPoint.y) {
+      return false;
+    }
+
+    const polygonPoints = points.slice(0, -1);
+    if (polygonPoints.length < 3) {
+      return false;
+    }
+
+    return hasNonZeroArea(polygonPoints) && isSimplePolygon(polygonPoints);
+  };
+
+  const handleNext = () => {
+    if (!isValidPolygon()) {
+      setValidationError("Selectia nu reprezinta o parcela valida.");
+      return;
+    }
+    if (validationError) {
+      setValidationError("");
+    }
+    onNext();
   };
 
   const handleZoomIn = (): void => {
@@ -341,16 +442,19 @@ export const SelectStep = ({
           type="button"
           className="rounded bg-blue-600 px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
           disabled={!coords || isProcessing}
-          onClick={onNext}
+          onClick={handleNext}
         >
           Next - Confirm
         </button>
+        {validationError ? (
+          <span className="text-sm text-red-600">{validationError}</span>
+        ) : null}
         {isProcessing ? (
           <span className="text-sm text-gray-500">Loading…</span>
         ) : null}
       </div>
       {processError ? (
-        <p className="mt-3 text-sm text-red-600">{processError}</p>
+        <p className="mt-2 text-sm text-red-600">{processError}</p>
       ) : null}
     </>
   );
