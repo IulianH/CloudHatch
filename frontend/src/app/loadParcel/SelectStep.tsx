@@ -206,8 +206,8 @@ export const SelectStep = ({
     <>
       {filename ? (
         <>
-          <p className="text-gray-600">Mouse Click + drag pentru a paniza imaginea.</p>
-          <p className="text-gray-600">Ctr + Mouse click pentru a trasa o poligonul parcelei.</p>
+          <p className="text-gray-600"><strong>Mouse Down+Drag pentru a deplasa imaginea.</strong></p>
+          <p className="text-gray-600"><strong>Ctr+Mouse Click pentru a trasa o poligonul parcelei.</strong></p>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
