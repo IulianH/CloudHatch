@@ -143,7 +143,7 @@ export const SelectStep = ({
           Click si drag pentru a paniza imaginea.
           </p>
           <p className="text-gray-600">
-          Ctr + click si drag pentru a trasa o linie.
+          Ctr + click pentru a trasa o poligonul parcelei.
           </p>
         
           <div
