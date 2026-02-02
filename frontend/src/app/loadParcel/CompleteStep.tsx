@@ -51,8 +51,6 @@ export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [potValue, setPotValue] = useState("100");
-  const [potError, setPotError] = useState("");
-  const [showResult, setShowResult] = useState(false);
 
   useEffect(() => {
     const image = imageRef.current;
@@ -77,7 +75,7 @@ export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
     observer.observe(image);
 
     return () => observer.disconnect();
-  }, [previewUrl, showResult]);
+  }, [previewUrl]);
 
   const polygonPoints = useMemo(() => {
     if (points.length === 0) {
@@ -111,8 +109,7 @@ export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
   const handlePotChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextValue = event.currentTarget.value;
     if (nextValue === "") {
-      setPotValue("");
-      setPotError("");
+      setPotValue("1");
       return;
     }
 
@@ -121,38 +118,8 @@ export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
       return;
     }
 
-    if (numericValue > 100) {
-      setPotValue("100");
-      setPotError("");
-      return;
-    }
-
-    if (numericValue < 0) {
-      return;
-    }
-
-    setPotValue(nextValue);
-    if (potError) {
-      setPotError("");
-    }
-  };
-
-  const handleSubmit = () => {
-    const numericValue = Number(potValue);
-    if (!Number.isFinite(numericValue) || numericValue <= 0 || numericValue > 100) {
-      setPotError("POT trebuie sa fie intre 1 si 100");
-      setShowResult(false);
-      return;
-    }
-
-    if (polygonPoints.length < 3) {
-      setPotError("Poligon invalid");
-      setShowResult(false);
-      return;
-    }
-
-    setPotError("");
-    setShowResult(true);
+    const clampedValue = clampPotValue(numericValue);
+    setPotValue(String(clampedValue));
   };
 
   return (
@@ -170,51 +137,41 @@ export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
             className="mt-1 w-28 rounded border border-gray-300 px-3 py-2 text-sm"
           />
         </label>
-        <button
-          type="button"
-          className="rounded bg-blue-600 px-5 py-2 text-sm font-semibold text-white"
-          onClick={handleSubmit}
-        >
-          Submit
-        </button>
-        {potError ? <span className="text-sm text-red-600">{potError}</span> : null}
       </div>
 
-      {showResult ? (
-        <div className="max-h-[70vh] max-w-full overflow-auto rounded border border-gray-200 p-2">
-          <div className="relative inline-block">
-            <img
-              ref={imageRef}
-              src={previewUrl}
-              alt="Uploaded parcel"
-              className="block max-w-none h-auto rounded border border-gray-200"
-            />
-            {imageSize.width > 0 && imageSize.height > 0 && scaledPolygon.length > 1 ? (
-              <svg
-                className="pointer-events-none absolute left-0 top-0"
-                width={imageSize.width}
-                height={imageSize.height}
-                viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
-              >
-                {scaledPolygon.slice(1).map((point: Point, index: number) => {
-                  const previous = scaledPolygon[index];
-                  return (
-                    <line
-                      key={`${previous.x}-${previous.y}-${point.x}-${point.y}`}
-                      x1={previous.x}
-                      y1={previous.y}
-                      x2={point.x}
-                      y2={point.y}
-                      stroke="#ef4444"
-                      strokeWidth={3}
-                    />
-                  );
-                })}
-              </svg>
-            ) : null}
-          </div>
+      <div className="max-h-[70vh] max-w-full overflow-auto rounded border border-gray-200 p-2">
+        <div className="relative inline-block">
+          <img
+            ref={imageRef}
+            src={previewUrl}
+            alt="Uploaded parcel"
+            className="block max-w-none h-auto rounded border border-gray-200"
+          />
+          {imageSize.width > 0 && imageSize.height > 0 && scaledPolygon.length > 1 ? (
+            <svg
+              className="pointer-events-none absolute left-0 top-0"
+              width={imageSize.width}
+              height={imageSize.height}
+              viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
+            >
+              {scaledPolygon.slice(1).map((point: Point, index: number) => {
+                const previous = scaledPolygon[index];
+                return (
+                  <line
+                    key={`${previous.x}-${previous.y}-${point.x}-${point.y}`}
+                    x1={previous.x}
+                    y1={previous.y}
+                    x2={point.x}
+                    y2={point.y}
+                    stroke="#ef4444"
+                    strokeWidth={3}
+                  />
+                );
+              })}
+            </svg>
+          ) : null}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 };
