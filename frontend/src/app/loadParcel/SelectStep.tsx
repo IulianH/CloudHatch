@@ -38,6 +38,11 @@ export const SelectStep = ({
   });
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [isPanning, setIsPanning] = useState(false);
+  const [zoomScale, setZoomScale] = useState(1);
+
+  const minZoom = 0.5;
+  const maxZoom = 3;
+  const zoomStep = 0.25;
 
   useEffect(() => {
     const image = imageRef.current;
@@ -84,8 +89,8 @@ export const SelectStep = ({
       return;
     }
     const rect = event.currentTarget.getBoundingClientRect();
-    const x = Math.round(event.clientX - rect.left);
-    const y = Math.round(event.clientY - rect.top);
+    const x = Math.round((event.clientX - rect.left) / zoomScale);
+    const y = Math.round((event.clientY - rect.top) / zoomScale);
     onCoordsChange({ x, y });
     onPointsChange([...points, { x, y }]);
   };
@@ -98,6 +103,14 @@ export const SelectStep = ({
     const nextPoints = points.slice(0, -1);
     onPointsChange(nextPoints);
     onCoordsChange(nextPoints.length > 0 ? nextPoints[nextPoints.length - 1] : null);
+  };
+
+  const handleZoomIn = (): void => {
+    setZoomScale((current: number) => Math.min(maxZoom, current + zoomStep));
+  };
+
+  const handleZoomOut = (): void => {
+    setZoomScale((current: number) => Math.max(minZoom, current - zoomStep));
   };
 
   const handlePanStart = (event: MouseEvent<HTMLDivElement>): void => {
@@ -151,7 +164,7 @@ export const SelectStep = ({
         <>
           <p className="text-gray-600">Click si drag pentru a paniza imaginea.</p>
           <p className="text-gray-600">Ctr + click pentru a trasa o poligonul parcelei.</p>
-          <div className="mt-2 flex items-center justify-center gap-3">
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
               className="inline-flex items-center gap-1 rounded border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
@@ -172,6 +185,22 @@ export const SelectStep = ({
               </svg>
               <span>Undo</span>
             </button>
+            <button
+              type="button"
+              className="rounded border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleZoomOut}
+              disabled={zoomScale <= minZoom}
+            >
+              Zoom -
+            </button>
+            <button
+              type="button"
+              className="rounded border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleZoomIn}
+              disabled={zoomScale >= maxZoom}
+            >
+              Zoom +
+            </button>
           </div>
           <div
             ref={scrollContainerRef}
@@ -183,7 +212,10 @@ export const SelectStep = ({
             onMouseUp={handlePanEnd}
             onMouseLeave={handlePanEnd}
           >
-            <div className="relative inline-block">
+            <div
+              className="relative inline-block"
+              style={{ transform: `scale(${zoomScale})`, transformOrigin: "top left" }}
+            >
               <img
                 ref={imageRef}
                 src={previewUrl}
