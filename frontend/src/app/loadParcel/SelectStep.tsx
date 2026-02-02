@@ -154,11 +154,23 @@ export const SelectStep = ({
           <div className="mt-2 flex items-center justify-center gap-3">
             <button
               type="button"
-              className="rounded border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-1 rounded border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
               onClick={handleUndo}
               disabled={points.length === 0}
             >
-              Undo
+              <svg
+                aria-hidden="true"
+                className="h-3 w-3"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M7.707 4.293a1 1 0 0 1 0 1.414L6.414 7H12a5 5 0 1 1 0 10h-2a1 1 0 1 1 0-2h2a3 3 0 1 0 0-6H6.414l1.293 1.293a1 1 0 1 1-1.414 1.414l-3-3a1 1 0 0 1 0-1.414l3-3a1 1 0 0 1 1.414 0Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>Undo</span>
             </button>
           </div>
           <div
