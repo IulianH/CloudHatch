@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 
 import { ConfirmStep } from "./ConfirmStep";
 import { SelectStep } from "./SelectStep";
@@ -17,68 +17,47 @@ export default function LoadParcelPage() {
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [message, setMessage] = useState<string>("");
   const [step, setStep] = useState<Step>("upload");
-  const [filename, setFilename] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [coords, setCoords] = useState<{ x: number; y: number } | null>(null);
   const [points, setPoints] = useState<Array<{ x: number; y: number }>>([]);
   const [processResult, setProcessResult] = useState<ProcessResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processError, setProcessError] = useState<string>("");
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setMessage("");
-
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const file = formData.get("file");
-
-    if (!(file instanceof File) || file.size === 0) {
-      setStatus("error");
-      setMessage("Please choose a file to upload.");
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl("");
       return;
     }
 
-    setStatus("uploading");
-    setFilename(null);
+    const objectUrl = URL.createObjectURL(selectedFile);
+    setPreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedFile]);
+
+  const handleFileChange = (file: File | null) => {
+    setSelectedFile(file);
     setCoords(null);
     setPoints([]);
     setProcessResult(null);
     setProcessError("");
     setIsProcessing(false);
 
-    try {
-      const response = await fetch("/api/backapi/loadParcel/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        setStatus("error");
-        setMessage(payload?.error ?? "Upload failed. Please try again.");
-        return;
-      }
-
-      setStatus("success");
-      setFilename(payload?.filename ?? null);
-      setMessage(
-        payload?.filename
-          ? `Upload complete: ${payload.filename}`
-          : "Upload complete."
-      );
-      form.reset();
-    } catch (error) {
-      console.error("Upload failed", error);
-      setStatus("error");
-      setMessage("Upload failed. Please try again.");
+    if (!file) {
+      setStatus("idle");
+      setMessage("");
+      return;
     }
+
+    setStatus("success");
+    setMessage(`Selected file: ${file.name}`);
   };
 
-  const canProceed = status === "success" && Boolean(filename);
-  const previewUrl = filename
-    ? `/api/backapi/loadParcel/uploads/${encodeURIComponent(filename)}`
-    : "";
+  const canProceed = Boolean(selectedFile);
 
   const handleCoordsChange = (nextCoords: { x: number; y: number }) => {
     setCoords(nextCoords);
@@ -91,7 +70,7 @@ export default function LoadParcelPage() {
   };
 
   const handleProcess = async () => {
-    if (!filename || !coords) {
+    if (!selectedFile || !coords) {
       return;
     }
 
@@ -102,7 +81,7 @@ export default function LoadParcelPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          filename,
+          filename: selectedFile.name,
           x: coords.x,
           y: coords.y,
         }),
@@ -136,19 +115,24 @@ export default function LoadParcelPage() {
             status={status}
             message={message}
             canProceed={canProceed}
-            onSubmit={handleSubmit}
+            onFileChange={handleFileChange}
             onNext={() => setStep("preview")}
           />
         )}
         {step === "preview" && (
           <SelectStep
-            filename={filename}
+            filename={selectedFile?.name ?? null}
             previewUrl={previewUrl}
             coords={coords}
             points={points}
             onCoordsChange={handleCoordsChange}
             onPointsChange={handlePointsChange}
-            onBack={() => setStep("upload")}
+            onBack={() => {
+              setStep("upload");
+              setSelectedFile(null);
+              setStatus("idle");
+              setMessage("");
+            }}
             onNext={handleProcess}
             isProcessing={isProcessing}
             processError={processError}
