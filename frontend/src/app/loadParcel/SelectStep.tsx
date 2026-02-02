@@ -43,6 +43,8 @@ export const SelectStep = ({
   const minZoom = 0.5;
   const maxZoom = 3;
   const zoomStep = 0.25;
+  const snapRadius = 8;
+  const snapRadiusSquared = snapRadius * snapRadius;
 
   useEffect(() => {
     const image = imageRef.current;
@@ -91,8 +93,25 @@ export const SelectStep = ({
     const rect = event.currentTarget.getBoundingClientRect();
     const x = Math.round((event.clientX - rect.left) / zoomScale);
     const y = Math.round((event.clientY - rect.top) / zoomScale);
-    onCoordsChange({ x, y });
-    onPointsChange([...points, { x, y }]);
+    let snappedPoint: { x: number; y: number } | null = null;
+    const firstPoint = points[0];
+    if (firstPoint) {
+      const dx = firstPoint.x - x;
+      const dy = firstPoint.y - y;
+      const distanceSquared = dx * dx + dy * dy;
+      if (distanceSquared <= snapRadiusSquared) {
+        snappedPoint = firstPoint;
+      }
+    }
+
+    const nextPoint = snappedPoint ?? { x, y };
+    const lastPoint = points[points.length - 1];
+    if (lastPoint && lastPoint.x === nextPoint.x && lastPoint.y === nextPoint.y) {
+      return;
+    }
+
+    onCoordsChange(nextPoint);
+    onPointsChange([...points, nextPoint]);
   };
 
   const handleUndo = (): void => {
@@ -162,8 +181,8 @@ export const SelectStep = ({
     <>
       {filename ? (
         <>
-          <p className="text-gray-600">Click si drag pentru a paniza imaginea.</p>
-          <p className="text-gray-600">Ctr + click pentru a trasa o poligonul parcelei.</p>
+          <p className="text-gray-600">Mouse Click + drag pentru a paniza imaginea.</p>
+          <p className="text-gray-600">Ctr + Mouse click pentru a trasa o poligonul parcelei.</p>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"
