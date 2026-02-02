@@ -180,7 +180,7 @@ export const SelectStep = ({
                   height={imageSize.height}
                   viewBox={`0 0 ${imageSize.width} ${imageSize.height}`}
                 >
-                  {points.length > 0 ? (
+                  {points.length === 1 ? (
                     <circle
                       cx={points[0].x}
                       cy={points[0].y}
