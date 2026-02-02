@@ -2,17 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-import { ConfirmStep } from "./ConfirmStep";
+import { CompleteStep } from "./CompleteStep";
 import { SelectStep } from "./SelectStep";
 import { UploadStep, type UploadStatus } from "./UploadStep";
 
 type Step = "upload" | "preview" | "confirm";
-type ProcessResult = {
-  outputFilename?: string;
-  outputUrl?: string;
-  error?: string;
-};
-
 export default function LoadParcelPage() {
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [message, setMessage] = useState<string>("");
@@ -21,9 +15,6 @@ export default function LoadParcelPage() {
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [coords, setCoords] = useState<{ x: number; y: number } | null>(null);
   const [points, setPoints] = useState<Array<{ x: number; y: number }>>([]);
-  const [processResult, setProcessResult] = useState<ProcessResult | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processError, setProcessError] = useState<string>("");
 
   useEffect(() => {
     if (!selectedFile) {
@@ -43,9 +34,6 @@ export default function LoadParcelPage() {
     setSelectedFile(file);
     setCoords(null);
     setPoints([]);
-    setProcessResult(null);
-    setProcessError("");
-    setIsProcessing(false);
 
     if (!file) {
       setStatus("idle");
@@ -61,46 +49,10 @@ export default function LoadParcelPage() {
 
   const handleCoordsChange = (nextCoords: { x: number; y: number } | null) => {
     setCoords(nextCoords);
-    setProcessError("");
   };
 
   const handlePointsChange = (nextPoints: Array<{ x: number; y: number }>) => {
     setPoints(nextPoints);
-    setProcessError("");
-  };
-
-  const handleProcess = async () => {
-    if (!selectedFile || !coords) {
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      setProcessError("");
-      const response = await fetch("/api/backapi/loadParcel/process", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: selectedFile.name,
-          x: coords.x,
-          y: coords.y,
-        }),
-      });
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        setProcessError(payload?.error ?? "Unable to process the parcel.");
-        return;
-      }
-
-      setProcessResult(payload ?? null);
-      setStep("confirm");
-    } catch (error) {
-      console.error("Confirm submission failed", error);
-      setProcessError("Unable to process the parcel.");
-    } finally {
-      setIsProcessing(false);
-    }
   };
 
   return (
@@ -129,17 +81,10 @@ export default function LoadParcelPage() {
               setStatus("idle");
               setMessage("");
             }}
-            onNext={handleProcess}
-            isProcessing={isProcessing}
-            processError={processError}
+            onNext={() => setStep("confirm")}
           />
         )}
-        {step === "confirm" && (
-          <ConfirmStep
-            processResult={processResult}
-            onBack={() => setStep("preview")}
-          />
-        )}
+        {step === "confirm" && <CompleteStep points={points} previewUrl={previewUrl} />}
       </div>
     </div>
   );

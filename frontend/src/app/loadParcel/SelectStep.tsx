@@ -11,8 +11,6 @@ type SelectStepProps = {
   onPointsChange: (points: Array<{ x: number; y: number }>) => void;
   onBack: () => void;
   onNext: () => void;
-  isProcessing: boolean;
-  processError: string;
 };
 
 export const SelectStep = ({
@@ -24,8 +22,6 @@ export const SelectStep = ({
   onPointsChange,
   onBack,
   onNext,
-  isProcessing,
-  processError,
 }: SelectStepProps) => {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -434,14 +430,13 @@ export const SelectStep = ({
           type="button"
           className="rounded border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700"
           onClick={onBack}
-          disabled={isProcessing}
         >
           Back
         </button>
         <button
           type="button"
           className="rounded bg-blue-600 px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={!coords || isProcessing}
+          disabled={!coords}
           onClick={handleNext}
         >
           Next - Confirm
@@ -449,13 +444,7 @@ export const SelectStep = ({
         {validationError ? (
           <span className="text-sm text-red-600">{validationError}</span>
         ) : null}
-        {isProcessing ? (
-          <span className="text-sm text-gray-500">Loading…</span>
-        ) : null}
       </div>
-      {processError ? (
-        <p className="mt-2 text-sm text-red-600">{processError}</p>
-      ) : null}
     </>
   );
 };
