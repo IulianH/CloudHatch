@@ -72,7 +72,7 @@ export const SelectStep = ({
               ? `Coordinates: (${coords.x}, ${coords.y})`
               : "Click the image to get coordinates."}
           </p>
-          <div className="overflow-auto p-0">
+          <div className="max-h-[70vh] max-w-full overflow-auto p-0">
             <div className="relative inline-block">
               <img
                 ref={imageRef}
@@ -115,7 +115,7 @@ export const SelectStep = ({
                         x2={point.x}
                         y2={point.y}
                         stroke="#ef4444"
-                        strokeWidth={2}
+                        strokeWidth={5}
                       />
                     );
                   })}
