@@ -59,7 +59,7 @@ export default function LoadParcelPage() {
 
   const canProceed = Boolean(selectedFile);
 
-  const handleCoordsChange = (nextCoords: { x: number; y: number }) => {
+  const handleCoordsChange = (nextCoords: { x: number; y: number } | null) => {
     setCoords(nextCoords);
     setProcessError("");
   };

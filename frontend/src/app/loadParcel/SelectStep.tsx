@@ -7,7 +7,7 @@ type SelectStepProps = {
   previewUrl: string;
   coords: { x: number; y: number } | null;
   points: Array<{ x: number; y: number }>;
-  onCoordsChange: (coords: { x: number; y: number }) => void;
+  onCoordsChange: (coords: { x: number; y: number } | null) => void;
   onPointsChange: (points: Array<{ x: number; y: number }>) => void;
   onBack: () => void;
   onNext: () => void;
@@ -90,6 +90,16 @@ export const SelectStep = ({
     onPointsChange([...points, { x, y }]);
   };
 
+  const handleUndo = (): void => {
+    if (points.length === 0) {
+      return;
+    }
+
+    const nextPoints = points.slice(0, -1);
+    onPointsChange(nextPoints);
+    onCoordsChange(nextPoints.length > 0 ? nextPoints[nextPoints.length - 1] : null);
+  };
+
   const handlePanStart = (event: MouseEvent<HTMLDivElement>): void => {
     if (event.ctrlKey) {
       return;
@@ -139,13 +149,18 @@ export const SelectStep = ({
     <>
       {filename ? (
         <>
-         <p className="text-gray-600">
-          Click si drag pentru a paniza imaginea.
-          </p>
-          <p className="text-gray-600">
-          Ctr + click pentru a trasa o poligonul parcelei.
-          </p>
-        
+          <p className="text-gray-600">Click si drag pentru a paniza imaginea.</p>
+          <p className="text-gray-600">Ctr + click pentru a trasa o poligonul parcelei.</p>
+          <div className="mt-2 flex items-center justify-center gap-3">
+            <button
+              type="button"
+              className="rounded border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+              onClick={handleUndo}
+              disabled={points.length === 0}
+            >
+              Undo
+            </button>
+          </div>
           <div
             ref={scrollContainerRef}
             className={`max-h-[70vh] max-w-full overflow-auto rounded border border-gray-200 p-2 ${
