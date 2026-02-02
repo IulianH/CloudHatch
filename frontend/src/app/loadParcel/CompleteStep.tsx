@@ -122,6 +122,56 @@ export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
     setPotValue(String(clampedValue));
   };
 
+  const handleDownload = async () => {
+    const image = imageRef.current;
+    if (!image || scaledPolygon.length < 2) {
+      return;
+    }
+
+    if (imageSize.width === 0 || imageSize.height === 0) {
+      return;
+    }
+
+    if (image.complete === false) {
+      try {
+        await image.decode();
+      } catch {
+        return;
+      }
+    }
+
+    const naturalWidth = image.naturalWidth || imageSize.width;
+    const naturalHeight = image.naturalHeight || imageSize.height;
+    const scaleX = naturalWidth / imageSize.width;
+    const scaleY = naturalHeight / imageSize.height;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = naturalWidth;
+    canvas.height = naturalHeight;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return;
+    }
+
+    context.drawImage(image, 0, 0, naturalWidth, naturalHeight);
+    context.strokeStyle = "#ef4444";
+    context.lineWidth = 3 * Math.max(scaleX, scaleY);
+
+    context.beginPath();
+    const start = scaledPolygon[0];
+    context.moveTo(start.x * scaleX, start.y * scaleY);
+    for (let i = 1; i < scaledPolygon.length; i += 1) {
+      const point = scaledPolygon[i];
+      context.lineTo(point.x * scaleX, point.y * scaleY);
+    }
+    context.stroke();
+
+    const link = document.createElement("a");
+    link.download = "parcel-polygon.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  };
+
   return (
     <div className="space-y-4 text-center">
       <div className="flex flex-wrap items-end justify-center gap-4">
@@ -137,6 +187,14 @@ export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
             className="mt-1 w-28 rounded border border-gray-300 px-3 py-2 text-sm"
           />
         </label>
+        <button
+          type="button"
+          className="rounded border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={handleDownload}
+          disabled={scaledPolygon.length < 2 || imageSize.width === 0}
+        >
+          Download
+        </button>
       </div>
 
       <div className="max-h-[70vh] max-w-full overflow-auto rounded border border-gray-200 p-2">
