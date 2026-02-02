@@ -106,10 +106,6 @@ export default function LoadParcelPage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full space-y-6 text-center">
-        <h1 className="text-3xl font-semibold">Load Parcel</h1>
-        <p className="text-gray-600">
-          Start a new parcel workflow here.
-        </p>
         {step === "upload" && (
           <UploadStep
             status={status}

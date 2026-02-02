@@ -80,7 +80,7 @@ export const SelectStep = ({
   }, []);
 
   const handleImageClick = (event: MouseEvent<HTMLImageElement>): void => {
-    if (event.ctrlKey || panStateRef.current.isActive) {
+    if (!event.ctrlKey || panStateRef.current.isActive) {
       return;
     }
     const rect = event.currentTarget.getBoundingClientRect();
@@ -91,7 +91,7 @@ export const SelectStep = ({
   };
 
   const handlePanStart = (event: MouseEvent<HTMLDivElement>): void => {
-    if (!event.ctrlKey) {
+    if (event.ctrlKey) {
       return;
     }
 
@@ -139,11 +139,13 @@ export const SelectStep = ({
     <>
       {filename ? (
         <>
-          <p className="text-sm text-gray-600">
-            {coords
-              ? `Coordinates: (${coords.x}, ${coords.y})`
-              : "Click the image to get coordinates."}
+         <p className="text-gray-600">
+          Click si drag pentru a paniza imaginea.
           </p>
+          <p className="text-gray-600">
+          Ctr + click si drag pentru a trasa o linie.
+          </p>
+        
           <div
             ref={scrollContainerRef}
             className={`max-h-[70vh] max-w-full overflow-auto rounded border border-gray-200 p-2 ${
@@ -196,7 +198,7 @@ export const SelectStep = ({
                         x2={point.x}
                         y2={point.y}
                         stroke="#ef4444"
-                        strokeWidth={5}
+                        strokeWidth={3}
                       />
                     );
                   })}
