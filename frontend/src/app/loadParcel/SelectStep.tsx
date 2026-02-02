@@ -39,6 +39,7 @@ export const SelectStep = ({
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [zoomScale, setZoomScale] = useState(1);
+  const [isCloseToFirstPoint, setIsCloseToFirstPoint] = useState(false);
 
   const minZoom = 0.5;
   const maxZoom = 3;
@@ -112,6 +113,30 @@ export const SelectStep = ({
 
     onCoordsChange(nextPoint);
     onPointsChange([...points, nextPoint]);
+  };
+
+  const handleImageMove = (event: MouseEvent<HTMLImageElement>): void => {
+    if (!event.ctrlKey || points.length === 0) {
+      if (isCloseToFirstPoint) {
+        setIsCloseToFirstPoint(false);
+      }
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = Math.round((event.clientX - rect.left) / zoomScale);
+    const y = Math.round((event.clientY - rect.top) / zoomScale);
+    const firstPoint = points[0];
+    const dx = firstPoint.x - x;
+    const dy = firstPoint.y - y;
+    const distanceSquared = dx * dx + dy * dy;
+    setIsCloseToFirstPoint(distanceSquared <= snapRadiusSquared);
+  };
+
+  const handleImageLeave = (): void => {
+    if (isCloseToFirstPoint) {
+      setIsCloseToFirstPoint(false);
+    }
   };
 
   const handleUndo = (): void => {
@@ -241,6 +266,8 @@ export const SelectStep = ({
                 alt="Uploaded parcel"
                 className="block max-w-none h-auto rounded border border-gray-200"
                 onClick={handleImageClick}
+                onMouseMove={handleImageMove}
+                onMouseLeave={handleImageLeave}
                 onLoad={() => {
                   const image = imageRef.current;
                   if (image) {
@@ -280,6 +307,17 @@ export const SelectStep = ({
                       />
                     );
                   })}
+                  {isCloseToFirstPoint && points.length > 0 ? (
+                    <circle
+                      cx={points[0].x}
+                      cy={points[0].y}
+                      r={10}
+                      fill="none"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      strokeDasharray="4 3"
+                    />
+                  ) : null}
                 </svg>
               ) : null}
             </div>
