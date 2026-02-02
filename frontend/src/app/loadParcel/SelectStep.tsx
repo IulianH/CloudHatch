@@ -28,7 +28,16 @@ export const SelectStep = ({
   processError,
 }: SelectStepProps) => {
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const panStateRef = useRef({
+    isActive: false,
+    startX: 0,
+    startY: 0,
+    scrollLeft: 0,
+    scrollTop: 0,
+  });
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [isPanning, setIsPanning] = useState(false);
 
   useEffect(() => {
     const image = imageRef.current;
@@ -55,12 +64,75 @@ export const SelectStep = ({
     return () => observer.disconnect();
   }, [previewUrl]);
 
+  useEffect(() => {
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.key === "Control") {
+        setIsPanning(false);
+        panStateRef.current.isActive = false;
+      }
+    };
+
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
   const handleImageClick = (event: MouseEvent<HTMLImageElement>): void => {
+    if (event.ctrlKey || panStateRef.current.isActive) {
+      return;
+    }
     const rect = event.currentTarget.getBoundingClientRect();
     const x = Math.round(event.clientX - rect.left);
     const y = Math.round(event.clientY - rect.top);
     onCoordsChange({ x, y });
     onPointsChange([...points, { x, y }]);
+  };
+
+  const handlePanStart = (event: MouseEvent<HTMLDivElement>): void => {
+    if (!event.ctrlKey) {
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    panStateRef.current = {
+      isActive: true,
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: container.scrollLeft,
+      scrollTop: container.scrollTop,
+    };
+    setIsPanning(true);
+    event.preventDefault();
+  };
+
+  const handlePanMove = (event: MouseEvent<HTMLDivElement>): void => {
+    if (!panStateRef.current.isActive) {
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const deltaX = event.clientX - panStateRef.current.startX;
+    const deltaY = event.clientY - panStateRef.current.startY;
+    container.scrollLeft = panStateRef.current.scrollLeft - deltaX;
+    container.scrollTop = panStateRef.current.scrollTop - deltaY;
+    event.preventDefault();
+  };
+
+  const handlePanEnd = (): void => {
+    if (panStateRef.current.isActive) {
+      panStateRef.current.isActive = false;
+      setIsPanning(false);
+    }
   };
 
   return (
@@ -72,7 +144,16 @@ export const SelectStep = ({
               ? `Coordinates: (${coords.x}, ${coords.y})`
               : "Click the image to get coordinates."}
           </p>
-          <div className="max-h-[70vh] max-w-full overflow-auto rounded border border-gray-200 p-2">
+          <div
+            ref={scrollContainerRef}
+            className={`max-h-[70vh] max-w-full overflow-auto rounded border border-gray-200 p-2 ${
+              isPanning ? "cursor-move" : ""
+            }`}
+            onMouseDown={handlePanStart}
+            onMouseMove={handlePanMove}
+            onMouseUp={handlePanEnd}
+            onMouseLeave={handlePanEnd}
+          >
             <div className="relative inline-block">
               <img
                 ref={imageRef}
