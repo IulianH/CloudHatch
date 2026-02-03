@@ -1,6 +1,13 @@
 "use client";
 
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 type Point = { x: number; y: number };
 
@@ -49,8 +56,16 @@ const getPolygonCentroid = (polygonPoints: Point[]) => {
 
 export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const imageContainerRef = useRef<HTMLDivElement | null>(null);
+  const labelRef = useRef<HTMLDivElement | null>(null);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [potValue, setPotValue] = useState("100");
+  const [labelVisible, setLabelVisible] = useState(false);
+  const [labelActive, setLabelActive] = useState(false);
+  const [labelPosition, setLabelPosition] = useState<Point | null>(null);
+  const [dragState, setDragState] = useState<{ offsetX: number; offsetY: number } | null>(
+    null
+  );
 
   useEffect(() => {
     const image = imageRef.current;
@@ -76,6 +91,59 @@ export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
 
     return () => observer.disconnect();
   }, [previewUrl]);
+
+  useEffect(() => {
+    if (!labelVisible || labelPosition) {
+      return;
+    }
+    const container = imageContainerRef.current;
+    const label = labelRef.current;
+    if (!container || !label) {
+      return;
+    }
+    const containerRect = container.getBoundingClientRect();
+    const labelRect = label.getBoundingClientRect();
+    const nextX = Math.max(0, (containerRect.width - labelRect.width) / 2);
+    const nextY = Math.max(0, (containerRect.height - labelRect.height) / 2);
+    setLabelPosition({ x: nextX, y: nextY });
+  }, [labelVisible, labelPosition, imageSize.width, imageSize.height]);
+
+  useEffect(() => {
+    if (!dragState) {
+      return;
+    }
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const container = imageContainerRef.current;
+      const label = labelRef.current;
+      if (!container || !label) {
+        return;
+      }
+      const containerRect = container.getBoundingClientRect();
+      const labelRect = label.getBoundingClientRect();
+      const nextX = event.clientX - containerRect.left - dragState.offsetX;
+      const nextY = event.clientY - containerRect.top - dragState.offsetY;
+      const maxX = Math.max(0, containerRect.width - labelRect.width);
+      const maxY = Math.max(0, containerRect.height - labelRect.height);
+
+      setLabelPosition({
+        x: Math.min(Math.max(0, nextX), maxX),
+        y: Math.min(Math.max(0, nextY), maxY),
+      });
+    };
+
+    const handlePointerUp = () => {
+      setDragState(null);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [dragState]);
 
   const polygonPoints = useMemo(() => {
     if (points.length === 0) {
@@ -172,6 +240,40 @@ export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
     link.click();
   };
 
+  const handleLabelToggle = () => {
+    setLabelVisible(true);
+    setLabelActive(true);
+  };
+
+  const handleContainerPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const label = labelRef.current;
+    if (label && label.contains(event.target as Node)) {
+      return;
+    }
+    if (labelVisible) {
+      setLabelActive(false);
+      setDragState(null);
+    }
+  };
+
+  const handleLabelPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const container = imageContainerRef.current;
+    if (!container) {
+      return;
+    }
+    event.preventDefault();
+    setLabelActive(true);
+
+    const containerRect = container.getBoundingClientRect();
+    const labelPos = labelPosition ?? { x: 0, y: 0 };
+    setDragState({
+      offsetX: event.clientX - containerRect.left - labelPos.x,
+      offsetY: event.clientY - containerRect.top - labelPos.y,
+    });
+  };
+
+  const labelCoordinates = labelPosition ?? { x: 0, y: 0 };
+
   return (
     <div className="space-y-4 text-center">
       <div className="flex flex-wrap items-end justify-center gap-4">
@@ -195,10 +297,22 @@ export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
         >
           Download
         </button>
+        <button
+          type="button"
+          className="rounded border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={handleLabelToggle}
+          disabled={imageSize.width === 0}
+        >
+          Label
+        </button>
       </div>
 
       <div className="max-h-[70vh] max-w-full overflow-auto rounded border border-gray-200 p-2">
-        <div className="relative inline-block">
+        <div
+          ref={imageContainerRef}
+          className="relative inline-block"
+          onPointerDown={handleContainerPointerDown}
+        >
           <img
             ref={imageRef}
             src={previewUrl}
@@ -227,6 +341,18 @@ export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
                 );
               })}
             </svg>
+          ) : null}
+          {labelVisible ? (
+            <div
+              ref={labelRef}
+              className={`absolute select-none rounded bg-white px-3 py-1 text-xs font-semibold text-gray-700 shadow ${
+                labelActive ? "cursor-move border border-gray-400" : "border border-transparent"
+              }`}
+              style={{ left: labelCoordinates.x, top: labelCoordinates.y }}
+              onPointerDown={handleLabelPointerDown}
+            >
+              POT = {potValue}
+            </div>
           ) : null}
         </div>
       </div>
