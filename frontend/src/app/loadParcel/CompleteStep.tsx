@@ -345,7 +345,7 @@ export const CompleteStep = ({ points, previewUrl }: CompleteStepProps) => {
           {labelVisible ? (
             <div
               ref={labelRef}
-              className={`absolute select-none rounded bg-white px-3 py-1 text-xs font-semibold text-gray-700 shadow ${
+              className={`absolute select-none rounded bg-white px-3 py-1 text-sm font-bold text-gray-700 shadow ${
                 labelActive ? "cursor-move border border-gray-400" : "border border-transparent"
               }`}
               style={{ left: labelCoordinates.x, top: labelCoordinates.y }}
