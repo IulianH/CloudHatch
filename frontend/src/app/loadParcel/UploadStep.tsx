@@ -23,6 +23,7 @@ export const UploadStep = ({
         name="file"
         type="file"
         className="block w-full max-w-md rounded border border-gray-200 px-3 py-2 text-sm"
+        accept="image/*"
         disabled={status === "uploading"}
         onChange={(event: ChangeEvent<HTMLInputElement>) =>
           onFileChange(event.currentTarget.files?.[0] ?? null)
