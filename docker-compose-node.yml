@@ -1,4 +1,24 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=cloudhatch
+      - POSTGRES_PASSWORD=cloudhatch
+      - POSTGRES_DB=nodeauth
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - default
+
   auth.web:
     image: ${DOCKER_REGISTRY-}nodeauth
     build:
@@ -10,6 +30,15 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8080
+      - USE_IN_MEMORY_REPOS=false
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=cloudhatch
+      - POSTGRES_PASSWORD=cloudhatch
+      - POSTGRES_DB=nodeauth
+    depends_on:
+      postgres:
+        condition: service_healthy
     command:
       - node
       - --inspect=0.0.0.0:9229
@@ -79,4 +108,7 @@ services:
 networks:
   private:
     internal: true
+
+volumes:
+  postgres_data:
 

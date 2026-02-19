@@ -12,9 +12,16 @@ import { buildRegisterRouter } from "./controllers/registerController";
 import { buildResetPasswordRouter } from "./controllers/resetPasswordController";
 import { config } from "./config";
 import { FederatedUser } from "./models/FederatedUser";
+import { IRefreshTokenRepository } from "./repos/interfaces/IRefreshTokenRepository";
+import { ISentEmailsRepo } from "./repos/interfaces/ISentEmailsRepo";
+import { IUserRepo } from "./repos/interfaces/IUserRepo";
 import { InMemoryRefreshTokenRepository } from "./repos/inMemory/InMemoryRefreshTokenRepository";
 import { InMemorySentEmailsRepo } from "./repos/inMemory/InMemorySentEmailsRepo";
 import { InMemoryUserRepo } from "./repos/inMemory/InMemoryUserRepo";
+import { PostgresRefreshTokenRepository } from "./repos/postgres/PostgresRefreshTokenRepository";
+import { PostgresSentEmailsRepo } from "./repos/postgres/PostgresSentEmailsRepo";
+import { PostgresUserRepo } from "./repos/postgres/PostgresUserRepo";
+import { migratePostgresSchemaAsync } from "./repos/postgres/migrate";
 import { JwtTokenService } from "./services/JwtTokenService";
 import { RefreshTokenService } from "./services/RefreshTokenService";
 import { LoginService } from "./services/LoginService";
@@ -28,11 +35,20 @@ const app = express();
 app.use(express.json());
 app.set("trust proxy", 1);
 
-const userRepo = new InMemoryUserRepo();
-userRepo.migrate();
-const refreshTokenRepo = new InMemoryRefreshTokenRepository();
-refreshTokenRepo.migrate();
-const sentEmailsRepo = new InMemorySentEmailsRepo();
+const userRepo: IUserRepo = config.useInMemoryRepos
+  ? new InMemoryUserRepo()
+  : new PostgresUserRepo();
+const refreshTokenRepo: IRefreshTokenRepository = config.useInMemoryRepos
+  ? new InMemoryRefreshTokenRepository()
+  : new PostgresRefreshTokenRepository();
+const sentEmailsRepo: ISentEmailsRepo = config.useInMemoryRepos
+  ? new InMemorySentEmailsRepo()
+  : new PostgresSentEmailsRepo();
+
+if (config.useInMemoryRepos) {
+  userRepo.migrate();
+  refreshTokenRepo.migrate();
+}
 
 const refreshTokenService = new RefreshTokenService(
   refreshTokenRepo,
@@ -237,7 +253,15 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-const port = Number(process.env.PORT ?? 3001);
-app.listen(port, () => {
-  console.log(`NodeAuth listening on port ${port}`);
-});
+const startServerAsync = async (): Promise<void> => {
+  if (!config.useInMemoryRepos) {
+    await migratePostgresSchemaAsync();
+  }
+
+  const port = Number(process.env.PORT ?? 3001);
+  app.listen(port, () => {
+    console.log(`NodeAuth listening on port ${port}`);
+  });
+};
+
+void startServerAsync();

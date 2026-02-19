@@ -31,7 +31,18 @@ export interface OriginConfig {
   federationSuccessPath: string;
 }
 
+export interface PostgresConfig {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+  useSsl: boolean;
+}
+
 export interface AppConfig {
+  useInMemoryRepos: boolean;
+  postgres: PostgresConfig;
   jwt: JwtConfig;
   refreshToken: RefreshTokenConfig;
   authCookie: AuthCookieConfig;
@@ -98,6 +109,15 @@ const requireBase64Key = (name: string, bytes: number): Buffer => {
 };
 
 export const loadConfig = (): AppConfig => ({
+  useInMemoryRepos: optionalBoolean("USE_IN_MEMORY_REPOS", false),
+  postgres: {
+    host: optionalEnv("POSTGRES_HOST", "postgres"),
+    port: optionalNumber("POSTGRES_PORT", 5432),
+    user: optionalEnv("POSTGRES_USER", "cloudhatch"),
+    password: optionalEnv("POSTGRES_PASSWORD", "cloudhatch"),
+    database: optionalEnv("POSTGRES_DB", "cloudhatch"),
+    useSsl: optionalBoolean("POSTGRES_USE_SSL", false),
+  },
   jwt: {
     key: optionalEnv("JWT_KEY", ""),
     issuer: optionalEnv("JWT_ISSUER", "https://app.example.com"),

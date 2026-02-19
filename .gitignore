@@ -416,7 +416,6 @@ FodyWeavers.xsd
 *.msm
 *.msp
 .vscode/tasks.json
-.vscode/launch.json
 .idea/
 /nginx/ssl
 /Auth/Auth.Web/appsettings.Development.json
