@@ -5,7 +5,7 @@ import {
   Strategy as OpenIdConnectStrategy,
   type Profile as OpenIdConnectProfile,
   type VerifyCallback,
-} from "passport-openidconnect";
+} from "@govtechsg/passport-openidconnect";
 
 import { buildAuthRouter } from "./controllers/authController";
 import { buildRegisterRouter } from "./controllers/registerController";
@@ -128,6 +128,8 @@ if (config.googleOAuth.enabled) {
         clientSecret: config.googleOAuth.clientSecret,
         callbackURL: callbackUrl,
         scope: ["openid", "email", "profile"],
+        pkce: "S256",
+        nonce: true,
       },
       async (
         issuer: string,
@@ -183,6 +185,8 @@ if (config.microsoftOAuth.enabled) {
         clientSecret: config.microsoftOAuth.clientSecret,
         callbackURL: callbackUrl,
         scope: ["openid", "email", "profile"],
+        pkce: "S256",
+        nonce: true,
       },
       async (
         issuer: string,
