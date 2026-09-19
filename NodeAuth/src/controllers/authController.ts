@@ -8,10 +8,12 @@ import type { FederatedUser } from "../models/FederatedUser";
 import {
   readRefreshTokenFromRequest,
   serializeRefreshCookie,
+  serializeDeleteRefreshCookie,
 } from "../utils/cookieProtector";
 import { validateOrigin } from "../utils/originValidator";
 import type { WebLoginRequest } from "../models/WebLoginRequest";
 import type { WebLoginResponse } from "../models/WebLoginResponse";
+import type { WebLogoutRequest } from "../models/WebLogoutRequest";
 
 type AuthControllerDeps = {
   jwtTokenService: JwtTokenService;
@@ -306,6 +308,42 @@ export const buildAuthRouter = ({
         accessToken: pair.accessToken,
         expiresIn: pair.expiresIn,
       });
+    },
+  );
+
+  router.post(
+    "/web-logout",
+    async (req: Request, res: Response): Promise<void> => {
+      const originResult = validateOrigin(req, config.origin.host);
+      if (!originResult.allowed) {
+        console.warn(originResult.error);
+        res.sendStatus(403);
+        return;
+      }
+
+      await clearFederatedSession(req);
+
+      const body = req.body as WebLogoutRequest;
+      const refreshToken = readRefreshTokenFromRequest(
+        req,
+        config.authCookie,
+        config.cookieProtection,
+      );
+
+      if (refreshToken) {
+        await jwtTokenService.revokeRefreshTokenAsync(
+          refreshToken,
+          body.logoutAll,
+        );
+      }
+
+      const deleteCookie = serializeDeleteRefreshCookie(
+        config.authCookie,
+        config.origin,
+      );
+      res.setHeader("Set-Cookie", deleteCookie);
+      res.setHeader("Cache-Control", "no-store");
+      res.sendStatus(204);
     },
   );
 
