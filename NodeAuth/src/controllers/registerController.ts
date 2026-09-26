@@ -5,7 +5,6 @@ import type { ConfirmEmailRequest } from "../models/ConfirmEmailRequest";
 import type { RegisterRequest } from "../models/RegisterRequest";
 import type { RegistrationEmailRequest } from "../models/RegistrationEmailRequest";
 import { RegistrationService } from "../services/RegistrationService";
-import { validateOrigin } from "../utils/originValidator";
 import { emailPattern, passwordPattern, emailFormatError, passwordFormatError } from "../utils/validation";
 
 type RegisterControllerDeps = {
@@ -22,13 +21,6 @@ export const buildRegisterRouter = ({
   router.post(
     "/web-register",
     async (req: Request, res: Response): Promise<void> => {
-      const originResult = validateOrigin(req, config.origin.host);
-      if (!originResult.allowed) {
-        console.warn(originResult.error);
-        res.sendStatus(403);
-        return;
-      }
-
       const body = req.body as RegisterRequest;
       if (!body.email || !body.password) {
         res.sendStatus(400);
@@ -73,13 +65,6 @@ export const buildRegisterRouter = ({
   router.post(
     "/confirm-email",
     async (req: Request, res: Response): Promise<void> => {
-      const originResult = validateOrigin(req, config.origin.host);
-      if (!originResult.allowed) {
-        console.warn(originResult.error);
-        res.sendStatus(403);
-        return;
-      }
-
       const body = req.body as ConfirmEmailRequest;
       if (!body?.token) {
         res.status(400).json({
@@ -107,13 +92,6 @@ export const buildRegisterRouter = ({
   router.post(
     "/send-registration-email",
     async (req: Request, res: Response): Promise<void> => {
-      const originResult = validateOrigin(req, config.origin.host);
-      if (!originResult.allowed) {
-        console.warn(originResult.error);
-        res.sendStatus(403);
-        return;
-      }
-
       const body = req.body as RegistrationEmailRequest;
       if (!body?.email) {
         res.status(400).json({

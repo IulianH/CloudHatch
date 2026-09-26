@@ -4,7 +4,6 @@ import type { AppConfig } from "../config";
 import type { ResetPasswordRequest } from "../models/ResetPasswordRequest";
 import type { SendResetPasswordEmailRequest } from "../models/SendResetPasswordEmailRequest";
 import { ResetPasswordService } from "../services/ResetPasswordService";
-import { validateOrigin } from "../utils/originValidator";
 import { emailPattern, passwordFormatError, passwordPattern } from "../utils/validation";
 
 type ResetPasswordControllerDeps = {
@@ -21,13 +20,6 @@ export const buildResetPasswordRouter = ({
   router.post(
     "/send-reset-password-email",
     async (req: Request, res: Response): Promise<void> => {
-      const originResult = validateOrigin(req, config.origin.host);
-      if (!originResult.allowed) {
-        console.warn(originResult.error);
-        res.sendStatus(403);
-        return;
-      }
-
       const body = req.body as SendResetPasswordEmailRequest;
       if (!body?.email) {
         res.status(400).json({
@@ -52,13 +44,6 @@ export const buildResetPasswordRouter = ({
   router.post(
     "/reset-password",
     async (req: Request, res: Response): Promise<void> => {
-      const originResult = validateOrigin(req, config.origin.host);
-      if (!originResult.allowed) {
-        console.warn(originResult.error);
-        res.sendStatus(403);
-        return;
-      }
-
       const body = req.body as ResetPasswordRequest;
       if (!body?.token) {
         res.status(400).json({

@@ -10,7 +10,6 @@ import {
   serializeRefreshCookie,
   serializeDeleteRefreshCookie,
 } from "../utils/cookieProtector";
-import { validateOrigin } from "../utils/originValidator";
 import type { WebLoginRequest } from "../models/WebLoginRequest";
 import type { WebLoginResponse } from "../models/WebLoginResponse";
 import type { WebLogoutRequest } from "../models/WebLogoutRequest";
@@ -62,13 +61,6 @@ export const buildAuthRouter = ({
   router.post(
     "/web-login",
     async (req: Request, res: Response): Promise<void> => {
-      const originResult = validateOrigin(req, config.origin.host);
-      if (!originResult.allowed) {
-        console.warn(originResult.error);
-        res.sendStatus(403);
-        return;
-      }
-
       const body = req.body as WebLoginRequest;
       if (!body.username || !body.password) {
         res.sendStatus(400);
@@ -122,13 +114,6 @@ export const buildAuthRouter = ({
         return;
       }
 
-      const originResult = validateOrigin(req, config.origin.host);
-      if (!originResult.allowed) {
-        console.warn(originResult.error);
-        res.sendStatus(403);
-        return;
-      }
-
       res.setHeader("Cache-Control", "no-store");
       passport.authenticate("google")(req, res, next);
     },
@@ -167,13 +152,6 @@ export const buildAuthRouter = ({
     (req: Request, res: Response, next: NextFunction): void => {
       if (!config.microsoftOAuth.enabled) {
         res.sendStatus(404);
-        return;
-      }
-
-      const originResult = validateOrigin(req, config.origin.host);
-      if (!originResult.allowed) {
-        console.warn(originResult.error);
-        res.sendStatus(403);
         return;
       }
 
@@ -226,13 +204,6 @@ export const buildAuthRouter = ({
   router.post(
     "/web-federated-login",
     async (req: Request, res: Response): Promise<void> => {
-      const originResult = validateOrigin(req, config.origin.host);
-      if (!originResult.allowed) {
-        console.warn(originResult.error);
-        res.sendStatus(403);
-        return;
-      }
-
       const federatedUser = req.user as FederatedUser | undefined;
       if (!federatedUser?.id) {
         console.error(
@@ -273,13 +244,6 @@ export const buildAuthRouter = ({
   router.post(
     "/web-refresh",
     async (req: Request, res: Response): Promise<void> => {
-      const originResult = validateOrigin(req, config.origin.host);
-      if (!originResult.allowed) {
-        console.warn(originResult.error);
-        res.sendStatus(403);
-        return;
-      }
-
       const refreshToken = readRefreshTokenFromRequest(
         req,
         config.authCookie,
@@ -314,13 +278,6 @@ export const buildAuthRouter = ({
   router.post(
     "/web-logout",
     async (req: Request, res: Response): Promise<void> => {
-      const originResult = validateOrigin(req, config.origin.host);
-      if (!originResult.allowed) {
-        console.warn(originResult.error);
-        res.sendStatus(403);
-        return;
-      }
-
       await clearFederatedSession(req);
 
       const body = req.body as WebLogoutRequest;
