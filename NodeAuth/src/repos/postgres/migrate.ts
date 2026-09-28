@@ -45,6 +45,17 @@ const migrationStatements: readonly string[] = [
     );
   `,
   `
+    CREATE TABLE IF NOT EXISTS session (
+      sid TEXT PRIMARY KEY,
+      sess JSON NOT NULL,
+      expire TIMESTAMPTZ NOT NULL
+    );
+  `,
+  `
+    CREATE INDEX IF NOT EXISTS ix_session_expire
+    ON session (expire);
+  `,
+  `
     CREATE UNIQUE INDEX IF NOT EXISTS ux_users_username_lower
     ON users ((LOWER(username)))
     WHERE username IS NOT NULL;

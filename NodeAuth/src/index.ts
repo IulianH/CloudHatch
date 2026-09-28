@@ -1,5 +1,6 @@
 import express from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import passport from "passport";
 import {
   Strategy as OpenIdConnectStrategy,
@@ -19,6 +20,7 @@ import { InMemoryUserRepo } from "./repos/inMemory/InMemoryUserRepo";
 import { PostgresRefreshTokenRepository } from "./repos/postgres/PostgresRefreshTokenRepository";
 import { PostgresSentEmailsRepo } from "./repos/postgres/PostgresSentEmailsRepo";
 import { PostgresUserRepo } from "./repos/postgres/PostgresUserRepo";
+import { getPgPool } from "./repos/postgres/db";
 import { migratePostgresSchemaAsync } from "./repos/postgres/migrate";
 import { JwtTokenService } from "./services/JwtTokenService";
 import { RefreshTokenService } from "./services/RefreshTokenService";
@@ -69,15 +71,28 @@ const registrationService = new RegistrationService(
 );
 
 const sessionSecret = config.cookieProtection.secretKey.toString("base64");
+const PostgresSessionStore = connectPgSimple(session);
+const sessionStore = config.useInMemoryRepos
+  ? undefined
+  : new PostgresSessionStore({
+      pool: getPgPool(),
+      createTableIfMissing: false,
+      // Sessions only bridge the OAuth handshake; one hour is plenty.
+      ttl: 60 * 60,
+      // No background timers: the process is short-lived on serverless.
+      pruneSessionInterval: false,
+    });
+
 app.use(
   session({
     name: "__Host.external",
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
+    store: sessionStore,
     cookie: {
       httpOnly: true,
-      sameSite: "none",
+      sameSite: "lax",
       secure: true,
       path: "/",
     },
@@ -238,4 +253,11 @@ const startServerAsync = async (): Promise<void> => {
   });
 };
 
-void startServerAsync();
+// Vercel sets VERCEL in serverless invocations: serve through the default
+// export instead of binding a port, and skip migrations (run them in the
+// deploy step to avoid concurrent DDL races).
+if (!process.env.VERCEL) {
+  void startServerAsync();
+}
+
+export default app;
