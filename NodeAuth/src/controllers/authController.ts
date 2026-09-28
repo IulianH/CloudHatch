@@ -10,8 +10,6 @@ import {
   serializeRefreshCookie,
   serializeDeleteRefreshCookie,
 } from "../utils/cookieProtector";
-import type { WebLoginRequest } from "../models/WebLoginRequest";
-import type { WebLoginResponse } from "../models/WebLoginResponse";
 import type { WebLogoutRequest } from "../models/WebLogoutRequest";
 
 type AuthControllerDeps = {
@@ -57,54 +55,6 @@ export const buildAuthRouter = ({
       });
     }
   };
-
-  router.post(
-    "/web-login",
-    async (req: Request, res: Response): Promise<void> => {
-      const body = req.body as WebLoginRequest;
-      if (!body.username || !body.password) {
-        res.sendStatus(400);
-        return;
-      }
-
-      const user = await loginService.loginAsync({
-        username: body.username,
-        password: body.password,
-        lockEnabled: true,
-      });
-
-      if (!user) {
-        res.sendStatus(401);
-        return;
-      }
-
-      if (!user.emailConfirmed) {
-        res.status(401).json({
-          error: "EmailNotConfirmed",
-          error_description: "Email address is not confirmed.",
-        });
-        return;
-      }
-
-      const token = await jwtTokenService.issueTokenAsync(user);
-
-      const setCookie = serializeRefreshCookie(
-        token.refreshToken,
-        config.authCookie,
-        config.origin,
-        config.cookieProtection,
-      );
-      res.setHeader("Set-Cookie", setCookie);
-      res.setHeader("Cache-Control", "no-store");
-      await clearFederatedSession(req);
-
-      const response: WebLoginResponse = {
-        accessToken: token.accessToken,
-        expiresIn: token.expiresIn,
-      };
-      res.status(200).json(response);
-    },
-  );
 
   router.get(
     "/web-google-challenge",

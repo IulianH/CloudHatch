@@ -8,8 +8,6 @@ import {
 } from "@govtechsg/passport-openidconnect";
 
 import { buildAuthRouter } from "./controllers/authController";
-import { buildRegisterRouter } from "./controllers/registerController";
-import { buildResetPasswordRouter } from "./controllers/resetPasswordController";
 import { config } from "./config";
 import { FederatedUser } from "./models/FederatedUser";
 import { IRefreshTokenRepository } from "./repos/interfaces/IRefreshTokenRepository";
@@ -28,8 +26,6 @@ import { LoginService } from "./services/LoginService";
 import { RegistrationService } from "./services/RegistrationService";
 import { InMemoryEmailSender } from "./services/inMemory/InMemoryEmailSender";
 import { InMemoryRegistrationEmailService } from "./services/inMemory/InMemoryRegistrationEmailService";
-import { InMemoryResetPasswordEmailService } from "./services/inMemory/InMemoryResetPasswordEmailService";
-import { ResetPasswordService } from "./services/ResetPasswordService";
 
 const app = express();
 app.use(express.json());
@@ -70,16 +66,6 @@ const registrationService = new RegistrationService(
   userRepo,
   registrationEmailService,
   config.register,
-);
-const resetPasswordEmailService = new InMemoryResetPasswordEmailService(
-  sentEmailsRepo,
-  emailSender,
-  config.resetPasswordEmail,
-);
-const resetPasswordService = new ResetPasswordService(
-  userRepo,
-  resetPasswordEmailService,
-  config.resetPassword,
 );
 
 const sessionSecret = config.cookieProtection.secretKey.toString("base64");
@@ -233,22 +219,6 @@ app.use(
   buildAuthRouter({
     jwtTokenService,
     loginService,
-    config,
-  }),
-);
-
-app.use(
-  "/api/auth",
-  buildRegisterRouter({
-    registrationService,
-    config,
-  }),
-);
-
-app.use(
-  "/api/auth",
-  buildResetPasswordRouter({
-    resetPasswordService,
     config,
   }),
 );

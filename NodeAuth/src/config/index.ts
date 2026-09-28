@@ -1,13 +1,12 @@
 import dotenv from "dotenv";
 import path from "path";
 
-import { RegistrationEmailSettings, ResetPasswordEmailSettings } from "./email";
 import { JwtConfig } from "./jwt";
 import { LoginSettings } from "./login";
 import { defaultGoogleOAuthConfig, defaultMicrosoftOAuthConfig, GoogleOAuthConfig, MicrosoftOAuthConfig } from "./oauth";
 import { RefreshTokenConfig } from "./refreshToken";
 import { RegisterSettings } from "./register";
-import { ResetPasswordSettings } from "./resetPassword";
+import { RegistrationEmailSettings } from "./email";
 
 const environment = process.env.NODE_ENV?.toLowerCase();
 const projectRoot = path.resolve(__dirname, "..", "..");
@@ -51,8 +50,6 @@ export interface AppConfig {
   login: LoginSettings;
   register: RegisterSettings;
   registrationEmail: RegistrationEmailSettings;
-  resetPassword: ResetPasswordSettings;
-  resetPasswordEmail: ResetPasswordEmailSettings;
   googleOAuth: GoogleOAuthConfig;
   microsoftOAuth: MicrosoftOAuthConfig;
 }
@@ -178,21 +175,6 @@ export const loadConfig = (): AppConfig => ({
     ),
     from: optionalEnv("REGISTRATION_EMAIL_FROM", "no-reply@cloudhatch.com"),
     subject: optionalEnv("REGISTRATION_EMAIL_SUBJECT", "Confirm your email"),
-  },
-  resetPassword: {
-    resetPasswordUrl: optionalEnv(
-      "RESET_PASSWORD_URL",
-      "https://localhost/resetPassword",
-    ),
-    resetPasswordTokenExpiresInMinutes: optionalNumber(
-      "RESET_PASSWORD_TOKEN_EXPIRES_MINUTES",
-      15,
-    ),
-  },
-  resetPasswordEmail: {
-    maxEmailsPerDay: optionalNumber("RESET_PASSWORD_EMAIL_MAX_PER_DAY", 10),
-    from: optionalEnv("RESET_PASSWORD_EMAIL_FROM", "no-reply@cloudhatch.com"),
-    subject: optionalEnv("RESET_PASSWORD_EMAIL_SUBJECT", "Reset your password"),
   },
   googleOAuth: {
     ...defaultGoogleOAuthConfig,
