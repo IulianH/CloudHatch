@@ -6,5 +6,4 @@ export interface IRefreshTokenRepository {
   updateAsync(record: RefreshTokenRecord): Promise<void>;
   deleteAsync(token: string): Promise<void>;
   deleteByUserIdAsync(userId: string): Promise<void>;
-  migrate(): void;
 }

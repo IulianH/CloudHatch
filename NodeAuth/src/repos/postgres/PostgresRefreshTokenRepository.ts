@@ -1,7 +1,6 @@
 import type { RefreshTokenRecord } from "../../models/RefreshTokenRecord";
 import type { IRefreshTokenRepository } from "../interfaces/IRefreshTokenRepository";
 import { queryAsync } from "./db";
-import { migratePostgresSchemaAsync } from "./migrate";
 
 type RefreshTokenRow = {
   token: string;
@@ -102,7 +101,4 @@ export class PostgresRefreshTokenRepository implements IRefreshTokenRepository {
     );
   }
 
-  migrate(): void {
-    void migratePostgresSchemaAsync();
-  }
 }

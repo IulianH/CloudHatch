@@ -1,7 +1,6 @@
 import type { User } from "../../models/User";
 import type { IUserRepo } from "../interfaces/IUserRepo";
 import { queryAsync } from "./db";
-import { migratePostgresSchemaAsync } from "./migrate";
 
 type UserRow = {
   id: string;
@@ -169,10 +168,6 @@ export class PostgresUserRepo implements IUserRepo {
         toNullableDate(user.resetPasswordTokenExpiresAt),
       ],
     );
-  }
-
-  migrate(): void {
-    void migratePostgresSchemaAsync();
   }
 
   async findByExternalIdAsync(nameIdentifier: string): Promise<User | null> {

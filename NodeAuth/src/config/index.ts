@@ -41,7 +41,6 @@ export interface PostgresConfig {
 }
 
 export interface AppConfig {
-  useInMemoryRepos: boolean;
   postgres: PostgresConfig;
   jwt: JwtConfig;
   refreshToken: RefreshTokenConfig;
@@ -107,7 +106,6 @@ const requireBase64Key = (name: string, bytes: number): Buffer => {
 };
 
 export const loadConfig = (): AppConfig => ({
-  useInMemoryRepos: optionalBoolean("USE_IN_MEMORY_REPOS", false),
   postgres: {
     host: optionalEnv("POSTGRES_HOST", "postgres"),
     port: optionalNumber("POSTGRES_PORT", 5432),

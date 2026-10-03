@@ -14,9 +14,6 @@ import { FederatedUser } from "./models/FederatedUser";
 import { IRefreshTokenRepository } from "./repos/interfaces/IRefreshTokenRepository";
 import { ISentEmailsRepo } from "./repos/interfaces/ISentEmailsRepo";
 import { IUserRepo } from "./repos/interfaces/IUserRepo";
-import { InMemoryRefreshTokenRepository } from "./repos/inMemory/InMemoryRefreshTokenRepository";
-import { InMemorySentEmailsRepo } from "./repos/inMemory/InMemorySentEmailsRepo";
-import { InMemoryUserRepo } from "./repos/inMemory/InMemoryUserRepo";
 import { PostgresRefreshTokenRepository } from "./repos/postgres/PostgresRefreshTokenRepository";
 import { PostgresSentEmailsRepo } from "./repos/postgres/PostgresSentEmailsRepo";
 import { PostgresUserRepo } from "./repos/postgres/PostgresUserRepo";
@@ -44,20 +41,10 @@ app.use((_req, res, next) => {
   next();
 });
 
-const userRepo: IUserRepo = config.useInMemoryRepos
-  ? new InMemoryUserRepo()
-  : new PostgresUserRepo();
-const refreshTokenRepo: IRefreshTokenRepository = config.useInMemoryRepos
-  ? new InMemoryRefreshTokenRepository()
-  : new PostgresRefreshTokenRepository();
-const sentEmailsRepo: ISentEmailsRepo = config.useInMemoryRepos
-  ? new InMemorySentEmailsRepo()
-  : new PostgresSentEmailsRepo();
-
-if (config.useInMemoryRepos) {
-  userRepo.migrate();
-  refreshTokenRepo.migrate();
-}
+const userRepo: IUserRepo = new PostgresUserRepo();
+const refreshTokenRepo: IRefreshTokenRepository =
+  new PostgresRefreshTokenRepository();
+const sentEmailsRepo: ISentEmailsRepo = new PostgresSentEmailsRepo();
 
 const refreshTokenService = new RefreshTokenService(
   refreshTokenRepo,
@@ -83,16 +70,14 @@ const registrationService = new RegistrationService(
 
 const sessionSecret = config.cookieProtection.secretKey.toString("base64");
 const PostgresSessionStore = connectPgSimple(session);
-const sessionStore = config.useInMemoryRepos
-  ? undefined
-  : new PostgresSessionStore({
-      pool: getPgPool(),
-      createTableIfMissing: false,
-      // Sessions only bridge the OAuth handshake; one hour is plenty.
-      ttl: 60 * 60,
-      // No background timers: the process is short-lived on serverless.
-      pruneSessionInterval: false,
-    });
+const sessionStore = new PostgresSessionStore({
+  pool: getPgPool(),
+  createTableIfMissing: false,
+  // Sessions only bridge the OAuth handshake; one hour is plenty.
+  ttl: 60 * 60,
+  // No background timers: the process is short-lived on serverless.
+  pruneSessionInterval: false,
+});
 
 app.use(
   session({
@@ -279,9 +264,7 @@ app.get("/health", (_req, res) => {
 });
 
 const startServerAsync = async (): Promise<void> => {
-  if (!config.useInMemoryRepos) {
-    await migratePostgresSchemaAsync();
-  }
+  await migratePostgresSchemaAsync();
 
   const port = Number(process.env.PORT ?? 3001);
   app.listen(port, () => {
