@@ -1,4 +1,4 @@
-import { Router, type NextFunction, type Request, type Response } from "express";
+import express, { Router, type NextFunction, type Request, type Response } from "express";
 import passport from "passport";
 
 import type { AppConfig } from "../config";
@@ -144,6 +144,72 @@ export const buildAuthRouter = ({
       )(req, res, next);
     },
   );
+
+  router.get(
+    "/web-apple-challenge",
+    (req: Request, res: Response, next: NextFunction): void => {
+      if (!config.appleOAuth.enabled) {
+        res.sendStatus(404);
+        return;
+      }
+
+      passport.authenticate("apple")(req, res, next);
+    },
+  );
+
+  // Apple delivers the code as a top-level cross-site form POST
+  // (response_mode=form_post). SameSite=Lax session cookies are not
+  // reliably attached to such requests, so the parameters are relayed
+  // to a same-site GET that carries the session before the strategy
+  // validates its state.
+  router.post(
+    "/web-apple-callback",
+    express.urlencoded({ extended: false }),
+    (req: Request, res: Response): void => {
+      if (!config.appleOAuth.enabled) {
+        res.sendStatus(404);
+        return;
+      }
+
+      const body = req.body as Record<string, string | undefined>;
+      const params = new URLSearchParams();
+      for (const key of ["code", "state", "error", "error_description"]) {
+        const value = body[key];
+        if (typeof value === "string" && value.length > 0) {
+          params.set(key, value);
+        }
+      }
+      res.redirect(303, `${config.appleOAuth.callbackPath}?${params.toString()}`);
+    },
+  );
+
+  router.get(
+    "/web-apple-callback",
+    (req: Request, res: Response, next: NextFunction): void => {
+      if (!config.appleOAuth.enabled) {
+        res.sendStatus(404);
+        return;
+      }
+
+      passport.authenticate("apple", (error: unknown, user?: FederatedUser) => {
+        if (error || !user) {
+          console.error("WebAppleCallback failed", error);
+          res.sendStatus(401);
+          return;
+        }
+
+        req.logIn(user, (loginError) => {
+          if (loginError) {
+            console.error("WebAppleCallback sign-in failed", loginError);
+            res.sendStatus(500);
+            return;
+          }
+          res.redirect(federationSuccessUrl);
+        });
+      })(req, res, next);
+    },
+  );
+
 
   router.post(
     "/web-federated-login",

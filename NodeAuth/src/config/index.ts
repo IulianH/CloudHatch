@@ -3,7 +3,7 @@ import path from "path";
 
 import { JwtConfig } from "./jwt";
 import { LoginSettings } from "./login";
-import { defaultGoogleOAuthConfig, defaultMicrosoftOAuthConfig, GoogleOAuthConfig, MicrosoftOAuthConfig } from "./oauth";
+import { defaultAppleOAuthConfig, defaultGoogleOAuthConfig, defaultMicrosoftOAuthConfig, AppleOAuthConfig, GoogleOAuthConfig, MicrosoftOAuthConfig } from "./oauth";
 import { RefreshTokenConfig } from "./refreshToken";
 import { RegisterSettings } from "./register";
 import { RegistrationEmailSettings } from "./email";
@@ -51,6 +51,7 @@ export interface AppConfig {
   register: RegisterSettings;
   registrationEmail: RegistrationEmailSettings;
   googleOAuth: GoogleOAuthConfig;
+  appleOAuth: AppleOAuthConfig;
   microsoftOAuth: MicrosoftOAuthConfig;
 }
 
@@ -186,6 +187,21 @@ export const loadConfig = (): AppConfig => ({
     callbackPath: optionalEnv(
       "GOOGLE_OAUTH_CALLBACK_PATH",
       defaultGoogleOAuthConfig.callbackPath,
+    ),
+  },
+  appleOAuth: {
+    ...defaultAppleOAuthConfig,
+    enabled: optionalBoolean("APPLE_OAUTH_ENABLED", false),
+    clientId: optionalEnv("APPLE_CLIENT_ID", ""),
+    teamId: optionalEnv("APPLE_TEAM_ID", ""),
+    keyId: optionalEnv("APPLE_KEY_ID", ""),
+    // Content of the Sign in with Apple .p8 key; literal backslash-n
+    // sequences are converted to real newlines so it can be stored on one line.
+    // converted to real newlines so the key can be stored on one line.
+    privateKey: optionalEnv("APPLE_PRIVATE_KEY", "").replace(/\\n/g, "\n"),
+    callbackPath: optionalEnv(
+      "APPLE_OAUTH_CALLBACK_PATH",
+      defaultAppleOAuthConfig.callbackPath,
     ),
   },
   microsoftOAuth: {

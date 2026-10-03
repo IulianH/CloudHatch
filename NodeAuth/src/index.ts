@@ -11,6 +11,7 @@ import {
 import { buildAuthRouter } from "./controllers/authController";
 import { config } from "./config";
 import { FederatedUser } from "./models/FederatedUser";
+import { buildAppleClientSecret } from "./utils/appleClientSecret";
 import { IRefreshTokenRepository } from "./repos/interfaces/IRefreshTokenRepository";
 import { ISentEmailsRepo } from "./repos/interfaces/ISentEmailsRepo";
 import { IUserRepo } from "./repos/interfaces/IUserRepo";
@@ -211,6 +212,73 @@ if (config.microsoftOAuth.enabled) {
               email ??
               microsoftProfile._json?.preferred_username ??
               undefined,
+          };
+          await registrationService.registerFederatedAsync(user);
+          return done(null, user);
+        } catch (error) {
+          return done(error as Error);
+        }
+      },
+    ),
+  );
+}
+
+if (config.appleOAuth.enabled) {
+  const apple = config.appleOAuth;
+  if (
+    !apple.clientId ||
+    !apple.teamId ||
+    !apple.keyId ||
+    !apple.privateKey
+  ) {
+    throw new Error("Apple OAuth credentials are missing.");
+  }
+
+  const callbackUrl = new URL(
+    apple.callbackPath,
+    config.origin.baseUrl,
+  ).toString();
+
+  passport.use(
+    "apple",
+    new OpenIdConnectStrategy(
+      {
+        issuer: "https://appleid.apple.com",
+        authorizationURL: "https://appleid.apple.com/auth/authorize",
+        tokenURL: "https://appleid.apple.com/auth/token",
+        clientID: apple.clientId,
+        // Apple's client secret is a JWT minted from the Sign in with Apple
+        // key, not a static string.
+        clientSecret: buildAppleClientSecret(apple),
+        callbackURL: callbackUrl,
+        // The strategy appends "openid" to the requested scopes.
+        scope: ["name", "email"],
+        // Apple rejects query responses once name/email scopes are
+        // requested; form_post is mandatory.
+        responseMode: "form_post",
+        nonce: true,
+        // Apple exposes no userinfo endpoint; the profile is built from
+        // the id_token claims. The placeholder is never fetched because
+        // skipUserProfile is set; it 404s loudly if that ever changes.
+        userInfoURL: "https://appleid.apple.com/auth/userinfo",
+        skipUserProfile: true,
+      },
+      async (
+        issuer: string,
+        profile: OpenIdConnectProfile,
+        done: VerifyCallback,
+      ) => {
+        try {
+          if (!profile?.id) {
+            return done(new Error("Missing external id from provider."));
+          }
+          const email = profile.emails?.[0]?.value;
+          const user: FederatedUser = {
+            id: profile.id,
+            issuer,
+            name: profile.displayName ?? undefined,
+            email,
+            username: profile.username ?? email ?? undefined,
           };
           await registrationService.registerFederatedAsync(user);
           return done(null, user);
