@@ -28,6 +28,7 @@ export interface OriginConfig {
   baseUrl: string;
   host: string;
   federationSuccessPath: string;
+  allowedOrigin: string;
 }
 
 export interface PostgresConfig {
@@ -139,6 +140,9 @@ export const loadConfig = (): AppConfig => ({
       "ORIGIN_FEDERATION_SUCCESS_PATH",
       "/federatedLogin",
     ),
+    // Frontend origin allowed to call this service cross-origin (CORS).
+    // Empty string disables CORS headers entirely (same-origin setups).
+    allowedOrigin: optionalEnv("CORS_ALLOWED_ORIGIN", "").replace(new RegExp("/+$"), ""),
   },
   login: {
     maxFailedPasswordLoginAttempts: optionalNumber(

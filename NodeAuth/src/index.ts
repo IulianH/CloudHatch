@@ -33,6 +33,17 @@ const app = express();
 app.use(express.json());
 app.set("trust proxy", 1);
 
+// The service owns its response headers so behavior is identical with or
+// without the nginx front end (which is absent on serverless deploys).
+app.use((_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  next();
+});
+
 const userRepo: IUserRepo = config.useInMemoryRepos
   ? new InMemoryUserRepo()
   : new PostgresUserRepo();
@@ -228,6 +239,31 @@ if (config.microsoftOAuth.enabled) {
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+const corsAllowedOrigin = config.origin.allowedOrigin;
+if (corsAllowedOrigin) {
+  app.use("/api/auth", (req, res, next) => {
+    res.setHeader("Vary", "Origin");
+    if (req.headers.origin !== corsAllowedOrigin) {
+      next();
+      return;
+    }
+
+    res.setHeader("Access-Control-Allow-Origin", corsAllowedOrigin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    if (req.method === "OPTIONS") {
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization, Cache-Control",
+      );
+      res.setHeader("Access-Control-Max-Age", "86400");
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
+}
 
 app.use(
   "/api/auth",

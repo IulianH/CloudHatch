@@ -63,8 +63,6 @@ export const buildAuthRouter = ({
         res.sendStatus(404);
         return;
       }
-
-      res.setHeader("Cache-Control", "no-store");
       passport.authenticate("google")(req, res, next);
     },
   );
@@ -90,7 +88,6 @@ export const buildAuthRouter = ({
             res.sendStatus(500);
             return;
           }
-          res.setHeader("Cache-Control", "no-store");
           res.redirect(federationSuccessUrl);
         });
       })(req, res, next);
@@ -110,8 +107,6 @@ export const buildAuthRouter = ({
       if (req.session) {
         req.session.microsoftReturnUrl = returnUrl;
       }
-
-      res.setHeader("Cache-Control", "no-store");
       passport.authenticate("microsoft")(req, res, next);
     },
   );
@@ -143,7 +138,6 @@ export const buildAuthRouter = ({
             if (req.session) {
               delete req.session.microsoftReturnUrl;
             }
-            res.setHeader("Cache-Control", "no-store");
             res.redirect(buildFederationSuccessUrl(returnUrl));
           });
         },
@@ -183,7 +177,6 @@ export const buildAuthRouter = ({
         config.cookieProtection,
       );
       res.setHeader("Set-Cookie", setCookie);
-      res.setHeader("Cache-Control", "no-store");
       res.status(200).json({
         accessToken: token.accessToken,
         expiresIn: token.expiresIn,
@@ -217,7 +210,6 @@ export const buildAuthRouter = ({
         config.cookieProtection,
       );
       res.setHeader("Set-Cookie", setCookie);
-      res.setHeader("Cache-Control", "no-store");
       res.status(200).json({
         accessToken: pair.accessToken,
         expiresIn: pair.expiresIn,
@@ -249,7 +241,6 @@ export const buildAuthRouter = ({
         config.origin,
       );
       res.setHeader("Set-Cookie", deleteCookie);
-      res.setHeader("Cache-Control", "no-store");
       res.sendStatus(204);
     },
   );
