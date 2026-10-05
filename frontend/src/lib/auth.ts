@@ -6,11 +6,6 @@ export interface AuthResponse {
   expiresIn: number;
 }
 
-export interface LoginCredentials {
-  username: string;
-  password: string;
-}
-
 class AuthService {
   private static accessToken: string | null = null;
   private static refreshTimeoutId: ReturnType<typeof setTimeout> | null = null;

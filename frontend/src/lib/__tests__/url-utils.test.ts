@@ -3,7 +3,7 @@
  * These tests verify that the dynamic URL resolution works correctly
  */
 
-import { getBaseUrl, buildApiUrl, isRelativeUrl, toRelativePath } from '../url-utils';
+import { getBaseUrl, buildApiUrl, isRelativeUrl } from '../url-utils';
 
 // Mock window.location for testing
 const mockLocation = {
@@ -68,15 +68,4 @@ describe('URL Utils', () => {
     });
   });
 
-  describe('toRelativePath', () => {
-    it('should convert absolute URL to relative path', () => {
-      expect(toRelativePath('https://example.com/api/auth/login')).toBe('/api/auth/login');
-      expect(toRelativePath('http://localhost:3000/api/Users/profile')).toBe('/api/Users/profile');
-    });
-
-    it('should return relative path as is', () => {
-      expect(toRelativePath('/api/auth/login')).toBe('/api/auth/login');
-      expect(toRelativePath('api/Users/profile')).toBe('api/Users/profile');
-    });
-  });
 });

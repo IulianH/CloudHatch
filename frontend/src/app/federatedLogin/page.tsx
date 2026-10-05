@@ -34,11 +34,11 @@ export default function FederatedLoginPage() {
         // and the redirect effect above will handle navigation
       } catch (err) {
         console.error('Federated login failed:', err);
-        // On any error (including 401), redirect to home page
+        // On any error (including 401), redirect to the login page
         // This page has no user interaction, so errors should redirect
         if (!hasRedirected.current) {
           hasRedirected.current = true;
-          router.push('/');
+          router.push('/login');
         }
       }
     };

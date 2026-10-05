@@ -3,7 +3,6 @@ export interface User {
   username?: string;
   email?: string;
   name?: string;
-  password?: string;
   createdAt: Date;
   lockedUntil?: Date;
   lastLogin?: Date;
@@ -12,9 +11,4 @@ export interface User {
   externalId?: string;
   issuer: string;
   failedLoginCount: number;
-  emailConfirmed: boolean;
-  emailConfirmationToken?: string;
-  emailConfirmationTokenExpiresAt?: Date;
-  resetPasswordToken?: string;
-  resetPasswordTokenExpiresAt?: Date;
 }

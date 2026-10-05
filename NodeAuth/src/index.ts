@@ -13,10 +13,8 @@ import { config } from "./config";
 import { FederatedUser } from "./models/FederatedUser";
 import { buildAppleClientSecret } from "./utils/appleClientSecret";
 import { IRefreshTokenRepository } from "./repos/interfaces/IRefreshTokenRepository";
-import { ISentEmailsRepo } from "./repos/interfaces/ISentEmailsRepo";
 import { IUserRepo } from "./repos/interfaces/IUserRepo";
 import { PostgresRefreshTokenRepository } from "./repos/postgres/PostgresRefreshTokenRepository";
-import { PostgresSentEmailsRepo } from "./repos/postgres/PostgresSentEmailsRepo";
 import { PostgresUserRepo } from "./repos/postgres/PostgresUserRepo";
 import { getPgPool } from "./repos/postgres/db";
 import { migratePostgresSchemaAsync } from "./repos/postgres/migrate";
@@ -24,8 +22,6 @@ import { JwtTokenService } from "./services/JwtTokenService";
 import { RefreshTokenService } from "./services/RefreshTokenService";
 import { LoginService } from "./services/LoginService";
 import { RegistrationService } from "./services/RegistrationService";
-import { InMemoryEmailSender } from "./services/inMemory/InMemoryEmailSender";
-import { InMemoryRegistrationEmailService } from "./services/inMemory/InMemoryRegistrationEmailService";
 
 const app = express();
 app.use(express.json());
@@ -45,8 +41,6 @@ app.use((_req, res, next) => {
 const userRepo: IUserRepo = new PostgresUserRepo();
 const refreshTokenRepo: IRefreshTokenRepository =
   new PostgresRefreshTokenRepository();
-const sentEmailsRepo: ISentEmailsRepo = new PostgresSentEmailsRepo();
-
 const refreshTokenService = new RefreshTokenService(
   refreshTokenRepo,
   config.refreshToken,
@@ -56,18 +50,8 @@ const jwtTokenService = new JwtTokenService(
   refreshTokenService,
   userRepo,
 );
-const loginService = new LoginService(userRepo, config.login);
-const emailSender = new InMemoryEmailSender();
-const registrationEmailService = new InMemoryRegistrationEmailService(
-  sentEmailsRepo,
-  emailSender,
-  config.registrationEmail,
-);
-const registrationService = new RegistrationService(
-  userRepo,
-  registrationEmailService,
-  config.register,
-);
+const loginService = new LoginService(userRepo);
+const registrationService = new RegistrationService(userRepo);
 
 const sessionSecret = config.cookieProtection.secretKey.toString("base64");
 const PostgresSessionStore = connectPgSimple(session);

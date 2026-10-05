@@ -13,7 +13,6 @@ interface User {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (credentials: { username: string; password: string }) => Promise<void>;
   federatedLogin: () => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -125,12 +124,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (credentials: { username: string; password: string }) => {
-    await apiClient.login(credentials);
-    setIsAuthenticated(true);
-    await fetchProfile();
-  };
-
   const federatedLogin = async () => {
     await apiClient.federatedLogin();
     setIsAuthenticated(true);
@@ -144,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, federatedLogin, logout, loading, fetchProfile }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, federatedLogin, logout, loading, fetchProfile }}>
       {children}
     </AuthContext.Provider>
   );

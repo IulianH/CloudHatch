@@ -37,14 +37,6 @@ const migrationStatements: readonly string[] = [
     );
   `,
   `
-    CREATE TABLE IF NOT EXISTS sent_emails (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      email_type INTEGER NOT NULL,
-      sent_at TIMESTAMPTZ NOT NULL
-    );
-  `,
-  `
     CREATE TABLE IF NOT EXISTS session (
       sid TEXT PRIMARY KEY,
       sess JSON NOT NULL,
@@ -87,10 +79,6 @@ const migrationStatements: readonly string[] = [
   `
     CREATE INDEX IF NOT EXISTS ix_refresh_tokens_expires_at
     ON refresh_tokens (expires_at);
-  `,
-  `
-    CREATE INDEX IF NOT EXISTS ix_sent_emails_user_type_sent_at
-    ON sent_emails (user_id, email_type, sent_at);
   `,
 ];
 

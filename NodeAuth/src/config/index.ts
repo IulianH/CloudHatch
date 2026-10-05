@@ -2,11 +2,8 @@ import dotenv from "dotenv";
 import path from "path";
 
 import { JwtConfig } from "./jwt";
-import { LoginSettings } from "./login";
 import { defaultAppleOAuthConfig, defaultGoogleOAuthConfig, defaultMicrosoftOAuthConfig, AppleOAuthConfig, GoogleOAuthConfig, MicrosoftOAuthConfig } from "./oauth";
 import { RefreshTokenConfig } from "./refreshToken";
-import { RegisterSettings } from "./register";
-import { RegistrationEmailSettings } from "./email";
 
 const environment = process.env.NODE_ENV?.toLowerCase();
 const projectRoot = path.resolve(__dirname, "..", "..");
@@ -47,9 +44,6 @@ export interface AppConfig {
   authCookie: AuthCookieConfig;
   cookieProtection: CookieProtectionConfig;
   origin: OriginConfig;
-  login: LoginSettings;
-  register: RegisterSettings;
-  registrationEmail: RegistrationEmailSettings;
   googleOAuth: GoogleOAuthConfig;
   appleOAuth: AppleOAuthConfig;
   microsoftOAuth: MicrosoftOAuthConfig;
@@ -142,42 +136,6 @@ export const loadConfig = (): AppConfig => ({
     // Frontend origin allowed to call this service cross-origin (CORS).
     // Empty string disables CORS headers entirely (same-origin setups).
     allowedOrigin: optionalEnv("CORS_ALLOWED_ORIGIN", "").replace(new RegExp("/+$"), ""),
-  },
-  login: {
-    maxFailedPasswordLoginAttempts: optionalNumber(
-      "LOGIN_MAX_FAILED_ATTEMPTS",
-      6,
-    ),
-    accountLockDurationInMinutes: optionalNumber(
-      "LOGIN_ACCOUNT_LOCK_DURATION_MINUTES",
-      1,
-    ),
-    lockoutStartsAfterAttempts: optionalNumber(
-      "LOGIN_LOCKOUT_STARTS_AFTER_ATTEMPTS",
-      3,
-    ),
-  },
-  register: {
-    emailConfirmationTokenExpiresInHours: optionalNumber(
-      "REGISTER_EMAIL_CONFIRM_TOKEN_EXPIRES_HOURS",
-      72,
-    ),
-    emailConfirmUrl: optionalEnv(
-      "REGISTER_EMAIL_CONFIRM_URL",
-      "https://localhost/confirmEmail",
-    ),
-  },
-  registrationEmail: {
-    maxRegistrationEmailsPerDay: optionalNumber(
-      "REGISTRATION_EMAIL_MAX_PER_DAY",
-      15,
-    ),
-    resendConfirmationEmailCooldownInSeconds: optionalNumber(
-      "REGISTRATION_EMAIL_RESEND_COOLDOWN_SECONDS",
-      15,
-    ),
-    from: optionalEnv("REGISTRATION_EMAIL_FROM", "no-reply@cloudhatch.com"),
-    subject: optionalEnv("REGISTRATION_EMAIL_SUBJECT", "Confirm your email"),
   },
   googleOAuth: {
     ...defaultGoogleOAuthConfig,

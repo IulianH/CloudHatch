@@ -45,17 +45,3 @@ export function isRelativeUrl(url: string): boolean {
   return url.startsWith('/');
 }
 
-/**
- * Convert an absolute URL to a relative path
- * @param absoluteUrl - The absolute URL
- * @returns The relative path
- */
-export function toRelativePath(absoluteUrl: string): string {
-  try {
-    const url = new URL(absoluteUrl);
-    return url.pathname;
-  } catch {
-    // If it's already a relative path, return as is
-    return absoluteUrl;
-  }
-}
