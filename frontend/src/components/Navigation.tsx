@@ -4,12 +4,10 @@ import { useState, useEffect, FocusEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import ChangePassword from '@/components/ChangePassword';
 
 export default function Navigation() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const router = useRouter();
   const { isAuthenticated, user, logout, loading, fetchProfile } = useAuth();
 
@@ -141,19 +139,6 @@ export default function Navigation() {
                       className="absolute left-0 bottom-full mb-2 w-full border border-gray-200 bg-white shadow-md z-10"
                       role="menu"
                     >
-                      {user?.idp === 'local' && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsUserMenuOpen(false);
-                            setIsChangePasswordOpen(true);
-                          }}
-                          className="w-full px-4 py-2 text-left hover:bg-gray-100"
-                          role="menuitem"
-                        >
-                          Change password
-                        </button>
-                      )}
                       <button
                         type="button"
                         onClick={() => {
@@ -170,10 +155,6 @@ export default function Navigation() {
                 </div>
               </div>
             )}
-            <ChangePassword
-              isOpen={isChangePasswordOpen}
-              onClose={() => setIsChangePasswordOpen(false)}
-            />
           </>
         </div>
       </div>

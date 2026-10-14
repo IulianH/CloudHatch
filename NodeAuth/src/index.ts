@@ -12,11 +12,12 @@ import { buildAuthRouter } from "./controllers/authController";
 import { config } from "./config";
 import { FederatedUser } from "./models/FederatedUser";
 import { buildAppleClientSecret } from "./utils/appleClientSecret";
+import { acceptMicrosoftTenantIssuers } from "./utils/microsoftIssuer";
 import { IRefreshTokenRepository } from "./repos/interfaces/IRefreshTokenRepository";
 import { IUserRepo } from "./repos/interfaces/IUserRepo";
 import { PostgresRefreshTokenRepository } from "./repos/postgres/PostgresRefreshTokenRepository";
 import { PostgresUserRepo } from "./repos/postgres/PostgresUserRepo";
-import { getPgPool } from "./repos/postgres/db";
+import { getPgPool, queryAsync } from "./repos/postgres/db";
 import { migratePostgresSchemaAsync } from "./repos/postgres/migrate";
 import { JwtTokenService } from "./services/JwtTokenService";
 import { RefreshTokenService } from "./services/RefreshTokenService";
@@ -73,7 +74,10 @@ app.use(
     store: sessionStore,
     cookie: {
       httpOnly: true,
-      sameSite: "lax",
+      // The web client app is deployed on a different origin than this
+      // service, so the final federated-login POST is cross-site and needs
+      // SameSite=None to carry the session cookie.
+      sameSite: "none",
       secure: true,
       path: "/",
     },
@@ -89,204 +93,207 @@ passport.deserializeUser((user: FederatedUser, done) => {
 });
 
 if (config.googleOAuth.enabled) {
-  if (!config.googleOAuth.clientId || !config.googleOAuth.clientSecret) {
-    throw new Error("Google OAuth credentials are missing.");
-  }
-
-  const callbackUrl = new URL(
-    config.googleOAuth.callbackPath,
-    config.origin.baseUrl,
-  ).toString();
-
-  passport.use(
-    "google",
-    new OpenIdConnectStrategy(
-      {
-        issuer: "https://accounts.google.com",
-        authorizationURL: "https://accounts.google.com/o/oauth2/v2/auth",
-        tokenURL: "https://oauth2.googleapis.com/token",
-        userInfoURL: "https://openidconnect.googleapis.com/v1/userinfo",
-        clientID: config.googleOAuth.clientId,
-        clientSecret: config.googleOAuth.clientSecret,
-        callbackURL: callbackUrl,
-        scope: ["openid", "email", "profile"],
-        pkce: "S256",
-        nonce: true,
-      },
-      async (
-        issuer: string,
-        profile: OpenIdConnectProfile,
-        done: VerifyCallback,
-      ) => {
-        try {
-          if (!profile?.id) {
-            return done(new Error("Missing external id from provider."));
-          }
-          const email = profile.emails?.[0]?.value;
-          const user: FederatedUser = {
-            id: profile.id,
-            issuer,
-            name: profile.displayName ?? undefined,
-            email,
-            username: profile.username ?? email ?? undefined,
-          };
-          await registrationService.registerFederatedAsync(user);
-          return done(null, user);
-        } catch (error) {
-          return done(error as Error);
-        }
-      },
-    ),
-  );
+if (!config.googleOAuth.clientId || !config.googleOAuth.clientSecret) {
+  throw new Error("Google OAuth credentials are missing.");
 }
+
+const googleCallbackUrl = new URL(
+  config.googleOAuth.callbackPath,
+  config.origin.baseUrl,
+).toString();
+
+passport.use(
+  "google",
+  new OpenIdConnectStrategy(
+    {
+      issuer: "https://accounts.google.com",
+      authorizationURL: "https://accounts.google.com/o/oauth2/v2/auth",
+      tokenURL: "https://oauth2.googleapis.com/token",
+      userInfoURL: "https://openidconnect.googleapis.com/v1/userinfo",
+      clientID: config.googleOAuth.clientId,
+      clientSecret: config.googleOAuth.clientSecret,
+      callbackURL: googleCallbackUrl,
+      scope: ["openid", "email", "profile"],
+      pkce: "S256",
+      nonce: true,
+    },
+    async (
+      issuer: string,
+      profile: OpenIdConnectProfile,
+      done: VerifyCallback,
+    ) => {
+      try {
+        if (!profile?.id) {
+          return done(new Error("Missing external id from provider."));
+        }
+        const email = profile.emails?.[0]?.value;
+        const user: FederatedUser = {
+          id: profile.id,
+          issuer,
+          name: profile.displayName ?? undefined,
+          email,
+          username: profile.username ?? email ?? undefined,
+        };
+        await registrationService.registerFederatedAsync(user);
+        return done(null, user);
+      } catch (error) {
+        return done(error as Error);
+      }
+    },
+  ),
+);
+}
+
 
 if (config.microsoftOAuth.enabled) {
-  if (!config.microsoftOAuth.clientId || !config.microsoftOAuth.clientSecret) {
-    throw new Error("Microsoft OAuth credentials are missing.");
-  }
-
-  const callbackUrl = new URL(
-    config.microsoftOAuth.callbackPath,
-    config.origin.baseUrl,
-  ).toString();
-  const tenantSegment = config.microsoftOAuth.tenantId || "common";
-  const issuerTenantId =
-    tenantSegment === "consumers"
-      ? "9188040d-6c67-4c5b-b112-36a304b66dad"
-      : tenantSegment;
-
-  passport.use(
-    "microsoft",
-    new OpenIdConnectStrategy(
-      {
-        issuer: `https://login.microsoftonline.com/${issuerTenantId}/v2.0`,
-        authorizationURL: `https://login.microsoftonline.com/${tenantSegment}/oauth2/v2.0/authorize`,
-        tokenURL: `https://login.microsoftonline.com/${tenantSegment}/oauth2/v2.0/token`,
-        userInfoURL: "https://graph.microsoft.com/oidc/userinfo",
-        clientID: config.microsoftOAuth.clientId,
-        clientSecret: config.microsoftOAuth.clientSecret,
-        callbackURL: callbackUrl,
-        scope: ["openid", "email", "profile"],
-        pkce: "S256",
-        nonce: true,
-      },
-      async (
-        issuer: string,
-        profile: OpenIdConnectProfile,
-        done: VerifyCallback,
-      ) => {
-        try {
-          if (!profile?.id) {
-            return done(new Error("Missing external id from provider."));
-          }
-          const microsoftProfile = profile as OpenIdConnectProfile & {
-            _json?: { email?: string; preferred_username?: string };
-          };
-          const email =
-            profile.emails?.[0]?.value ??
-            microsoftProfile._json?.email ??
-            microsoftProfile._json?.preferred_username;
-          const user: FederatedUser = {
-            id: profile.id,
-            issuer,
-            name: profile.displayName ?? undefined,
-            email,
-            username:
-              profile.username ??
-              email ??
-              microsoftProfile._json?.preferred_username ??
-              undefined,
-          };
-          await registrationService.registerFederatedAsync(user);
-          return done(null, user);
-        } catch (error) {
-          return done(error as Error);
-        }
-      },
-    ),
-  );
+if (!config.microsoftOAuth.clientId || !config.microsoftOAuth.clientSecret) {
+  throw new Error("Microsoft OAuth credentials are missing.");
 }
+
+const microsoftCallbackUrl = new URL(
+  config.microsoftOAuth.callbackPath,
+  config.origin.baseUrl,
+).toString();
+const tenantSegment = config.microsoftOAuth.tenantId || "common";
+const issuerTenantId =
+  tenantSegment === "consumers"
+    ? "9188040d-6c67-4c5b-b112-36a304b66dad"
+    : tenantSegment;
+
+const microsoftStrategy = new OpenIdConnectStrategy(
+    {
+      issuer: `https://login.microsoftonline.com/${issuerTenantId}/v2.0`,
+      authorizationURL: `https://login.microsoftonline.com/${tenantSegment}/oauth2/v2.0/authorize`,
+      tokenURL: `https://login.microsoftonline.com/${tenantSegment}/oauth2/v2.0/token`,
+      userInfoURL: "https://graph.microsoft.com/oidc/userinfo",
+      clientID: config.microsoftOAuth.clientId,
+      clientSecret: config.microsoftOAuth.clientSecret,
+      callbackURL: microsoftCallbackUrl,
+      scope: ["openid", "email", "profile"],
+      pkce: "S256",
+      nonce: true,
+    },
+    async (
+      issuer: string,
+      profile: OpenIdConnectProfile,
+      done: VerifyCallback,
+    ) => {
+      try {
+        if (!profile?.id) {
+          return done(new Error("Missing external id from provider."));
+        }
+        const microsoftProfile = profile as OpenIdConnectProfile & {
+          _json?: { email?: string; preferred_username?: string };
+        };
+        const email =
+          profile.emails?.[0]?.value ??
+          microsoftProfile._json?.email ??
+          microsoftProfile._json?.preferred_username;
+        const user: FederatedUser = {
+          id: profile.id,
+          issuer,
+          name: profile.displayName ?? undefined,
+          email,
+          username:
+            profile.username ??
+            email ??
+            microsoftProfile._json?.preferred_username ??
+            undefined,
+        };
+        await registrationService.registerFederatedAsync(user);
+        return done(null, user);
+      } catch (error) {
+        return done(error as Error);
+      }
+    },
+  );
+acceptMicrosoftTenantIssuers(microsoftStrategy);
+passport.use("microsoft", microsoftStrategy);
+}
+
+
 
 if (config.appleOAuth.enabled) {
-  const apple = config.appleOAuth;
-  if (
-    !apple.clientId ||
-    !apple.teamId ||
-    !apple.keyId ||
-    !apple.privateKey
-  ) {
-    throw new Error("Apple OAuth credentials are missing.");
-  }
-
-  const callbackUrl = new URL(
-    apple.callbackPath,
-    config.origin.baseUrl,
-  ).toString();
-
-  passport.use(
-    "apple",
-    new OpenIdConnectStrategy(
-      {
-        issuer: "https://appleid.apple.com",
-        authorizationURL: "https://appleid.apple.com/auth/authorize",
-        tokenURL: "https://appleid.apple.com/auth/token",
-        clientID: apple.clientId,
-        // Apple's client secret is a JWT minted from the Sign in with Apple
-        // key, not a static string.
-        clientSecret: buildAppleClientSecret(apple),
-        callbackURL: callbackUrl,
-        // The strategy appends "openid" to the requested scopes.
-        scope: ["name", "email"],
-        // Apple rejects query responses once name/email scopes are
-        // requested; form_post is mandatory.
-        responseMode: "form_post",
-        nonce: true,
-        // Apple exposes no userinfo endpoint; the profile is built from
-        // the id_token claims. The placeholder is never fetched because
-        // skipUserProfile is set; it 404s loudly if that ever changes.
-        userInfoURL: "https://appleid.apple.com/auth/userinfo",
-        skipUserProfile: true,
-      },
-      async (
-        issuer: string,
-        profile: OpenIdConnectProfile,
-        done: VerifyCallback,
-      ) => {
-        try {
-          if (!profile?.id) {
-            return done(new Error("Missing external id from provider."));
-          }
-          const email = profile.emails?.[0]?.value;
-          const user: FederatedUser = {
-            id: profile.id,
-            issuer,
-            name: profile.displayName ?? undefined,
-            email,
-            username: profile.username ?? email ?? undefined,
-          };
-          await registrationService.registerFederatedAsync(user);
-          return done(null, user);
-        } catch (error) {
-          return done(error as Error);
-        }
-      },
-    ),
-  );
+const apple = config.appleOAuth;
+if (
+  !apple.clientId ||
+  !apple.teamId ||
+  !apple.keyId ||
+  !apple.privateKey
+) {
+  throw new Error("Apple OAuth credentials are missing.");
 }
+
+const appleCallbackUrl = new URL(
+  apple.callbackPath,
+  config.origin.baseUrl,
+).toString();
+
+passport.use(
+  "apple",
+  new OpenIdConnectStrategy(
+    {
+      issuer: "https://appleid.apple.com",
+      authorizationURL: "https://appleid.apple.com/auth/authorize",
+      tokenURL: "https://appleid.apple.com/auth/token",
+      clientID: apple.clientId,
+      // Apple's client secret is a JWT minted from the Sign in with Apple
+      // key, not a static string.
+      clientSecret: buildAppleClientSecret(apple),
+      callbackURL: appleCallbackUrl,
+      // The strategy appends "openid" to the requested scopes.
+      scope: ["name", "email"],
+      // Apple rejects query responses once name/email scopes are
+      // requested; form_post is mandatory.
+      responseMode: "form_post",
+      nonce: true,
+      // Apple exposes no userinfo endpoint; the profile is built from
+      // the id_token claims. The placeholder is never fetched because
+      // skipUserProfile is set; it 404s loudly if that ever changes.
+      userInfoURL: "https://appleid.apple.com/auth/userinfo",
+      skipUserProfile: true,
+    },
+    async (
+      issuer: string,
+      profile: OpenIdConnectProfile,
+      done: VerifyCallback,
+    ) => {
+      try {
+        if (!profile?.id) {
+          return done(new Error("Missing external id from provider."));
+        }
+        const email = profile.emails?.[0]?.value;
+        const user: FederatedUser = {
+          id: profile.id,
+          issuer,
+          name: profile.displayName ?? undefined,
+          email,
+          username: profile.username ?? email ?? undefined,
+        };
+        await registrationService.registerFederatedAsync(user);
+        return done(null, user);
+      } catch (error) {
+        return done(error as Error);
+      }
+    },
+  ),
+);
+}
+
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-const corsAllowedOrigin = config.origin.allowedOrigin;
-if (corsAllowedOrigin) {
+const webClientAppOrigin = config.origin.webClientAppOrigin;
+if (webClientAppOrigin) {
   app.use("/api/auth", (req, res, next) => {
     res.setHeader("Vary", "Origin");
-    if (req.headers.origin !== corsAllowedOrigin) {
+    if (req.headers.origin !== webClientAppOrigin) {
       next();
       return;
     }
 
-    res.setHeader("Access-Control-Allow-Origin", corsAllowedOrigin);
+    res.setHeader("Access-Control-Allow-Origin", webClientAppOrigin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
     if (req.method === "OPTIONS") {
       res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -312,7 +319,17 @@ app.use(
 );
 
 app.get("/health", (_req, res) => {
-  res.status(200).json({ status: "ok" });
+  res.status(200).type("text/plain").send("OK");
+});
+
+app.get("/health/db", async (_req, res) => {
+  try {
+    await queryAsync("SELECT 1");
+    res.status(200).type("text/plain").send("DATABASE OK");
+  } catch (error) {
+    console.error("Database health check failed", error);
+    res.status(500).type("text/plain").send("DATABASE NOT SET");
+  }
 });
 
 const startServerAsync = async (): Promise<void> => {

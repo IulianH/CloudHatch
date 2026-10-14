@@ -6,17 +6,18 @@ import Link from "next/link";
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Home() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, sessionExpired, networkError } = useAuth();
   const router = useRouter();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Redirect unauthenticated visitors to the login page
+  // Skip while a blocking modal (session expired / network error) is displayed
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    if (!loading && !isAuthenticated && !sessionExpired && !networkError) {
       setIsRedirecting(true);
       router.replace('/login');
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading, sessionExpired, networkError, router]);
 
   // Show loading state while checking authentication or during redirect
   if (loading || isRedirecting) {
@@ -34,7 +35,7 @@ export default function Home() {
       <div className="max-w-4xl mx-auto px-4 py-20">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4">
-            Welcome to CloudHatch
+            Welcome to FSoFe
           </h1>
           <p className="text-lg mb-10 max-w-2xl mx-auto">
             Your comprehensive cloud management platform. Deploy, monitor, and scale your applications with ease.
@@ -42,14 +43,8 @@ export default function Home() {
 
           <div className="flex gap-4 justify-center">
             <Link
-              href="/dashboard"
-              className="border border-black px-6 py-2 hover:bg-black hover:text-white transition-colors"
-            >
-              Get Started
-            </Link>
-            <Link
               href="#features"
-              className="border border-gray-400 px-6 py-2 hover:bg-gray-100 transition-colors"
+              className="border border-black px-6 py-2 hover:bg-black hover:text-white transition-colors"
             >
               Learn More
             </Link>

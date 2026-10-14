@@ -11,7 +11,7 @@ services:
       - NODE_ENV=development
     restart: unless-stopped
     networks:
-      - cloudhatch-network
+      - fsofe-network
 
   # Development service with hot reload
   frontend-dev:
@@ -28,10 +28,10 @@ services:
       - NODE_ENV=development
     restart: unless-stopped
     networks:
-      - cloudhatch-network
+      - fsofe-network
     profiles:
       - dev
 
 networks:
-  cloudhatch-network:
+  fsofe-network:
     driver: bridge

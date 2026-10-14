@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
+import NetworkErrorModal from "@/components/NetworkErrorModal";
+import SessionExpiredModal from "@/components/SessionExpiredModal";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 const inter = Inter({
@@ -17,7 +19,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CloudHatch - Cloud Management Platform",
+  title: "FSoFe - Cloud Management Platform",
   description: "A modern cloud management platform for developers and teams",
 };
 
@@ -36,6 +38,8 @@ export default function RootLayout({
           <main className="transition-all duration-300" style={{ marginLeft: 'var(--sidebar-width, 16rem)' }}>
             {children}
           </main>
+          <SessionExpiredModal />
+          <NetworkErrorModal />
         </AuthProvider>
       </body>
     </html>

@@ -8,13 +8,11 @@ type UserRow = {
   email: string | null;
   name: string | null;
   created_at: Date;
-  locked_until: Date | null;
   last_login: Date | null;
   is_locked: boolean;
   roles: string | null;
   external_id: string | null;
   issuer: string;
-  failed_login_count: number;
 };
 
 const toNullableDate = (value?: Date): Date | null => value ?? null;
@@ -25,13 +23,11 @@ const mapUserRow = (row: UserRow): User => ({
   email: row.email ?? undefined,
   name: row.name ?? undefined,
   createdAt: row.created_at,
-  lockedUntil: row.locked_until ?? undefined,
   lastLogin: row.last_login ?? undefined,
   isLocked: row.is_locked,
   roles: row.roles ?? undefined,
   externalId: row.external_id ?? undefined,
   issuer: row.issuer,
-  failedLoginCount: row.failed_login_count,
 });
 
 export class PostgresUserRepo implements IUserRepo {
@@ -44,17 +40,15 @@ export class PostgresUserRepo implements IUserRepo {
           email,
           name,
           created_at,
-          locked_until,
           last_login,
           is_locked,
           roles,
           external_id,
-          issuer,
-          failed_login_count
+          issuer
         )
         VALUES (
-          $1, $2, $3, $4, $5, $6,
-          $7, $8, $9, $10, $11, $12
+          $1, $2, $3, $4, $5,
+          $6, $7, $8, $9, $10
         )
       `,
       [
@@ -63,13 +57,11 @@ export class PostgresUserRepo implements IUserRepo {
         user.email ?? null,
         user.name ?? null,
         user.createdAt,
-        toNullableDate(user.lockedUntil),
         toNullableDate(user.lastLogin),
         user.isLocked,
         user.roles ?? null,
         user.externalId ?? null,
         user.issuer,
-        user.failedLoginCount,
       ],
     );
   }
@@ -95,13 +87,11 @@ export class PostgresUserRepo implements IUserRepo {
           email = $3,
           name = $4,
           created_at = $5,
-          locked_until = $6,
-          last_login = $7,
-          is_locked = $8,
-          roles = $9,
-          external_id = $10,
-          issuer = $11,
-          failed_login_count = $12
+          last_login = $6,
+          is_locked = $7,
+          roles = $8,
+          external_id = $9,
+          issuer = $10
         WHERE id = $1
       `,
       [
@@ -110,13 +100,11 @@ export class PostgresUserRepo implements IUserRepo {
         user.email ?? null,
         user.name ?? null,
         user.createdAt,
-        toNullableDate(user.lockedUntil),
         toNullableDate(user.lastLogin),
         user.isLocked,
         user.roles ?? null,
         user.externalId ?? null,
         user.issuer,
-        user.failedLoginCount,
       ],
     );
   }
@@ -129,6 +117,18 @@ export class PostgresUserRepo implements IUserRepo {
         LIMIT 1
       `,
       [nameIdentifier],
+    );
+    return result.rows[0] ? mapUserRow(result.rows[0]) : null;
+  }
+
+  async findByEmailAsync(email: string): Promise<User | null> {
+    const result = await queryAsync<UserRow>(
+      `
+        SELECT * FROM users
+        WHERE LOWER(email) = LOWER($1)
+        LIMIT 1
+      `,
+      [email],
     );
     return result.rows[0] ? mapUserRow(result.rows[0]) : null;
   }

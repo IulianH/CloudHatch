@@ -25,14 +25,14 @@ export interface MicrosoftOAuthConfig {
 }
 
 export const defaultGoogleOAuthConfig: GoogleOAuthConfig = {
-  enabled: false,
+  enabled: true,
   clientId: "",
   clientSecret: "",
   callbackPath: "/api/auth/web-google-callback",
 };
 
 export const defaultAppleOAuthConfig: AppleOAuthConfig = {
-  enabled: false,
+  enabled: true,
   clientId: "",
   teamId: "",
   keyId: "",
@@ -41,7 +41,7 @@ export const defaultAppleOAuthConfig: AppleOAuthConfig = {
 };
 
 export const defaultMicrosoftOAuthConfig: MicrosoftOAuthConfig = {
-  enabled: false,
+  enabled: true,
   clientId: "",
   clientSecret: "",
   callbackPath: "/api/auth/web-microsoft-callback",
