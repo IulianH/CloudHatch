@@ -24,18 +24,19 @@ services:
     build:
       context: ./NodeAuth
       dockerfile: Dockerfile
-    env_file:
-      - ./NodeAuth/.env
-      - ./NodeAuth/.env.development
     environment:
       - NODE_ENV=development
       - PORT=8080
-      - USE_IN_MEMORY_REPOS=false
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_USER=cloudhatch
       - POSTGRES_PASSWORD=cloudhatch
-      - POSTGRES_DB=nodeauth
+      - POSTGRES_DATABASE=nodeauth
+      - POSTGRES_USE_SSL=false
+      - JWT_KEY=dev-only-jwt-secret
+      - ORIGIN_SCHEME=https
+      - ORIGIN_HOST=localhost
+      - AUTH_COOKIE_SECRET_BASE64=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,11 +57,19 @@ services:
     build:
       context: ./NodeBackApi
       dockerfile: Dockerfile
-    env_file:
-      - ./NodeBackApi/.env.development
     environment:
       - NODE_ENV=development
       - PORT=8080
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=cloudhatch
+      - POSTGRES_PASSWORD=cloudhatch
+      - POSTGRES_DATABASE=nodeauth
+      - POSTGRES_USE_SSL=false
+      - JWT_KEY=dev-only-jwt-secret
+    depends_on:
+      postgres:
+        condition: service_healthy
     command:
       - node
       - --inspect=0.0.0.0:9230
