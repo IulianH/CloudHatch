@@ -1,7 +1,7 @@
 {
-  "name": "nodebackapi",
+  "name": "fsobe",
   "version": "1.0.0",
-  "description": "Node.js BackApi endpoints mirroring the .NET BackApi.",
+  "description": "FSoBE: Node.js back-end service mirroring the CloudHatch NodeBackApi endpoints.",
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node src/index.ts",
@@ -15,12 +15,15 @@
   "dependencies": {
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.18.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.0.10",
+    "@types/pg": "^8.16.0",
+    "@vercel/node": "^21.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

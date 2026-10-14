@@ -10,6 +10,18 @@ export class RegistrationService {
   async registerFederatedAsync(fedUser: FederatedUser): Promise<boolean> {
     let user = await this.repo.findByExternalIdAsync(fedUser.id);
     if (!user) {
+      if (fedUser.email) {
+        const existing = await this.repo.findByEmailAsync(fedUser.email);
+        if (existing) {
+          existing.externalId = fedUser.id;
+          existing.issuer = fedUser.issuer;
+          existing.email = fedUser.email;
+          existing.username = fedUser.username ?? existing.username ?? fedUser.email;
+          existing.name = fedUser.name ?? existing.name;
+          await this.repo.updateAsync(existing);
+          return true;
+        }
+      }
       user = {
         id: randomUUID(),
         externalId: fedUser.id,
@@ -20,7 +32,6 @@ export class RegistrationService {
         createdAt: new Date(),
         roles: "customer",
         isLocked: false,
-        failedLoginCount: 0,
       };
       await this.repo.insertAsync(user);
       return true;

@@ -135,6 +135,9 @@ export const serializeRefreshCookie = (
   const encrypted = encrypt(payload, protection.secretKey);
   return serializeCookie(authCookie.name, encrypted, {
     ...getCookieOptions(authCookie, origin),
+    // The web client app lives on a different origin, so login and refresh
+    // responses are cross-site; the cookie must be sent on those POSTs.
+    sameSite: "None",
   });
 };
 
@@ -147,7 +150,7 @@ export const serializeDeleteRefreshCookie = (
     path: cookiePath,
     httpOnly: true,
     secure: true,
-    sameSite: "Lax",
+    sameSite: "None",
     maxAgeSeconds: 0,
   });
 };

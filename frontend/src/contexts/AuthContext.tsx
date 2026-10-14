@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import AuthService from '@/lib/auth';
+import AuthService, { RecoveryResult } from '@/lib/auth';
 import apiClient from '@/lib/api';
 
 interface User {
@@ -17,6 +17,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   loading: boolean;
   fetchProfile: () => Promise<void>;
+  sessionExpired: boolean;
+  showSessionExpired: () => void;
+  networkError: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,9 +28,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
   const fetchingProfileRef = useRef(false);
   const pathname = usePathname();
   const authCheckAbortControllerRef = useRef<AbortController | null>(null);
+
+  // Show the session-expired modal when an API request fails with 401
+  // and the session cannot be recovered by a token refresh
+  useEffect(() => {
+    apiClient.setSessionExpiredCallback(() => setSessionExpired(true));
+    return () => apiClient.setSessionExpiredCallback(null);
+  }, []);
+
+  // Show the matching modal when a proactive (timer-driven) token refresh
+  // fails with a definitive outcome: 4xx rejection -> session expired,
+  // network error (no response) -> connectivity error
+  useEffect(() => {
+    AuthService.setRefreshFailureCallback((result: RecoveryResult) => {
+      if (result.rejected) {
+        setIsAuthenticated(false);
+        setUser(null);
+        setSessionExpired(true);
+      } else if (result.networkError) {
+        setNetworkError(true);
+      }
+    });
+    return () => AuthService.setRefreshFailureCallback(null);
+  }, []);
+
+  // Dismiss the blocking modals once the user reaches the login page
+  useEffect(() => {
+    if (pathname === '/login') {
+      setSessionExpired(false);
+      setNetworkError(false);
+    }
+  }, [pathname]);
 
   // Check authentication status on mount
   useEffect(() => {
@@ -62,13 +98,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // localStorage is empty - attempt to recover session from cookie
             // This will silently fail with 401 if no refresh token cookie exists
             // which is expected behavior for users who haven't logged in
-            const recovered = await AuthService.attemptSessionRecovery();
+            const { recovered, rejected, networkError: hadNetworkError } = await AuthService.attemptSessionRecovery();
             if (!abortController.signal.aborted) {
               if (recovered) {
                 setIsAuthenticated(true);
               } else {
                 setIsAuthenticated(false);
                 setUser(null);
+                if (rejected) {
+                  // The refresh endpoint definitively rejected a session that
+                  // previously existed (flag was set) - show the expired modal
+                  setSessionExpired(true);
+                } else if (hadNetworkError) {
+                  // The server could not be reached (no response/status code)
+                  // - show the network error modal
+                  setNetworkError(true);
+                }
               }
               setLoading(false);
             }
@@ -130,14 +175,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await fetchProfile();
   };
 
+  const showSessionExpired = () => {
+    AuthService.logout();
+    setIsAuthenticated(false);
+    setUser(null);
+    setSessionExpired(true);
+  };
+
   const logout = async () => {
     await apiClient.logout();
     setIsAuthenticated(false);
     setUser(null);
+    setSessionExpired(false);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, federatedLogin, logout, loading, fetchProfile }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, federatedLogin, logout, loading, fetchProfile, sessionExpired, showSessionExpired, networkError }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,4 @@
 import { PoolClient } from "pg";
-
 import { withPgClientAsync } from "./db";
 
 const MIGRATION_LOCK_KEY = 42881753;
@@ -11,20 +10,12 @@ const migrationStatements: readonly string[] = [
       username TEXT,
       email TEXT,
       name TEXT,
-      password TEXT,
       created_at TIMESTAMPTZ NOT NULL,
-      locked_until TIMESTAMPTZ,
       last_login TIMESTAMPTZ,
       is_locked BOOLEAN NOT NULL DEFAULT FALSE,
       roles TEXT,
       external_id TEXT,
-      issuer TEXT NOT NULL,
-      failed_login_count INTEGER NOT NULL DEFAULT 0 CHECK (failed_login_count >= 0),
-      email_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
-      email_confirmation_token TEXT,
-      email_confirmation_token_expires_at TIMESTAMPTZ,
-      reset_password_token TEXT,
-      reset_password_token_expires_at TIMESTAMPTZ
+      issuer TEXT NOT NULL
     );
   `,
   `
@@ -63,16 +54,6 @@ const migrationStatements: readonly string[] = [
     WHERE external_id IS NOT NULL;
   `,
   `
-    CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email_confirmation_token
-    ON users (email_confirmation_token)
-    WHERE email_confirmation_token IS NOT NULL;
-  `,
-  `
-    CREATE UNIQUE INDEX IF NOT EXISTS ux_users_reset_password_token
-    ON users (reset_password_token)
-    WHERE reset_password_token IS NOT NULL;
-  `,
-  `
     CREATE INDEX IF NOT EXISTS ix_refresh_tokens_user_id
     ON refresh_tokens (user_id);
   `,
@@ -82,8 +63,22 @@ const migrationStatements: readonly string[] = [
   `,
 ];
 
+const cleanupStatements: readonly string[] = [
+  `
+    ALTER TABLE users
+    DROP COLUMN IF EXISTS password,
+    DROP COLUMN IF EXISTS locked_until,
+    DROP COLUMN IF EXISTS failed_login_count,
+    DROP COLUMN IF EXISTS email_confirmed,
+    DROP COLUMN IF EXISTS email_confirmation_token,
+    DROP COLUMN IF EXISTS email_confirmation_token_expires_at,
+    DROP COLUMN IF EXISTS reset_password_token,
+    DROP COLUMN IF EXISTS reset_password_token_expires_at;
+  `,
+];
+
 const runMigrationsAsync = async (client: PoolClient): Promise<void> => {
-  for (const statement of migrationStatements) {
+  for (const statement of [...cleanupStatements, ...migrationStatements]) {
     await client.query(statement);
   }
 };

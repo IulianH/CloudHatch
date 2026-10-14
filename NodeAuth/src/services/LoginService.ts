@@ -9,19 +9,16 @@ export class LoginService {
     lockEnabled: boolean,
   ): Promise<User | null> {
     const user = await this.repo.findByExternalIdAsync(externalId);
-    if (!user || (lockEnabled && user.isLocked)) {
+    if (!user) {
+      console.warn("Login failed: user wasn't found", { externalId });
       return null;
     }
 
-    if (lockEnabled && user.lockedUntil) {
-      if (Date.now() <= user.lockedUntil.getTime()) {
-        return null;
-      }
+    if(lockEnabled && user.isLocked){
+      console.warn("Login failed: user is locked!", { externalId });
+      return null;
     }
-
     user.lastLogin = new Date();
-    user.lockedUntil = undefined;
-    user.failedLoginCount = 0;
     await this.repo.updateAsync(user);
     return user;
   }

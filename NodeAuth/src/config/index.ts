@@ -22,10 +22,10 @@ export interface CookieProtectionConfig {
 }
 
 export interface OriginConfig {
-  baseUrl: string;
+  scheme: string;
   host: string;
-  federationSuccessPath: string;
-  allowedOrigin: string;
+  baseUrl: string;
+  webClientAppOrigin: string;
 }
 
 export interface PostgresConfig {
@@ -43,6 +43,7 @@ export interface AppConfig {
   refreshToken: RefreshTokenConfig;
   authCookie: AuthCookieConfig;
   cookieProtection: CookieProtectionConfig;
+  errorPage: string;
   origin: OriginConfig;
   googleOAuth: GoogleOAuthConfig;
   appleOAuth: AppleOAuthConfig;
@@ -102,15 +103,15 @@ const requireBase64Key = (name: string, bytes: number): Buffer => {
 
 export const loadConfig = (): AppConfig => ({
   postgres: {
-    host: optionalEnv("POSTGRES_HOST", "postgres"),
+    host: requireEnv("POSTGRES_HOST"),
     port: optionalNumber("POSTGRES_PORT", 5432),
-    user: optionalEnv("POSTGRES_USER", "cloudhatch"),
-    password: optionalEnv("POSTGRES_PASSWORD", "cloudhatch"),
-    database: optionalEnv("POSTGRES_DB", "cloudhatch"),
-    useSsl: optionalBoolean("POSTGRES_USE_SSL", false),
+    user: requireEnv("POSTGRES_USER"),
+    password: requireEnv("POSTGRES_PASSWORD"),
+    database: requireEnv("POSTGRES_DATABASE"),
+    useSsl: optionalBoolean("POSTGRES_USE_SSL", true),
   },
   jwt: {
-    key: optionalEnv("JWT_KEY", ""),
+    key: requireEnv("JWT_KEY"),
     issuer: optionalEnv("JWT_ISSUER", "https://app.example.com"),
     audience: optionalEnv("JWT_AUDIENCE", "drive-api"),
     expiresInSeconds: optionalNumber("JWT_EXPIRES_IN_SECONDS", 900),
@@ -126,20 +127,24 @@ export const loadConfig = (): AppConfig => ({
   cookieProtection: {
     secretKey: requireBase64Key("AUTH_COOKIE_SECRET_BASE64", 32),
   },
-  origin: {
-    baseUrl: optionalEnv("ORIGIN_BASE_URL", "https://localhost"),
-    host: optionalEnv("ORIGIN_HOST", "localhost"),
-    federationSuccessPath: optionalEnv(
-      "ORIGIN_FEDERATION_SUCCESS_PATH",
-      "/federatedLogin",
-    ),
-    // Frontend origin allowed to call this service cross-origin (CORS).
-    // Empty string disables CORS headers entirely (same-origin setups).
-    allowedOrigin: optionalEnv("CORS_ALLOWED_ORIGIN", "").replace(new RegExp("/+$"), ""),
-  },
+  errorPage: optionalEnv("ERROR_PAGE", ""),
+  origin: (() => {
+    const scheme = optionalEnv("ORIGIN_SCHEME", "https");
+    const host = requireEnv("ORIGIN_HOST");
+    return {
+      scheme,
+      host,
+      baseUrl: `${scheme}://${host}`,
+      // Origin of the web client app (frontend). Used as the base for the
+      // post-login federation success redirect and, when set, as the single
+      // origin allowed to call this service cross-origin with credentials.
+      // Empty string disables CORS headers entirely (same-origin setups).
+      webClientAppOrigin: optionalEnv("WEB_CLIENT_APP_ORIGIN", "").replace(new RegExp("/+$"), ""),
+    };
+  })(),
   googleOAuth: {
     ...defaultGoogleOAuthConfig,
-    enabled: optionalBoolean("GOOGLE_OAUTH_ENABLED", false),
+    enabled: optionalBoolean("GOOGLE_OAUTH_ENABLED", true),
     clientId: optionalEnv("GOOGLE_OAUTH_CLIENT_ID", ""),
     clientSecret: optionalEnv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
     callbackPath: optionalEnv(
@@ -149,7 +154,7 @@ export const loadConfig = (): AppConfig => ({
   },
   appleOAuth: {
     ...defaultAppleOAuthConfig,
-    enabled: optionalBoolean("APPLE_OAUTH_ENABLED", false),
+    enabled: optionalBoolean("APPLE_OAUTH_ENABLED", true),
     clientId: optionalEnv("APPLE_CLIENT_ID", ""),
     teamId: optionalEnv("APPLE_TEAM_ID", ""),
     keyId: optionalEnv("APPLE_KEY_ID", ""),
@@ -164,7 +169,7 @@ export const loadConfig = (): AppConfig => ({
   },
   microsoftOAuth: {
     ...defaultMicrosoftOAuthConfig,
-    enabled: optionalBoolean("MICROSOFT_OAUTH_ENABLED", false),
+    enabled: optionalBoolean("MICROSOFT_OAUTH_ENABLED", true),
     clientId: optionalEnv("MICROSOFT_OAUTH_CLIENT_ID", ""),
     clientSecret: optionalEnv("MICROSOFT_OAUTH_CLIENT_SECRET", ""),
     callbackPath: optionalEnv(

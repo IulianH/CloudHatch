@@ -26,8 +26,8 @@ export const buildAuthRouter = ({
   const router = Router();
   const buildFederationSuccessUrl = (returnUrl?: string): string => {
     const url = new URL(
-      config.origin.federationSuccessPath,
-      config.origin.baseUrl,
+      "/federatedLogin",
+      config.origin.webClientAppOrigin || config.origin.baseUrl,
     );
     if (returnUrl) {
       url.searchParams.set("returnUrl", returnUrl);
@@ -35,6 +35,20 @@ export const buildAuthRouter = ({
     return url.toString();
   };
   const federationSuccessUrl = buildFederationSuccessUrl();
+
+  const sendCallbackError = (
+    res: Response,
+    errorCode: number,
+    fallbackStatus: number,
+  ): void => {
+    if (config.errorPage) {
+      const url = new URL(config.errorPage);
+      url.searchParams.set("error", errorCode.toString());
+      res.redirect(url.toString());
+      return;
+    }
+    res.sendStatus(fallbackStatus);
+  };
 
   const clearFederatedSession = async (req: Request): Promise<void> => {
     if (typeof req.logout === "function") {
@@ -74,18 +88,17 @@ export const buildAuthRouter = ({
         res.sendStatus(404);
         return;
       }
-
       passport.authenticate("google", (error: unknown, user?: FederatedUser) => {
         if (error || !user) {
           console.error("WebGoogleCallback failed", error);
-          res.sendStatus(401);
+          sendCallbackError(res, 100, 401);
           return;
         }
 
         req.logIn(user, (loginError) => {
           if (loginError) {
             console.error("WebGoogleCallback sign-in failed", loginError);
-            res.sendStatus(500);
+            sendCallbackError(res, 103, 500);
             return;
           }
           res.redirect(federationSuccessUrl);
@@ -101,7 +114,6 @@ export const buildAuthRouter = ({
         res.sendStatus(404);
         return;
       }
-
       const returnUrl =
         typeof req.query.returnUrl === "string" ? req.query.returnUrl : undefined;
       if (req.session) {
@@ -118,20 +130,19 @@ export const buildAuthRouter = ({
         res.sendStatus(404);
         return;
       }
-
       passport.authenticate(
         "microsoft",
         (error: unknown, user?: FederatedUser, info?: { message?: string }) => {
           if (error || !user) {
             console.error("WebMicrosoftCallback failed", error ?? info);
-            res.sendStatus(401);
+            sendCallbackError(res, 101, 401);
             return;
           }
 
           req.logIn(user, (loginError) => {
             if (loginError) {
               console.error("WebMicrosoftCallback sign-in failed", loginError);
-              res.sendStatus(500);
+              sendCallbackError(res, 104, 500);
               return;
             }
             const returnUrl = req.session?.microsoftReturnUrl;
@@ -152,7 +163,6 @@ export const buildAuthRouter = ({
         res.sendStatus(404);
         return;
       }
-
       passport.authenticate("apple")(req, res, next);
     },
   );
@@ -170,7 +180,6 @@ export const buildAuthRouter = ({
         res.sendStatus(404);
         return;
       }
-
       const body = req.body as Record<string, string | undefined>;
       const params = new URLSearchParams();
       for (const key of ["code", "state", "error", "error_description"]) {
@@ -190,18 +199,17 @@ export const buildAuthRouter = ({
         res.sendStatus(404);
         return;
       }
-
       passport.authenticate("apple", (error: unknown, user?: FederatedUser) => {
         if (error || !user) {
           console.error("WebAppleCallback failed", error);
-          res.sendStatus(401);
+          sendCallbackError(res, 102, 401);
           return;
         }
 
         req.logIn(user, (loginError) => {
           if (loginError) {
             console.error("WebAppleCallback sign-in failed", loginError);
-            res.sendStatus(500);
+            sendCallbackError(res, 105, 500);
             return;
           }
           res.redirect(federationSuccessUrl);
@@ -219,7 +227,7 @@ export const buildAuthRouter = ({
         console.error(
           "WebLoginFederated: missing federated identity or external id",
         );
-        res.sendStatus(401);
+        res.status(401).json({ message: "Missing federated identity or external id" });
         return;
       }
 
@@ -230,7 +238,7 @@ export const buildAuthRouter = ({
         true,
       );
       if (!user) {
-        res.sendStatus(401);
+        res.status(401).json({ message: "User not found or locked" });
         return;
       }
 

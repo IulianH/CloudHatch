@@ -12,9 +12,13 @@ import AuthService, { AuthResponse } from './auth';
 import { API_CONFIG } from '@/config/api';
 import { buildApiUrl, isRelativeUrl } from './url-utils';
 
+export type SessionExpiredCallback = () => void;
+
 class ApiClient {
-  constructor() {
-    // No need to store baseURL anymore - we'll resolve it dynamically
+  private sessionExpiredCallback: SessionExpiredCallback | null = null;
+
+  setSessionExpiredCallback(callback: SessionExpiredCallback | null): void {
+    this.sessionExpiredCallback = callback;
   }
 
   // Make authenticated API requests
@@ -40,10 +44,10 @@ class ApiClient {
     if (response.status === 401) {
       // Try to refresh token using the HttpOnly cookie
       // Attempt recovery in case localStorage was cleared but cookie still valid
-      const refreshed = await AuthService.refreshTokenIfNeeded(true);
+      const { recovered: refreshed } = await AuthService.refreshTokenIfNeeded(true);
       if (!refreshed) {
         AuthService.logout();
-        window.location.href = '/';
+        this.sessionExpiredCallback?.();
         throw new Error('Authentication expired');
       }
 

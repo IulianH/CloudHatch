@@ -4,7 +4,7 @@ import { migratePostgresSchemaAsync } from "./migrate";
 // One-off schema migration runner: `npm run migrate`.
 // Connection settings come from the environment (see src/config), e.g.:
 //   POSTGRES_HOST=... POSTGRES_PORT=5432 POSTGRES_USER=... \
-//   POSTGRES_PASSWORD=... POSTGRES_DB=... POSTGRES_USE_SSL=true npm run migrate
+//   POSTGRES_PASSWORD=... POSTGRES_DATABASE=... npm run migrate
 const runAsync = async (): Promise<void> => {
   try {
     await migratePostgresSchemaAsync();

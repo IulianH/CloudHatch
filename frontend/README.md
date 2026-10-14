@@ -1,6 +1,6 @@
-# CloudHatch Frontend
+# FSoFe
 
-This is a [Next.js](https://nextjs.org) project for the CloudHatch cloud management platform, bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is a [Next.js](https://nextjs.org) project for the FSoFe platform, bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
@@ -123,16 +123,16 @@ docker-compose up frontend
 **Individual Docker Commands:**
 ```bash
 # Build production image only
-docker build -t cloudhatch-frontend .
+docker build -t fsofe .
 
 # Build development image only
-docker build -f Dockerfile.dev -t cloudhatch-frontend-dev .
+docker build -f Dockerfile.dev -t fsofe-dev .
 
 # Run production image
-docker run -p 3000:3000 cloudhatch-frontend
+docker run -p 3000:3000 fsofe
 
 # Run development image with volume mounting
-docker run -p 3000:3000 -v $(pwd):/app -v /app/node_modules cloudhatch-frontend-dev
+docker run -p 3000:3000 -v $(pwd):/app -v /app/node_modules fsofe-dev
 ```
 
 #### Environment Variables
@@ -274,7 +274,7 @@ docker-compose --profile dev up frontend-dev
 docker system prune -a
 
 # Remove specific images
-docker rmi cloudhatch-frontend cloudhatch-frontend-dev
+docker rmi fsofe fsofe-dev
 ```
 
 **Permission issues (Linux/macOS):**
@@ -338,10 +338,10 @@ For production deployment with Docker:
 
 ```bash
 # Build production image
-docker build -t cloudhatch-frontend .
+docker build -t fsofe .
 
 # Run in production
-docker run -p 3000:3000 -e NODE_ENV=production cloudhatch-frontend
+docker run -p 3000:3000 -e NODE_ENV=production fsofe
 ```
 
 Or use Docker Compose in production:
