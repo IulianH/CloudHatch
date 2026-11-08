@@ -1,36 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from "next/link";
-import { useAuth } from '@/contexts/AuthContext';
+import RequireAuth from '@/components/RequireAuth';
 
 export default function Home() {
-  const { isAuthenticated, loading, sessionExpired, networkError } = useAuth();
-  const router = useRouter();
-  const [isRedirecting, setIsRedirecting] = useState(false);
-
-  // Redirect unauthenticated visitors to the login page
-  // Skip while a blocking modal (session expired / network error) is displayed
-  useEffect(() => {
-    if (!loading && !isAuthenticated && !sessionExpired && !networkError) {
-      setIsRedirecting(true);
-      router.replace('/login');
-    }
-  }, [isAuthenticated, loading, sessionExpired, networkError, router]);
-
-  // Show loading state while checking authentication or during redirect
-  if (loading || isRedirecting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p>Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <RequireAuth>
     <div className="min-h-screen">
       <div className="max-w-4xl mx-auto px-4 py-20">
         <div className="text-center">
@@ -69,5 +44,6 @@ export default function Home() {
         </div>
       </div>
     </div>
+    </RequireAuth>
   );
 }

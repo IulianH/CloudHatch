@@ -10,6 +10,8 @@ import {
 
 import { buildAuthRouter } from "./controllers/authController";
 import { config } from "./config";
+import { buildTrustedOrigins, isTrustedPostRequest } from "./utils/requestOrigin";
+import { csrfHeaderName } from "./utils/constants";
 import { FederatedUser } from "./models/FederatedUser";
 import { buildAppleClientSecret } from "./utils/appleClientSecret";
 import { acceptMicrosoftTenantIssuers } from "./utils/microsoftIssuer";
@@ -299,7 +301,7 @@ if (webClientAppOrigin) {
       res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
       res.setHeader(
         "Access-Control-Allow-Headers",
-        "Content-Type, Authorization, Cache-Control",
+        `Content-Type, Authorization, Cache-Control, ${csrfHeaderName}`,
       );
       res.setHeader("Access-Control-Max-Age", "86400");
       res.sendStatus(204);
@@ -308,6 +310,33 @@ if (webClientAppOrigin) {
     next();
   });
 }
+
+// State-changing POSTs must come from a trusted origin. The refresh cookie
+// is SameSite=None, so without this check any site could trigger token
+// rotation or logout via the victim's cookie. Apple's form_post callback is
+// a cross-site POST from appleid.apple.com and is exempt; it is protected by
+// the strategy's state validation instead.
+const trustedOrigins = buildTrustedOrigins(
+  config.origin.baseUrl,
+  config.origin.webClientAppOrigin,
+);
+const csrfExemptPaths = new Set(["/web-apple-callback"]);
+
+app.use("/api/auth", (req, res, next) => {
+  if (
+    !isTrustedPostRequest(
+      req.method,
+      req.path,
+      req.headers,
+      trustedOrigins,
+      csrfExemptPaths,
+    )
+  ) {
+    res.sendStatus(403);
+    return;
+  }
+  next();
+});
 
 app.use(
   "/api/auth",

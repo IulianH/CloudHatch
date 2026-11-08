@@ -8,8 +8,8 @@ endpoints backed by PostgreSQL, deployable to Vercel.
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/profile` | Returns claims of the authenticated caller (JWT required) |
-| `PUT` | `/changepassword` | Changes the password of the authenticated local account (JWT required) |
+| `GET` | `/api/profile` | Returns claims of the authenticated caller (JWT required) |
+| `PUT` | `/api/changepassword` | Changes the password of the authenticated local account (JWT required) |
 | `GET` | `/health` | Liveness check |
 | `GET` | `/health/db` | Database connectivity check |
 

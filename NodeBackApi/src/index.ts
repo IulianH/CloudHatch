@@ -49,8 +49,8 @@ if (webClientAppOrigin) {
 const userRepo = new PostgresUserRepo();
 const changePasswordService = new ChangePasswordService(userRepo);
 
-app.use("/", buildChangePasswordRouter({ changePasswordService }));
-app.use("/", buildProfileRouter());
+app.use("/api", buildChangePasswordRouter({ changePasswordService }));
+app.use("/api", buildProfileRouter());
 
 app.get("/health", (_req, res) => {
   res.status(200).type("text/plain").send("OK");
