@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
-import NetworkErrorModal from "@/components/NetworkErrorModal";
-import SessionExpiredModal from "@/components/SessionExpiredModal";
+import ApiErrorHandler from "@/components/ApiErrorHandler";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 const inter = Inter({
@@ -35,11 +34,10 @@ export default function RootLayout({
       >
         <AuthProvider>
           <Navigation />
+          <ApiErrorHandler />
           <main className="transition-all duration-300" style={{ marginLeft: 'var(--sidebar-width, 16rem)' }}>
             {children}
           </main>
-          <SessionExpiredModal />
-          <NetworkErrorModal />
         </AuthProvider>
       </body>
     </html>

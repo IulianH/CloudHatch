@@ -34,11 +34,11 @@ export default function FederatedLoginPage() {
         // and the redirect effect above will handle navigation
       } catch (err) {
         console.error('Federated login failed:', err);
-        // On any error (including 401), redirect to the login page
-        // This page has no user interaction, so errors should redirect
+        // On any error after retries are exhausted, redirect to the error
+        // page with the error param set (see sendCallbackError in NodeAuth)
         if (!hasRedirected.current) {
           hasRedirected.current = true;
-          router.push('/login');
+          router.push('/error?error=200');
         }
       }
     };
